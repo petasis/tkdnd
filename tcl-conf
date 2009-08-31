@@ -1,0 +1,13 @@
+#!/bin/sh
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+set libpath [file dirname [info library]]
+set includepath [file dirname $libpath]/include
+catch {file delete -force config.cache}
+
+puts "+++ Running 'configure --with-tcl=$libpath --with-tk=$libpath --with-tclinclude=$includepath --with-tkinclude=$includepath' in directory [pwd]..."
+catch {exec ./configure \
+            --with-tcl=$libpath --with-tk=$libpath \
+            --with-tclinclude=$includepath \
+            --with-tkinclude=$includepath >@stdout 2>@stderr}

@@ -1,0 +1,8 @@
+2007-02-09  Petasis George  <petasis@iit.demokritos.gr>
+        * /unix/TkDND_XDND.c: Fixed a bug in TkDND_RegisterTypesObjCmd, where
+        Tk_Parent was used to determine if a provided path was a toplevel.
+        Replaced by a check through Tk_IsTopLevel.
+        Bug reported by Alain Bertrand <alain.mp.bertrand@tele2.be>
+
+2006-04-24  Petasis George  <petasis@iit.demokritos.gr>
+        * TkDND version 2.0 started. 
