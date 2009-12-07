@@ -27,7 +27,7 @@ AC_INIT([tkdnd], [2.0])
 # as well as PKG_LIB_FILE and PKG_STUB_LIB_FILE.
 #--------------------------------------------------------------------
 
-TEA_INIT([3.6])
+TEA_INIT([3.7])
 
 AC_CONFIG_AUX_DIR(tclconfig)
 
@@ -77,7 +77,7 @@ TEA_ADD_INCLUDES([])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
-TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl])
+TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl library/tkdnd_osx.tcl])
 
 #--------------------------------------------------------------------
 # __CHANGE__
@@ -103,6 +103,17 @@ else
     #TEA_ADD_SOURCES([unix/unixFile.c])
     #TEA_ADD_LIBS([-lsuperfly])
 fi
+
+if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
+TEA_ADD_SOURCES([unix/TkDND_XDND.c])
+fi
+
+if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then
+            TEA_ADD_SOURCES([macosx/macdnd.m])
+            TEA_ADD_CFLAGS([-DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc])
+            TEA_ADD_LIBS([-framework Cocoa -framework Carbon])
+fi
+
 AC_SUBST(CLEANFILES)
 
 #--------------------------------------------------------------------
