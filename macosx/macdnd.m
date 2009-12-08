@@ -275,7 +275,7 @@ int UnregisterDragWidget(ClientData clientData, Tcl_Interp *ip,
 
 
 //initalize the package in the tcl interpreter, create tcl commands
-int Macdnd_Init (Tcl_Interp *ip) {
+int Tkdnd_Init (Tcl_Interp *ip) {
 	
   // set up an autorelease pool
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -303,6 +303,6 @@ int Macdnd_Init (Tcl_Interp *ip) {
   return TCL_OK;
 }
 
-int Macdnd_SafeInit(Tcl_Interp *ip) {
-  return Macdnd_Init(ip);
+int Tkdnd_SafeInit(Tcl_Interp *ip) {
+  return Tkdnd_Init(ip);
 }
