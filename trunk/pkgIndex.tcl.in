@@ -2,6 +2,5 @@
 # Tcl package index file
 #
 package ifneeded tkdnd @PACKAGE_VERSION@ \
-    "if {[tk windowingsystem] eq \"aqua\" && \"AppKit\" ni \[winfo server .\]} {error {TkAqua Cocoa required}}
-    source \{$dir/tkdnd.tcl\} ; \
-     tkdnd::initialise \{$dir\} @PKG_LIB_FILE@ @PACKAGE_NAME@"
+  "source \{$dir/tkdnd.tcl\} ; \
+   tkdnd::initialise \{$dir\} @PKG_LIB_FILE@ @PACKAGE_NAME@"

@@ -441,7 +441,7 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
   if (Tcl_CreateObjCommand(interp, "_register_types",
            (Tcl_ObjCmdProc*) TkDND_RegisterTypesObjCmd,
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
-      return TCL_ERROR;
+    return TCL_ERROR;
   }
 
   /* Finally, register the XDND Handler... */
