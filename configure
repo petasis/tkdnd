@@ -705,6 +705,8 @@ PKG_OBJECTS
 CLEANFILES
 TCL_INCLUDES
 TK_INCLUDES
+TK_TOP_DIR_NATIVE
+TK_XLIB_DIR_NATIVE
 XMKMF
 TCL_THREADS
 SHARED_BUILD
@@ -6889,7 +6891,7 @@ echo "$as_me: error: could not find stub source file '$i'" >&2;}
 
 
 
-    vars="library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl library/tkdnd_osx.tcl"
+    vars="library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl library/tkdnd_macosx.tcl"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
@@ -7229,7 +7231,78 @@ echo $ECHO_N "checking for X11 header files... $ECHO_C" >&6; }
 echo "${ECHO_T}${INCLUDE_DIR_NATIVE}" >&6; }
     fi
 
-#TEA_PRIVATE_TK_HEADERS
+
+    # Allow for --with-tkinclude to take effect and define ${ac_cv_c_tkh}
+
+    { echo "$as_me:$LINENO: checking for Tk private include files" >&5
+echo $ECHO_N "checking for Tk private include files... $ECHO_C" >&6; }
+
+    TK_SRC_DIR_NATIVE=`${CYGPATH} ${TK_SRC_DIR}`
+    TK_TOP_DIR_NATIVE=\"${TK_SRC_DIR_NATIVE}\"
+
+    # Check to see if tk<Plat>Port.h isn't already with the public headers
+    # Don't look for tkInt.h because that resides with tk.h in the core
+    # sources, but the <plat>Port headers are in a different directory
+    if test "${TEA_PLATFORM}" = "windows" -a \
+	-f "${ac_cv_c_tkh}/tkWinPort.h"; then
+	result="private headers found with public headers"
+    elif test "${TEA_PLATFORM}" = "unix" -a \
+	-f "${ac_cv_c_tkh}/tkUnixPort.h"; then
+	result="private headers found with public headers"
+    else
+	TK_GENERIC_DIR_NATIVE=\"${TK_SRC_DIR_NATIVE}/generic\"
+	TK_XLIB_DIR_NATIVE=\"${TK_SRC_DIR_NATIVE}/xlib\"
+	if test "${TEA_PLATFORM}" = "windows"; then
+	    TK_PLATFORM_DIR_NATIVE=\"${TK_SRC_DIR_NATIVE}/win\"
+	else
+	    TK_PLATFORM_DIR_NATIVE=\"${TK_SRC_DIR_NATIVE}/unix\"
+	fi
+	# Overwrite the previous TK_INCLUDES as this should capture both
+	# public and private headers in the same set.
+	# We want to ensure these are substituted so as not to require
+	# any *_NATIVE vars be defined in the Makefile
+	TK_INCLUDES="-I${TK_GENERIC_DIR_NATIVE} -I${TK_PLATFORM_DIR_NATIVE}"
+	# Detect and add ttk subdir
+	if test -d "${TK_SRC_DIR}/generic/ttk"; then
+	   TK_INCLUDES="${TK_INCLUDES} -I\"${TK_SRC_DIR_NATIVE}/generic/ttk\""
+	fi
+	if test "${TEA_WINDOWINGSYSTEM}" != "x11"; then
+	   TK_INCLUDES="${TK_INCLUDES} -I\"${TK_XLIB_DIR_NATIVE}\""
+	fi
+	if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then
+	   TK_INCLUDES="${TK_INCLUDES} -I\"${TK_SRC_DIR_NATIVE}/macosx\""
+	fi
+	if test "`uname -s`" = "Darwin"; then
+	    # If Tk was built as a framework, attempt to use
+	    # the framework's Headers and PrivateHeaders directories
+	    case ${TK_DEFS} in
+		*TK_FRAMEWORK*)
+			if test -d "${TK_BIN_DIR}/Headers" -a \
+				-d "${TK_BIN_DIR}/PrivateHeaders"; then
+			    TK_INCLUDES="-I\"${TK_BIN_DIR}/Headers\" -I\"${TK_BIN_DIR}/PrivateHeaders\" ${TK_INCLUDES}"
+			else
+			    TK_INCLUDES="${TK_INCLUDES} ${TK_INCLUDE_SPEC} `echo "${TK_INCLUDE_SPEC}" | sed -e 's/Headers/PrivateHeaders/'`"
+			fi
+			;;
+	    esac
+	    result="Using ${TK_INCLUDES}"
+	else
+	    if test ! -f "${TK_SRC_DIR}/generic/tkInt.h" ; then
+	       { { echo "$as_me:$LINENO: error: Cannot find private header tkInt.h in ${TK_SRC_DIR}" >&5
+echo "$as_me: error: Cannot find private header tkInt.h in ${TK_SRC_DIR}" >&2;}
+   { (exit 1); exit 1; }; }
+	    fi
+	    result="Using srcdir found in tkConfig.sh: ${TK_SRC_DIR}"
+	fi
+    fi
+
+
+
+
+
+    { echo "$as_me:$LINENO: result: ${result}" >&5
+echo "${ECHO_T}${result}" >&6; }
+
 
     if test "${TEA_WINDOWINGSYSTEM}" = "x11" ; then
 
@@ -12379,10 +12452,10 @@ PKG_OBJECTS!$PKG_OBJECTS$ac_delim
 CLEANFILES!$CLEANFILES$ac_delim
 TCL_INCLUDES!$TCL_INCLUDES$ac_delim
 TK_INCLUDES!$TK_INCLUDES$ac_delim
+TK_TOP_DIR_NATIVE!$TK_TOP_DIR_NATIVE$ac_delim
+TK_XLIB_DIR_NATIVE!$TK_XLIB_DIR_NATIVE$ac_delim
 XMKMF!$XMKMF$ac_delim
 TCL_THREADS!$TCL_THREADS$ac_delim
-SHARED_BUILD!$SHARED_BUILD$ac_delim
-AR!$AR$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -12424,6 +12497,8 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+SHARED_BUILD!$SHARED_BUILD$ac_delim
+AR!$AR$ac_delim
 CELIB_DIR!$CELIB_DIR$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 DL_LIBS!$DL_LIBS$ac_delim
@@ -12448,7 +12523,7 @@ WISH_PROG!$WISH_PROG$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 22; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 24; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

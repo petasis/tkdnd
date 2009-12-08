@@ -293,7 +293,7 @@ int Macdnd_Init (Tcl_Interp *ip) {
   Tcl_CreateObjCommand(ip, "::macdnd::unregisterdragwidget", UnregisterDragWidget,(ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
 		
 
-  if (Tcl_PkgProvide(ip, "MacDND", "1.0") != TCL_OK) {
+  if (Tcl_PkgProvide(ip, PACKAGE_NAME, PACKAGE_VERSION) != TCL_OK) {
     return TCL_ERROR;
   }
 
@@ -301,13 +301,8 @@ int Macdnd_Init (Tcl_Interp *ip) {
   [pool release];
 	
   return TCL_OK;
-	
-
 }
 
 int Macdnd_SafeInit(Tcl_Interp *ip) {
   return Macdnd_Init(ip);
 }
-
-
-
