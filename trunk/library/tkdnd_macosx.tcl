@@ -60,9 +60,9 @@ namespace eval macdnd {
 };# namespace macdnd
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_HandleXdndEnter
+#  Command macdnd::_HandleEnter
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleXdndEnter { path drag_source typelist } {
+proc macdnd::_HandleEnter { path drag_source typelist } {
   variable _typelist;                 set _typelist    $typelist
   variable _pressedkeys;              set _pressedkeys 1
   variable _action;                   set _action      {}
@@ -73,10 +73,11 @@ proc macdnd::_HandleXdndEnter { path drag_source typelist } {
   variable _drop_target;              set _drop_target {}
   variable _actionlist;               set _actionlist  \
                                            {copy move link ask private}
-  # puts "macdnd::_HandleXdndEnter: path=$path, drag_source=$drag_source,\
-  #             typelist=$typelist"
+    puts "macdnd::_HandleEnter: path=$path, drag_source=$drag_source,\
+                typelist=$typelist"
   update
-};# macdnd::_HandleXdndEnter
+  return default
+};# macdnd::_HandleEnter
 
 # ----------------------------------------------------------------------------
 #  Command macdnd::_HandleXdndPosition
