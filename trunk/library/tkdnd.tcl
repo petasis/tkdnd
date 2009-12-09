@@ -188,7 +188,7 @@ proc tkdnd::drop_target { mode path { types {} } } {
           bind <Destroy> $path {+ tkdnd::_RevokeDragDrop %W}
         }
         aqua {
-          eval macdnd::registerdragwidget [winfo toplevel $path] $types
+          macdnd::registerdragwidget [winfo toplevel $path] $types
         }
       }
       set old_types [bind $path <<DropTargetTypes>>]

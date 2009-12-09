@@ -1,3 +1,11 @@
+2009-12-09  Petasis George  <petasis@iit.demokritos.gr>
+        * /library/tkdnd_macosx.tcl:
+        * /macosx/macdnd.m: Updates to better integrate the OS X type
+        registration command with the rest of the TkDND internal API.
+
+2009-12-01  Walzer Kevin    <kw@codebykevin.com>
+        * /macosx/*: Initial support for drop targets under OS X (Cocoa).
+
 2007-02-09  Petasis George  <petasis@iit.demokritos.gr>
         * /unix/TkDND_XDND.c: Fixed a bug in TkDND_RegisterTypesObjCmd, where
         Tk_Parent was used to determine if a provided path was a toplevel.
