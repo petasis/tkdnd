@@ -174,8 +174,20 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
 //Register add Cocoa subview to serve as drop target; register dragged data types
 int RegisterDragWidget(ClientData clientData, Tcl_Interp *ip,
 		       int objc, Tcl_Obj *CONST objv[]) {
-  if (objc != 4) {
-    Tcl_WrongNumArgs(ip, 1, objv, "path stringtype? filetype?");
+  Tcl_Obj **type;
+  int typec, i, len;
+  char *str;
+  bool added_string = false, added_filenames = false;
+
+  if (objc != 3) {
+    Tcl_WrongNumArgs(ip, 1, objv, "path types-list");
+    return TCL_ERROR;
+  }
+
+  /*
+   * Get the list of desired drop target types...
+   */
+  if (Tcl_ListObjGetElements(ip, objv[2], &typec, &type) != TCL_OK) {
     return TCL_ERROR;
   }
 
@@ -213,24 +225,35 @@ int RegisterDragWidget(ClientData clientData, Tcl_Interp *ip,
 
   NSMutableArray *draggedtypes=[[NSMutableArray alloc] init];
 
-  //this is probably ugly; hard-coding argument positions to specific drag types; checking string lengths to see if types should be registered; can't find a better way to pass drag arguments from Tcl to Objective-C
-
-  int len;
-
-  Tcl_GetStringFromObj(objv[2], &len);
-  if (len == 0) {
-    NSLog(@"string type not registered");
-  } else {
-    [draggedtypes addObject: NSStringPboardType];
+  /*
+   * Iterate over all requested types...
+   */
+  for (i = 0; i < typec; ++i) {
+    str = Tcl_GetStringFromObj(type[i], &len);
+    if (strncmp(str, "*", len) == 0) {
+      /* A request for all available types... */
+      if (!added_string) {
+        [draggedtypes addObject: NSStringPboardType];
+        added_string = true;
+      }
+      if (!added_filenames) {
+        [draggedtypes addObject: NSFilenamesPboardType];
+        added_filenames = true;
+      }
+    } else if (strncmp(str, "NSStringPboardType", len) == 0) {
+      if (!added_string) {
+        [draggedtypes addObject: NSStringPboardType];
+        added_string = true;
+      }
+    } else if (strncmp(str, "NSFilenamesPboardType", len) == 0) {
+      if (!added_filenames) {
+        [draggedtypes addObject: NSFilenamesPboardType];
+        added_filenames = true;
+      }
+    } else {
+      /* Do what? Raise an error or silently ignore the unknown type? */
+    }
   }
-
-  Tcl_GetStringFromObj(objv[3], &len);
-  if (len == 0) {
-    NSLog(@"file type not registered");
-  } else {
-    [draggedtypes addObject: NSFilenamesPboardType];
-  }
-
 
   //finally, register the drag types
   [dropview registerForDraggedTypes:draggedtypes];

@@ -347,8 +347,8 @@ proc macdnd::_normalise_data { type data } {
 # ----------------------------------------------------------------------------
 proc macdnd::_platform_specific_type { type } {
   switch $type {
-    DND_Text   {return [list string]}
-    DND_Files  {return [list files]}
+    DND_Text   {return [list NSStringPboardType]}
+    DND_Files  {return [list NSFilenamesPboardType]}
     default    {return [list $type]}
   }
 }; # macdnd::_platform_specific_type
@@ -358,9 +358,9 @@ proc macdnd::_platform_specific_type { type } {
 # ----------------------------------------------------------------------------
 proc macdnd::_platform_independent_type { type } {
   switch $type {
-    string        {return DND_Text}
-    files         {return DND_Files}
-    default       {return [list $type]}
+    NSStringPboardType      {return DND_Text}
+    NSFilenamesPboardType   {return DND_Files}
+    default                 {return [list $type]}
   }
 }; # macdnd::_platform_independent_type
 
