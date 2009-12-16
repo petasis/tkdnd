@@ -34,12 +34,10 @@
 
 
 #basic API for Mac Drag and Drop
-#generate virtual events: <<MacDragEnter>>, <<MacDragExit>>, <<MacDropPerform>>
 
 #two data types supported: strings and file paths
 
 #two commands at C level: ::macdnd::registerdragwidget and ::macdnd::unregisterdragwidget
-#::macdnd::registerdragwidget has hard-coded args: path stringtype filetype -- must have all three; if widget does not support strings, put {} there; if does not support files, put {} there; uses string length of that arg position to determine whether drag type is supported
 
 #data retrieval mechanism: text or file paths are copied from drag clipboard to system clipboard and retrieved via [clipboard get]; array of file paths is converted to single tab-separated string, can be split into Tcl list
 
@@ -73,15 +71,19 @@ proc macdnd::_HandleEnter { path drag_source typelist } {
   variable _drop_target;              set _drop_target {}
   variable _actionlist;               set _actionlist  \
                                            {copy move link ask private}
-    puts "macdnd::_HandleEnter: path=$path, drag_source=$drag_source,\
-                typelist=$typelist"
+  #  puts "macdnd::_HandleEnter: path=$path, drag_source=$drag_source,\
+ #       typelist=$typelist"
+
+   #This command at the script level does not work; binding the <<DropEnter>> event in this procedure prevents drops from working. The Mac, at the C level, changes the cursor when we are over a valid drag target, so additional bindings are not necessary.
+ 
+  set _drop_target  $path 
   update
   return default
 };# macdnd::_HandleEnter
 
-# ----------------------------------------------------------------------------
-#  Command macdnd::_HandleXdndPosition
-# ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------
+#  Command macdnd::_HandleXdndPosition 
+# -----------------------------------------------------------------------------------------
 proc macdnd::_HandleXdndPosition { drop_target rootX rootY } {
   variable _types
   variable _typelist
@@ -92,13 +94,17 @@ proc macdnd::_HandleXdndPosition { drop_target rootX rootY } {
   variable _common_drop_target_types
   variable _drag_source
   variable _drop_target
+
+
+#This command is  not implementedat the C level for OSX because it prevents drops.
+
   # puts "macdnd::_HandleXdndPosition: drop_target=$drop_target,\
   #       _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
 
   if {![info exists _drag_source] && ![string length $_drag_source]} {
     return refuse_drop
   }
-  ## Does the new drop target support any of our new types? 
+  #Does the new drop target support any of our new types? 
   set _types [bind $drop_target <<DropTargetTypes>>]
   if {[llength $_types]} {
     ## Examine the drop target types, to find at least one match with the drag
@@ -113,8 +119,9 @@ proc macdnd::_HandleXdndPosition { drop_target rootX rootY } {
     }
   }
   
-  # puts "($_drop_target) -> ($drop_target)"
+   puts "($_drop_target) -> ($drop_target)"
   if {$drop_target != $_drop_target} {
+      puts "no drop target"
     if {[string length $_drop_target]} {
       ## Call the <<DropLeave>> event.
       set cmd [bind $_drop_target <<DropLeave>>]
@@ -158,8 +165,8 @@ proc macdnd::_HandleXdndPosition { drop_target rootX rootY } {
     set _drop_target $drop_target
   }
   
-  set _action refuse_drop
-  set _drop_target {}
+ set _action refuse_drop
+ set _drop_target {}
   if {[info exists common_drag_source_types]} {
     set _action copy
     set _common_drag_source_types $common_drag_source_types
@@ -182,12 +189,12 @@ proc macdnd::_HandleXdndPosition { drop_target rootX rootY } {
   }
   # Return values: copy, move, link, ask, private, refuse_drop, default
   return $_action
-};# macdnd::_HandleXdndPosition
+};#macdnd::_HandleXdndPosition
 
 # ----------------------------------------------------------------------------
 #  Command macdnd::_HandleXdndLeave
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleXdndLeave {  } {
+proc macdnd::_HandleXdndLeave { args  } {
   variable _types
   variable _typelist
   variable _actionlist
@@ -198,7 +205,10 @@ proc macdnd::_HandleXdndLeave {  } {
   variable _drag_source
   variable _drop_target
 
-  # puts "macdnd::_HandleXdndLeave! ($_drop_target)"
+
+    ##Not necessary to implement this at the script level; C implementation takes care of changing cursor to indicate we have moved out of drag target.
+ 
+  # puts "macdnd::_HandleXdndLeave  (_drop_target)"
   if {[info exists _drop_target] && [string length $_drop_target]} {
     set cmd [bind $_drop_target <<DropLeave>>]
     if {[string length $cmd]} {
@@ -224,7 +234,7 @@ proc macdnd::_HandleXdndLeave {  } {
 # ----------------------------------------------------------------------------
 #  Command macdnd::_HandleXdndDrop
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleXdndDrop { time } {
+proc macdnd::_HandleXdndDrop { args } {
   variable _types
   variable _typelist
   variable _actionlist
@@ -237,17 +247,21 @@ proc macdnd::_HandleXdndDrop { time } {
   set rootX 0
   set rootY 0
 
-  # puts "macdnd::_HandleXdndDrop: $time"
+  
+  #these lines interfere with the drop, so they are commented out
 
-  if {![info exists _drag_source] && ![string length $_drag_source]} {
-    return refuse_drop
-  }
-  if {![info exists _drop_target] && ![string length $_drop_target]} {
-    return refuse_drop
-  }
-  if {![llength $_common_drag_source_types]} {return refuse_drop}
-  ## Get the dropped data.
+  # if {![info exists _drag_source] && ![string length $_drag_source]} {
+  #   return refuse_drop
+  # }
+  # if {![info exists _drop_target] && ![string length $_drop_target]} {
+  #   return refuse_drop
+  # }
+  # if {![llength $_common_drag_source_types]} {return refuse_drop}
+
+  ## Get the drop target and dropped data.
+  set _drop_target [lindex $args 0]
   set data [_GetDroppedData]
+
   ## Try to select the most specific <<Drop>> event.
   foreach type [concat $_common_drag_source_types $_common_drop_target_types] {
     set type [_platform_independent_type $type]
@@ -288,8 +302,9 @@ proc macdnd::_HandleXdndDrop { time } {
 # ----------------------------------------------------------------------------
 proc macdnd::_GetDroppedData {  } {
   variable _drop_target
-  return [selection get -displayof $_drop_target \
-                        -selection XdndSelection -type STRING]
+
+    ##must use [clipboard get] because Xselection code returns error
+  return [clipboard get]\n
 };# macdnd::_GetDroppedData
 
 # ----------------------------------------------------------------------------

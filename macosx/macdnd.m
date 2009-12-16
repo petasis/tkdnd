@@ -101,7 +101,6 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
   Tk_Window tkwin    = (Tk_Window) winPtr;
   Tcl_Interp *interp = Tk_Interp(tkwin);
-  sourceDragMask     = [sender draggingSourceOperationMask];
   sourcePasteBoard   = [sender draggingPasteboard];
   
   Tcl_Obj* objv[4], *element, *result;
@@ -152,26 +151,6 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
     }
   }
   return NSDragOperationNone;
-#if 0
-  bzero(&event, sizeof(XVirtualEvent));
-  event.type = VirtualEvent;
-  event.serial = LastKnownRequestProcessed(Tk_Display(tkwin));
-  event.send_event = false;
-  event.display = Tk_Display(tkwin);
-  event.event = Tk_WindowId(tkwin);
-  event.root = XRootWindow(Tk_Display(tkwin), 0);
-  event.subwindow = None;
-  event.time = TkpGetMS();
-  XQueryPointer(NULL, winPtr->window, NULL, NULL,
-		&event.x_root, &event.y_root, &x, &y, &event.state);
-  Tk_TopCoordsToWindow(tkwin, x, y, &event.x, &event.y);
-  event.same_screen = true;
-  event.name = Tk_GetUid("MacDragEnter");
-  Tk_QueueWindowEvent((XEvent *) &event, TCL_QUEUE_TAIL);
-
-  //return valid NSDragOperations
-  return NSDragOperationEvery;
-#endif
 }
 
 //prepare to perform drag operation
@@ -180,12 +159,18 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   return YES;
 }
 
-//perform drag operations: generate <<MacDropPerform>> event for Tk callback
+/*
+ * Standard Cocoa method for handling drop operation
+ * Calls tkdnd::macdnd::_HandleXdndDrop
+ */
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
 
-  //  NSArray types;
  
   sourcePasteBoard = [sender draggingPasteboard];
+
+  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
+  Tk_Window tkwin = (Tk_Window) winPtr;
+  Tcl_Interp *interp = Tk_Interp(tkwin);
 
   //retrieve string data from clipboard
   NSArray *types = [sourcePasteBoard types];
@@ -208,58 +193,54 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
     [generalpasteboard setString:pasteboardvalue forType:NSStringPboardType];
   }
 
+  Tcl_Obj* objv[4], *element, *result;
+  int i, index, status;
+  
+  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndDrop", -1);
+  objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+  objv[2] = Tcl_NewLongObj(0);
+  objv[3] = Tcl_NewListObj(0, NULL);
 
-  //generate a virtual event
-  XVirtualEvent event;
-  int x, y;
-
-  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin = (Tk_Window) winPtr;
-
-  bzero(&event, sizeof(XVirtualEvent));
-  event.type = VirtualEvent;
-  event.serial = LastKnownRequestProcessed(Tk_Display(tkwin));
-  event.send_event = false;
-  event.display = Tk_Display(tkwin);
-  event.event = Tk_WindowId(tkwin);
-  event.root = XRootWindow(Tk_Display(tkwin), 0);
-  event.subwindow = None;
-  event.time = TkpGetMS();
-  XQueryPointer(NULL, winPtr->window, NULL, NULL,
-		&event.x_root, &event.y_root, &x, &y, &event.state);
-  Tk_TopCoordsToWindow(tkwin, x, y, &event.x, &event.y);
-  event.same_screen = true;
-  event.name = Tk_GetUid("MacDropPerform");
-  Tk_QueueWindowEvent((XEvent *) &event, TCL_QUEUE_TAIL);
+ /* Evaluate the command and get the result...*/
+  TkDND_Status_Eval(4);
+  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+  if (status != TCL_OK) {
+    /* An error has happened. Cancel the drop! */
+    return NSDragOperationNone;
+  }
+ 
   return YES;
 
 }
 
-//drop target exited: generate <<MacDragExit>> virtual event
+/*
+ * Standard Cocoa method for handling drop operation
+ * Calls tkdnd::macdnd::_HandleXdndDrop
+ */
+
 - (void)draggingExited:(id < NSDraggingInfo >)sender {
   sourcePasteBoard = [sender draggingPasteboard];
 
-  XVirtualEvent event;
-  int x, y;
 
   TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
   Tk_Window tkwin = (Tk_Window) winPtr;
+  Tcl_Interp *interp = Tk_Interp(tkwin);
 
-  bzero(&event, sizeof(XVirtualEvent));
-  event.type = VirtualEvent;
-  event.serial = LastKnownRequestProcessed(Tk_Display(tkwin));
-  event.send_event = false;
-  event.display = Tk_Display(tkwin);
-  event.event = Tk_WindowId(tkwin);
-  event.root = XRootWindow(Tk_Display(tkwin), 0);
-  event.subwindow = None;
-  event.time = TkpGetMS();
-  XQueryPointer(NULL, winPtr->window, NULL, NULL,
-		&event.x_root, &event.y_root, &x, &y, &event.state);
-  Tk_TopCoordsToWindow(tkwin, x, y, &event.x, &event.y);
-  event.same_screen = true;
-  event.name = Tk_GetUid("MacDragExit");
-  Tk_QueueWindowEvent((XEvent *) &event, TCL_QUEUE_TAIL);
+ Tcl_Obj* objv[4], *element, *result;
+  int i, index, status;
+  
+  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndLeave", -1);
+  objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+  objv[2] = Tcl_NewLongObj(0);
+  objv[3] = Tcl_NewListObj(0, NULL);
+
+ /* Evaluate the command and get the result...*/
+  TkDND_Status_Eval(4);
+  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+  if (status != TCL_OK) {
+    /* An error has happened. Cancel the drop! */
+    return NSDragOperationNone;
+  }
 
 }
 
