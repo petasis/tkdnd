@@ -290,13 +290,14 @@ int RegisterDragWidget(ClientData clientData, Tcl_Interp *ip,
 
   TkMacOSXWinBounds((TkWindow*)path, &bounds);
   frame = NSMakeRect(bounds.left, bounds.top, Tk_Width(path),
-  		     Tk_Height(path));
-  NSLog(@"%d, %d",  Tk_Width(path), Tk_Height(path));
+		     Tk_Height(path));
   frame.origin.y = [view bounds].size.height  -
     (frame.origin.y + frame.size.height);
-  [dropview setFrame:frame];
-
+  if (!NSEqualRects(frame, [dropview frame])) {
+    [dropview setFrame:frame];
+  }
   [dropview displayRectIgnoringOpacity:[dropview bounds]];
+  [view unlockFocus];
 
   //initialize array of drag types
 
