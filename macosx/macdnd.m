@@ -18,19 +18,19 @@
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
 
-#define TkDND_TkWin(x) \
+#define TkDND_TkWin(x)							\
   (Tk_NameToWindow(interp, Tcl_GetString(x), Tk_MainWindow(interp)))
 
-#define TkDND_Eval(objc) \
-  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);\
-  if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK) \
-      Tk_BackgroundError(interp); \
+#define TkDND_Eval(objc)						\
+  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);			\
+  if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK)	\
+    Tk_BackgroundError(interp);						\
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
-#define TkDND_Status_Eval(objc) \
-  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);\
-  status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);\
-  if (status != TCL_OK) Tk_BackgroundError(interp); \
+#define TkDND_Status_Eval(objc)					\
+  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);		\
+  status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);	\
+  if (status != TCL_OK) Tk_BackgroundError(interp);		\
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
 #ifndef Tk_Interp
@@ -131,27 +131,28 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   /* We have a result: the returned action... */
   result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
   status = Tcl_GetIndexFromObj(interp, result, (const char **) DropActions,
-                              "dropactions", 0, &index);
+			       "dropactions", 0, &index);
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-    case ActionDefault:
-    case ActionCopy:
-      return NSDragOperationCopy;
-    case ActionMove:
-      return NSDragOperationMove;
-    case ActionAsk:
-      return NSDragOperationGeneric;
-    case ActionPrivate: 
-      return NSDragOperationPrivate;
-    case ActionLink:
-      return NSDragOperationLink;
-    case refuse_drop: {
-      return NSDragOperationNone; /* Refuse drop. */
-    }
+  case ActionDefault:
+  case ActionCopy:
+    return NSDragOperationCopy;
+  case ActionMove:
+    return NSDragOperationMove;
+  case ActionAsk:
+    return NSDragOperationGeneric;
+  case ActionPrivate: 
+    return NSDragOperationPrivate;
+  case ActionLink:
+    return NSDragOperationLink;
+  case refuse_drop: {
+    return NSDragOperationNone; /* Refuse drop. */
+  }
   }
   return NSDragOperationNone;
 }
+
 
 //prepare to perform drag operation
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender {
@@ -201,7 +202,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   objv[2] = Tcl_NewLongObj(0);
   objv[3] = Tcl_NewListObj(0, NULL);
 
- /* Evaluate the command and get the result...*/
+  /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(4);
   printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
   if (status != TCL_OK) {
@@ -226,7 +227,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   Tk_Window tkwin = (Tk_Window) winPtr;
   Tcl_Interp *interp = Tk_Interp(tkwin);
 
- Tcl_Obj* objv[4], *element, *result;
+  Tcl_Obj* objv[4], *element, *result;
   int i, index, status;
   
   objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndLeave", -1);
@@ -234,7 +235,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   objv[2] = Tcl_NewLongObj(0);
   objv[3] = Tcl_NewListObj(0, NULL);
 
- /* Evaluate the command and get the result...*/
+  /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(4);
   printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
   if (status != TCL_OK) {
@@ -289,7 +290,8 @@ int RegisterDragWidget(ClientData clientData, Tcl_Interp *ip,
 
   TkMacOSXWinBounds((TkWindow*)path, &bounds);
   frame = NSMakeRect(bounds.left, bounds.top, Tk_Width(path),
-		     Tk_Height(path));
+  		     Tk_Height(path));
+  NSLog(@"%d, %d",  Tk_Width(path), Tk_Height(path));
   frame.origin.y = [view bounds].size.height  -
     (frame.origin.y + frame.size.height);
   [dropview setFrame:frame];
