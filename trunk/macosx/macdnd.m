@@ -166,7 +166,6 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
  */
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
 
- 
   sourcePasteBoard = [sender draggingPasteboard];
 
   TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
@@ -289,15 +288,14 @@ int RegisterDragWidget(ClientData clientData, Tcl_Interp *ip,
   }
 
   TkMacOSXWinBounds((TkWindow*)path, &bounds);
-  frame = NSMakeRect(bounds.left, bounds.top, Tk_Width(path),
-		     Tk_Height(path));
-  frame.origin.y = [view bounds].size.height  -
-    (frame.origin.y + frame.size.height);
+
+  //hack to make sure subview is set to take up entire geometry of window
+  frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
+  frame.origin.y = 0;
+
   if (!NSEqualRects(frame, [dropview frame])) {
     [dropview setFrame:frame];
   }
-  [dropview displayRectIgnoringOpacity:[dropview bounds]];
-  [view unlockFocus];
 
   //initialize array of drag types
 
