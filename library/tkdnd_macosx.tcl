@@ -36,7 +36,7 @@
 
 #two data types supported: strings and file paths
 
-#two commands at C level: ::macdnd::registerdragwidget and ::macdnd::unregisterdragwidget
+#two commands at C level: ::macdnd::registerdragwidget, ::macdnd::unregisterdragwidget
 
 #data retrieval mechanism: text or file paths are copied from drag clipboard to system clipboard and retrieved via [clipboard get]; array of file paths is converted to single tab-separated string, can be split into Tcl list
 
@@ -61,6 +61,7 @@ namespace eval macdnd {
 # ----------------------------------------------------------------------------
 proc macdnd::_HandleEnter { path drag_source typelist } {
     global _macpath
+    global _mactypes
     variable _typelist;                 set _typelist    $typelist
     variable _pressedkeys;              set _pressedkeys 1
     variable _action;                   set _action      {}
@@ -68,14 +69,20 @@ proc macdnd::_HandleEnter { path drag_source typelist } {
     variable _common_drop_target_types; set _common_drop_target_types {}
     variable _actionlist
     variable _drag_source;              set _drag_source $drag_source
-    variable _drop_target;            set _drop_target $_macpath ;# pass 
+    variable _drop_target;            set _drop_target $path 
     variable _actionlist;               set _actionlist  \
 	{copy move link ask private}
-    #  puts "macdnd::_HandleEnter: path=$path, drag_source=$drag_source,\
-	#       typelist=$typelist"
+    
+    #check to see if path is in array of registered Mac drop targets
+    if {[lsearch -inline -exact [array names _macpath] $path] == {}} {
+	set _drop_target {}
+    } else {
+   	set _drop_target [set _macpath($path)]
+    }
+    
+    puts "macdnd::_HandleEnter: path=$path, drag_source=$drag_source,\
+	      typelist=$typelist"
 
-    puts "macdnd::_HandleXdndEnter  ($_drop_target)"
-    bind $_drop_target <<DropEnter>>
     update
     return default
 };# macdnd::_HandleEnter
@@ -86,6 +93,7 @@ proc macdnd::_HandleEnter { path drag_source typelist } {
 proc macdnd::_HandleXdndPosition { drop_target rootX rootY } {
 
     global _macpath
+    global _mactypes
     variable _types
     variable _typelist
     variable _actionlist
@@ -96,97 +104,103 @@ proc macdnd::_HandleXdndPosition { drop_target rootX rootY } {
     variable _drag_source
     variable _drop_target
 
-
-    #This command is  not implemented at the C level for OSX because it prevents drops.
-
-    # puts "macdnd::_HandleXdndPosition: drop_target=$drop_target,\
-	#       _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
-
-    if {![info exists _drag_source] && ![string length $_drag_source]} {
-	return refuse_drop
+    #check to see if path is in array of registered Mac drop targets  
+    if {[lsearch -inline -exact [array names _macpath] $drop_target] == {}} {
+	set _drop_target {}
+    } else {
+   	set _drop_target [set _macpath($drop_target)]
     }
+
+    puts "macdnd::_HandleXdndPosition: drop_target=$drop_target,\
+   	      _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
+
+    ##not applicable on the Mac because we are not implemented drag sources
+    # if {![info exists _drag_source] && ![string length $_drag_source]} {
+    # 	return refuse_drop
+    # }
+
     #Does the new drop target support any of our new types? 
-    set _types [bind $drop_target <<DropTargetTypes>>]
+    set _types [bind $_drop_target <<DropTargetTypes>>]
     if {[llength $_types]} {
-	## Examine the drop target types, to find at least one match with the drag
-	## source types...
-	set supported_types [_supported_types $_typelist]
-	foreach type $_types {
-	    foreach matched [lsearch -glob -all -inline $supported_types $type] {
-		## Drop target supports this type.
-		lappend common_drag_source_types $matched
-		lappend common_drop_target_types $type
-	    }
-	}
+   	## Examine the drop target types, to find at least one match with the drag
+   	## source types...
+   	set supported_types [_supported_types $_typelist]
+   	foreach type $_types {
+   	    foreach matched [lsearch -glob -all -inline $supported_types $type] {
+   		## Drop target supports this type.
+   		lappend common_drag_source_types $matched
+   		lappend common_drop_target_types $type
+   	    }
+   	}
     }
     
-    puts "($_drop_target) -> ($drop_target)"
+    #  puts "($_drop_target) -> ($drop_target)"
     if {$drop_target != $_drop_target} {
-	puts "no drop target"
-	if {[string length $_drop_target]} {
-	    ## Call the <<DropLeave>> event.
-	    set cmd [bind $_drop_target <<DropLeave>>]
-	    if {[string length $cmd]} {
-		set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
-					 %CST \{$_common_drag_source_types\} \
-					 %CTT \{$_common_drop_target_types\} \
-					 %ST  \{$_typelist\}    %TT \{$_types\} \
-					 %A   \{$_action\}      %a \{$_actionlist\} \
-					 %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
-					 %D   \{\}              %e <<DropLeave>> \
-					 %L   \{$_typelist\}    %% % \
-					 %t   \{$_typelist\}    %T \{\}] $cmd]
-		uplevel \#0 $cmd
-	    }
-	}
-	set _drop_target {}
+   	puts "no drop target"
+   	if {[string length $_drop_target]} {
+   	    ## Call the <<DropLeave>> event.
+   	    set cmd [bind $_drop_target <<DropLeave>>]
+   	    if {[string length $cmd]} {
+   		set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
+   					 %CST \{$_common_drag_source_types\} \
+   					 %CTT \{$_common_drop_target_types\} \
+   					 %ST  \{$_typelist\}    %TT \{$_types\} \
+   					 %A   \{$_action\}      %a \{$_actionlist\} \
+   					 %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
+   					 %D   \{\}              %e <<DropLeave>> \
+   					 %L   \{$_typelist\}    %% % \
+   					 %t   \{$_typelist\}    %T \{\}] $cmd]
+   		uplevel \#0 $cmd
+   	    }
+   	}
+   	set _drop_target {}
 
-	if {[info exists common_drag_source_types]} {
-	    set _action copy
-	    set _common_drag_source_types $common_drag_source_types
-	    set _common_drop_target_types $common_drop_target_types
-	    set _drop_target $drop_target
-	    ## Drop target supports at least one type. Send a <<DropEnter>>.
-	    # puts "<<DropEnter>> -> $drop_target"
-	    set cmd [bind $drop_target <<DropEnter>>]
-	    if {[string length $cmd]} {
-		focus $drop_target
-		set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
-					 %CST \{$_common_drag_source_types\} \
-					 %CTT \{$_common_drop_target_types\} \
-					 %ST  \{$_typelist\}    %TT \{$_types\} \
-					 %A   $_action          %a  \{$_actionlist\} \
-					 %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
-					 %D   \{\}              %e  <<DropEnter>> \
-					 %L   \{$_typelist\}    %%  % \
-					 %t   \{$_typelist\}    %T  \{\}] $cmd]
-		set _action [uplevel \#0 $cmd]
-	    }
-	}
-	set _drop_target $drop_target
+   	if {[info exists common_drag_source_types]} {
+   	    set _action copy
+   	    set _common_drag_source_types $common_drag_source_types
+   	    set _common_drop_target_types $common_drop_target_types
+   	    set _drop_target $drop_target
+   	    ## Drop target supports at least one type. Send a <<DropEnter>>.
+   	    # puts "<<DropEnter>> -> $drop_target"
+   	    set cmd [bind $drop_target <<DropEnter>>]
+   	    if {[string length $cmd]} {
+   		focus $drop_target
+   		set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
+   					 %CST \{$_common_drag_source_types\} \
+   					 %CTT \{$_common_drop_target_types\} \
+   					 %ST  \{$_typelist\}    %TT \{$_types\} \
+   					 %A   $_action          %a  \{$_actionlist\} \
+   					 %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
+   					 %D   \{\}              %e  <<DropEnter>> \
+   					 %L   \{$_typelist\}    %%  % \
+   					 %t   \{$_typelist\}    %T  \{\}] $cmd]
+   		set _action [uplevel \#0 $cmd]
+   	    }
+   	}
+   	set _drop_target $drop_target
     }
     
     set _action refuse_drop
     set _drop_target {}
     if {[info exists common_drag_source_types]} {
-	set _action copy
-	set _common_drag_source_types $common_drag_source_types
-	set _common_drop_target_types $common_drop_target_types
-	set _drop_target $drop_target
-	## Drop target supports at least one type. Send a <<DropPosition>>.
-	set cmd [bind $drop_target <<DropPosition>>]
-	if {[string length $cmd]} {
-	    set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
-				     %CST \{$_common_drag_source_types\} \
-				     %CTT \{$_common_drop_target_types\} \
-				     %ST  \{$_typelist\}    %TT \{$_types\} \
-				     %A   $_action          %a  \{$_actionlist\} \
-				     %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
-				     %D   \{\}              %e  <<DropPosition>> \
-				     %L   \{$_typelist\}    %%  % \
-				     %t   \{$_typelist\}    %T  \{\}] $cmd]
-	    set _action [uplevel \#0 $cmd]
-	}
+   	set _action copy
+   	set _common_drag_source_types $common_drag_source_types
+   	set _common_drop_target_types $common_drop_target_types
+   	set _drop_target $drop_target
+   	## Drop target supports at least one type. Send a <<DropPosition>>.
+   	set cmd [bind $drop_target <<DropPosition>>]
+   	if {[string length $cmd]} {
+   	    set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
+   				     %CST \{$_common_drag_source_types\} \
+   				     %CTT \{$_common_drop_target_types\} \
+   				     %ST  \{$_typelist\}    %TT \{$_types\} \
+   				     %A   $_action          %a  \{$_actionlist\} \
+   				     %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
+   				     %D   \{\}              %e  <<DropPosition>> \
+   				     %L   \{$_typelist\}    %%  % \
+   				     %t   \{$_typelist\}    %T  \{\}] $cmd]
+   	    set _action [uplevel \#0 $cmd]
+   	}
     }
     # Return values: copy, move, link, ask, private, refuse_drop, default
     return $_action
@@ -207,6 +221,7 @@ proc macdnd::_HandleXdndLeave { args  } {
     variable _drop_target
     global _macpath
 
+
     puts "macdnd::_HandleXdndLeave  ($_drop_target)"
     if {[info exists _drop_target] && [string length $_drop_target]} {
 	set cmd [bind $_drop_target <<DropLeave>>]
@@ -221,7 +236,7 @@ proc macdnd::_HandleXdndLeave { args  } {
 				     %L   \{$_typelist\}    %%  % \
 				     %t   \{$_typelist\}    %T  \{\}] $cmd]
 	    set _action [uplevel \#0 $cmd]
-	}
+	}	
     }
     foreach var {_types _typelist _actionlist _pressedkeys _action
 	_common_drag_source_types _common_drop_target_types
@@ -247,6 +262,7 @@ proc macdnd::_HandleXdndDrop { args } {
     set rootY 0
 
     global _macpath
+    global _mactypes
 
     #these lines interfere with the drop, so they are commented out
 
@@ -259,7 +275,6 @@ proc macdnd::_HandleXdndDrop { args } {
     # if {![llength $_common_drag_source_types]} {return refuse_drop}
 
     ## Get the drop target and dropped data.
-    # set _drop_target [winfo toplevel $_macpath]
     set data [_GetDroppedData]
 
     ## Try to select the most specific <<Drop>> event.
@@ -294,6 +309,7 @@ proc macdnd::_HandleXdndDrop { args } {
     }
     # Return values: XdndActionCopy, XdndActionMove,    XdndActionLink,
     #                XdndActionAsk,  XdndActionPrivate, refuse_drop
+
     return $_action
 };# macdnd::_HandleXdndDrop
 
