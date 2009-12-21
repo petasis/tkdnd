@@ -47,7 +47,7 @@ namespace eval tkdnd {
     variable _platform_namespace
     variable _drop_file_temp_dir
     variable _auto_update 1
-    global _macpath
+    global _macpath ;#put array of Mac drop targets in global namespace
 
     bind TkDND_Drag1 <ButtonPress-1> {tkdnd::_begin_drag press  %W %s %X %Y}
     bind TkDND_Drag1 <B1-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
@@ -130,7 +130,6 @@ namespace eval tkdnd {
 		source $dir/tkdnd_macosx.tcl
 		set _platform_namespace macdnd
 		load $dir/$PKG_LIB_FILE $PACKAGE_NAME
-		set _macpath {}
 	    }
 	}
 	source $dir/tkdnd_compat.tcl
@@ -192,9 +191,10 @@ proc tkdnd::drop_target { mode path { types {} } } {
 		}
 		aqua {
 		    global _macpath
-		    macdnd::registerdragwidget [winfo toplevel $path] $types
-		    set _macpath $path
-		    return $_macpath
+		    global _mactypes ;#list of registered drag types
+                    macdnd::registerdragwidget $path $types
+		    set _macpath($path) $path
+		    set _mactypes $types
 		}
 	    }
 	    set old_types [bind $path <<DropTargetTypes>>]
@@ -212,7 +212,7 @@ proc tkdnd::drop_target { mode path { types {} } } {
 		}
 		aqua {
 		    global _macpath
-		    macdnd::unregisterdragwidget [winfo toplevel $path]  
+		    macdnd::unregisterdragwidget _macpath($path)  
 		}
 	    }
 	    bind $path <<DropTargetTypes>> {}

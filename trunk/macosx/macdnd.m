@@ -60,6 +60,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender;
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
+- (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)sender;
 TkWindow* TkMacOSXGetTkWindow( NSWindow *w);
 
 @end
@@ -123,7 +124,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   }
   /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(4);
-  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+  // printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
   if (status != TCL_OK) {
     /* An error has happened. Cancel the drop! */
     return NSDragOperationNone;
@@ -153,6 +154,44 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   return NSDragOperationNone;
 }
 
+
+- (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)sender {
+  sourcePasteBoard = [sender draggingPasteboard];
+
+  //get the coordinates of the cursor
+  NSPoint mouseLoc;
+  mouseLoc = [NSEvent mouseLocation]; 
+ 
+  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
+  Tk_Window tkwin = (Tk_Window) winPtr;
+  Tcl_Interp *interp = Tk_Interp(tkwin);
+  Tk_Window mouse_tkwin;
+
+  Tcl_Obj* objv[4], *element, *result;
+  int i, index, status;
+
+  //map the coordinates to the target window
+  float rootX = mouseLoc.x;
+  float rootY =  mouseLoc.y;
+  mouse_tkwin = Tk_CoordsToWindow(rootX, rootY, tkwin);
+
+  if (mouse_tkwin != NULL) {
+    objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndPosition", -1);
+    objv[1] = Tcl_NewStringObj(Tk_PathName(mouse_tkwin), -1);
+    objv[2] = Tcl_NewIntObj(rootX);
+    objv[3] = Tcl_NewIntObj(rootY);
+
+    /* Evaluate the command and get the result...*/
+    TkDND_Status_Eval(4);
+
+    //   printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+    if (status != TCL_OK) {
+      /* An error has happened. Cancel the drop! */
+      return NSDragOperationNone;
+    }
+ 
+  }
+}
 
 //prepare to perform drag operation
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender {
@@ -203,7 +242,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
 
   /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(4);
-  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+  //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
   if (status != TCL_OK) {
     /* An error has happened. Cancel the drop! */
     return NSDragOperationNone;
@@ -236,7 +275,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
 
   /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(4);
-  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+  // printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
   if (status != TCL_OK) {
     /* An error has happened. Cancel the drop! */
     return NSDragOperationNone;
@@ -372,7 +411,6 @@ int UnregisterDragWidget(ClientData clientData, Tcl_Interp *ip,
 
 }
 
-
 //initalize the package in the tcl interpreter, create tcl commands
 int Tkdnd_Init (Tcl_Interp *ip) {
 	
@@ -390,8 +428,7 @@ int Tkdnd_Init (Tcl_Interp *ip) {
 
   Tcl_CreateObjCommand(ip, "::macdnd::registerdragwidget", RegisterDragWidget,(ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
   Tcl_CreateObjCommand(ip, "::macdnd::unregisterdragwidget", UnregisterDragWidget,(ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-		
-
+ 		
   if (Tcl_PkgProvide(ip, PACKAGE_NAME, PACKAGE_VERSION) != TCL_OK) {
     return TCL_ERROR;
   }
