@@ -2,7 +2,6 @@
 
 package require tkdnd
 
-
 pack [text .t -bg white ] -fill both -expand no -side top
 
 tkdnd::drop_target register .t *
@@ -17,3 +16,4 @@ pack [text .f -bg blue] -fill both -expand no -side top
 tkdnd::drop_target register .f *
 
 bind .f <<Drop>> {%W insert end %D}
+
