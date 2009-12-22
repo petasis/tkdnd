@@ -170,10 +170,14 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   Tcl_Obj* objv[4], *element, *result;
   int i, index, status;
 
-  //map the coordinates to the target window
+  //map the coordinates to the target window: must substract mouseLocation from screen height because Cocoa orients to bottom of screen, Tk to top
   float rootX = mouseLoc.x;
   float rootY =  mouseLoc.y;
-  mouse_tkwin = Tk_CoordsToWindow(rootX, rootY, tkwin);
+  float screenheight = [[[NSScreen screens] objectAtIndex:0] frame].size.height;
+
+  //convert Cocoa screen cordinates to Tk coordinates
+  float tk_Y = screenheight - rootY;
+  mouse_tkwin = Tk_CoordsToWindow(rootX, tk_Y, tkwin);
 
   if (mouse_tkwin != NULL) {
     objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndPosition", -1);
@@ -184,7 +188,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
     /* Evaluate the command and get the result...*/
     TkDND_Status_Eval(4);
 
-    //   printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+    //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
     if (status != TCL_OK) {
       /* An error has happened. Cancel the drop! */
       return NSDragOperationNone;
