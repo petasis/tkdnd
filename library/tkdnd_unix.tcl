@@ -39,6 +39,7 @@
 namespace eval xdnd {
   variable _types {}
   variable _typelist {}
+  variable _codelist {}
   variable _actionlist {}
   variable _pressedkeys {}
   variable _action {}
@@ -108,6 +109,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
       ## Call the <<DropLeave>> event.
       set cmd [bind $_drop_target <<DropLeave>>]
       if {[string length $cmd]} {
+        set _codelist $_typelist
         set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
@@ -116,7 +118,9 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
           %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
           %D   \{\}              %e <<DropLeave>> \
           %L   \{$_typelist\}    %% % \
-          %t   \{$_typelist\}    %T \{\}] $cmd]
+          %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
+          %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
+          ] $cmd]
         uplevel \#0 $cmd
       }
     }
@@ -132,6 +136,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
       set cmd [bind $drop_target <<DropEnter>>]
       if {[string length $cmd]} {
         focus $drop_target
+        set _codelist $_typelist
         set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
@@ -140,7 +145,9 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
           %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
           %D   \{\}              %e  <<DropEnter>> \
           %L   \{$_typelist\}    %%  % \
-          %t   \{$_typelist\}    %T  \{\}] $cmd]
+          %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
+          %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
+          ] $cmd]
         set _action [uplevel \#0 $cmd]
       }
     }
@@ -157,6 +164,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
     ## Drop target supports at least one type. Send a <<DropPosition>>.
     set cmd [bind $drop_target <<DropPosition>>]
     if {[string length $cmd]} {
+      set _codelist $_typelist
       set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
@@ -165,7 +173,9 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
         %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
         %D   \{\}              %e  <<DropPosition>> \
         %L   \{$_typelist\}    %%  % \
-        %t   \{$_typelist\}    %T  \{\}] $cmd]
+        %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
+        %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
+        ] $cmd]
       set _action [uplevel \#0 $cmd]
     }
   }
@@ -191,6 +201,7 @@ proc xdnd::_HandleXdndLeave {  } {
   if {[info exists _drop_target] && [string length $_drop_target]} {
     set cmd [bind $_drop_target <<DropLeave>>]
     if {[string length $cmd]} {
+      set _codelist $_typelist
       set cmd [string map [list %W $_drop_target %X 0 %Y 0 \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
@@ -199,7 +210,9 @@ proc xdnd::_HandleXdndLeave {  } {
         %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
         %D   \{\}              %e  <<DropLeave>> \
         %L   \{$_typelist\}    %%  % \
-        %t   \{$_typelist\}    %T  \{\}] $cmd]
+        %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
+        %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
+        ] $cmd]
       set _action [uplevel \#0 $cmd]
     }
   }
@@ -242,6 +255,7 @@ proc xdnd::_HandleXdndDrop { time } {
     set type [_platform_independent_type $type]
     set cmd [bind $_drop_target <<Drop:$type>>]
     if {[string length $cmd]} {
+      set _codelist $_typelist
       set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
@@ -250,12 +264,15 @@ proc xdnd::_HandleXdndDrop { time } {
         %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
         %D   \{$data\}         %e <<Drop:$type>> \
         %L   \{$_typelist\}    %% % \
-        %t   \{$_typelist\}    %T \{\}] $cmd]
+        %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
+        %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
+        ] $cmd]
       return [uplevel \#0 $cmd]
     }
   }
   set cmd [bind $_drop_target <<Drop>>]
   if {[string length $cmd]} {
+    set _codelist $_typelist
     set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \
@@ -264,7 +281,9 @@ proc xdnd::_HandleXdndDrop { time } {
       %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
       %D   \{$data\}         %e <<Drop>> \
       %L   \{$_typelist\}    %% % \
-      %t   \{$_typelist\}    %T \{\}] $cmd]
+      %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
+      %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
+      ] $cmd]
     set _action [uplevel \#0 $cmd]
   }
   # Return values: XdndActionCopy, XdndActionMove,    XdndActionLink,
