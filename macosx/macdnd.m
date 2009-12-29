@@ -136,110 +136,152 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-  case ActionDefault:
-  case ActionCopy:
-    return NSDragOperationCopy;
-  case ActionMove:
-    return NSDragOperationMove;
-  case ActionAsk:
-    return NSDragOperationGeneric;
-  case ActionPrivate: 
-    return NSDragOperationPrivate;
-  case ActionLink:
-    return NSDragOperationLink;
-  case refuse_drop: {
-    return NSDragOperationNone; /* Refuse drop. */
-  }
+    case ActionDefault:
+    case ActionCopy:
+      return NSDragOperationCopy;
+    case ActionMove:
+      return NSDragOperationMove;
+    case ActionAsk:
+      return NSDragOperationGeneric;
+    case ActionPrivate: 
+      return NSDragOperationPrivate;
+    case ActionLink:
+      return NSDragOperationLink;
+    case refuse_drop: {
+      return NSDragOperationNone; /* Refuse drop. */
+    }
   }
   return NSDragOperationNone;
-}
+}; /* draggingEntered */
 
 
 - (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)sender {
-  sourcePasteBoard = [sender draggingPasteboard];
-
-  //get the coordinates of the cursor
-  NSPoint mouseLoc;
-  mouseLoc = [NSEvent mouseLocation]; 
- 
-  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin = (Tk_Window) winPtr;
-  Tcl_Interp *interp = Tk_Interp(tkwin);
+  static char *DropActions[] = {
+    "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
+    (char *) NULL
+  };
+  enum dropactions {
+    ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
+    refuse_drop, ActionDefault
+  };
   Tk_Window mouse_tkwin;
+  NSPoint mouseLoc;
+ 
+  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
+  Tk_Window tkwin    = (Tk_Window) winPtr;
+  Tcl_Interp *interp = Tk_Interp(tkwin);
+  sourcePasteBoard   = [sender draggingPasteboard];
+  /* Get the coordinates of the cursor... */
+  mouseLoc = [NSEvent mouseLocation]; 
 
-  Tcl_Obj* objv[4], *element, *result;
+  Tcl_Obj* objv[4], *result;
   int i, index, status;
 
-  //map the coordinates to the target window: must substract mouseLocation from screen height because Cocoa orients to bottom of screen, Tk to top
+  /*
+   * Map the coordinates to the target window: must substract mouseLocation
+   * from screen height because Cocoa orients to bottom of screen, Tk to
+   * top...
+   */
   float rootX = mouseLoc.x;
-  float rootY =  mouseLoc.y;
+  float rootY = mouseLoc.y;
   float screenheight = [[[NSScreen screens] objectAtIndex:0] frame].size.height;
 
-  //convert Cocoa screen cordinates to Tk coordinates
-  float tk_Y = screenheight - rootY;
+  /* Convert Cocoa screen cordinates to Tk coordinates... */
+  float tk_Y  = screenheight - rootY;
   mouse_tkwin = Tk_CoordsToWindow(rootX, tk_Y, tkwin);
+  if (mouse_tkwin == NULL) return NSDragOperationNone;
 
-  if (mouse_tkwin != NULL) {
-    objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndPosition", -1);
-    objv[1] = Tcl_NewStringObj(Tk_PathName(mouse_tkwin), -1);
-    objv[2] = Tcl_NewIntObj(rootX);
-    objv[3] = Tcl_NewIntObj(rootY);
+  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandlePosition", -1);
+  objv[1] = Tcl_NewStringObj(Tk_PathName(mouse_tkwin), -1);
+  objv[2] = Tcl_NewIntObj(rootX);
+  objv[3] = Tcl_NewIntObj(rootY);
 
-    /* Evaluate the command and get the result...*/
-    TkDND_Status_Eval(4);
+  /* Evaluate the command and get the result...*/
+  TkDND_Status_Eval(4);
 
-    //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
-    if (status != TCL_OK) {
-      /* An error has happened. Cancel the drop! */
-      return NSDragOperationNone;
-    }
- 
+  //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+  if (status != TCL_OK) {
+    /* An error has happened. Cancel the drop! */
+    return NSDragOperationNone;
   }
-}
+  /* We have a result: the returned action... */
+  result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+  status = Tcl_GetIndexFromObj(interp, result, (const char **) DropActions,
+			       "dropactions", 0, &index);
+  Tcl_DecrRefCount(result);
+  if (status != TCL_OK) index = refuse_drop;
+  switch ((enum dropactions) index) {
+    case ActionDefault:
+    case ActionCopy:
+      return NSDragOperationCopy;
+    case ActionMove:
+      return NSDragOperationMove;
+    case ActionAsk:
+      return NSDragOperationGeneric;
+    case ActionPrivate: 
+      return NSDragOperationPrivate;
+    case ActionLink:
+      return NSDragOperationLink;
+    case refuse_drop: {
+      return NSDragOperationNone; /* Refuse drop. */
+    }
+  }
+  return NSDragOperationNone;
+}; /* draggingUpdated */
 
 //prepare to perform drag operation
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender {
   sourcePasteBoard = [sender draggingPasteboard];
   return YES;
-}
+}; /* prepareForDragOperation */
 
 /*
  * Standard Cocoa method for handling drop operation
- * Calls tkdnd::macdnd::_HandleXdndDrop
+ * Calls tkdnd::macdnd::_HandleDrop
  */
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
-
-  sourcePasteBoard = [sender draggingPasteboard];
-
-  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin = (Tk_Window) winPtr;
+  static char *DropActions[] = {
+    "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
+    (char *) NULL
+  };
+  enum dropactions {
+    ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
+    refuse_drop, ActionDefault
+  };
+  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
+  Tk_Window tkwin    = (Tk_Window) winPtr;
   Tcl_Interp *interp = Tk_Interp(tkwin);
+  sourcePasteBoard   = [sender draggingPasteboard];
 
-  //retrieve string data from clipboard
-  NSArray *types = [sourcePasteBoard types];
+  /* Retrieve string data from clipboard... */
+  NSArray  *types           = [sourcePasteBoard types];
   NSString *pasteboardvalue = nil;
   for (NSString *type in types) {
-    //string type
     if ([type isEqualToString:NSStringPboardType]) {
+      /* string type... */
       pasteboardvalue = [sourcePasteBoard stringForType:NSStringPboardType];
-      //file array, convert to string
     } else if ([type isEqualToString:NSFilenamesPboardType]) { 
-      NSArray *files = [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
+      /* file array, convert to string separated with tabs... */
       NSString *filename;
-      filename =  [files componentsJoinedByString:@"\t"];
+      NSArray  *files = 
+               [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
+      filename = [files componentsJoinedByString:@"\t"];
       pasteboardvalue = filename;
     }
-    //get the string from the drag pasteboard to the general pasteboard
+    /*
+     * Get the string from the drag pasteboard to the general pasteboard...
+     */
     NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
-    NSArray *pasteboardtypes = [NSArray arrayWithObjects:NSStringPboardType, nil];
+    NSArray      *pasteboardtypes   = 
+                    [NSArray arrayWithObjects:NSStringPboardType, nil];
     [generalpasteboard declareTypes:pasteboardtypes owner:self];
     [generalpasteboard setString:pasteboardvalue forType:NSStringPboardType];
   }
 
-  Tcl_Obj* objv[4], *element, *result;
+  Tcl_Obj* objv[4], *result;
   int i, index, status;
   
-  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndDrop", -1);
+  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleDrop", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
   objv[2] = Tcl_NewLongObj(0);
   objv[3] = Tcl_NewListObj(0, NULL);
@@ -249,43 +291,50 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
   if (status != TCL_OK) {
     /* An error has happened. Cancel the drop! */
-    return NSDragOperationNone;
+    return NO;
   }
- 
-  return YES;
-
-}
+  /* We have a result: the returned action... */
+  result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+  status = Tcl_GetIndexFromObj(interp, result, (const char **) DropActions,
+			       "dropactions", 0, &index);
+  Tcl_DecrRefCount(result);
+  if (status != TCL_OK) index = refuse_drop;
+  switch ((enum dropactions) index) {
+    case ActionDefault:
+    case ActionCopy:
+    case ActionMove:
+    case ActionAsk:
+    case ActionPrivate: 
+    case ActionLink:
+      return YES;
+    case refuse_drop: {
+      return NO; /* Refuse drop. */
+    }
+  }
+  return NO;
+}; /* performDragOperation */
 
 /*
  * Standard Cocoa method for handling drop operation
  * Calls tkdnd::macdnd::_HandleXdndDrop
  */
-
 - (void)draggingExited:(id < NSDraggingInfo >)sender {
-  sourcePasteBoard = [sender draggingPasteboard];
-
-
-  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin = (Tk_Window) winPtr;
+  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
+  Tk_Window tkwin    = (Tk_Window) winPtr;
   Tcl_Interp *interp = Tk_Interp(tkwin);
+  sourcePasteBoard   = [sender draggingPasteboard];
 
-  Tcl_Obj* objv[4], *element, *result;
-  int i, index, status;
+  Tcl_Obj* objv[4];
+  int i;
   
-  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleXdndLeave", -1);
+  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleLeave", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
   objv[2] = Tcl_NewLongObj(0);
   objv[3] = Tcl_NewListObj(0, NULL);
 
   /* Evaluate the command and get the result...*/
-  TkDND_Status_Eval(4);
-  // printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
-  if (status != TCL_OK) {
-    /* An error has happened. Cancel the drop! */
-    return NSDragOperationNone;
-  }
-
-}
+  TkDND_Eval(4);
+}; /* draggingExited */
 
 @end
 

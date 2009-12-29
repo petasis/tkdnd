@@ -39,235 +39,229 @@
 package require Tk
 
 namespace eval tkdnd {
-    variable _topw ".drag"
-    variable _tabops
-    variable _state
-    variable _x0
-    variable _y0
+  variable _topw ".drag"
+  variable _tabops
+  variable _state
+  variable _x0
+  variable _y0
+  variable _platform_namespace
+  variable _drop_file_temp_dir
+  variable _auto_update 1
+
+  bind TkDND_Drag1 <ButtonPress-1> {tkdnd::_begin_drag press  %W %s %X %Y}
+  bind TkDND_Drag1 <B1-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
+  bind TkDND_Drag2 <ButtonPress-2> {tkdnd::_begin_drag press  %W %s %X %Y}
+  bind TkDND_Drag2 <B2-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
+  bind TkDND_Drag3 <ButtonPress-3> {tkdnd::_begin_drag press  %W %s %X %Y}
+  bind TkDND_Drag3 <B3-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
+  
+  # ----------------------------------------------------------------------------
+  #  Command tkdnd::initialise: Initialise the TkDND package.
+  # ----------------------------------------------------------------------------
+  proc initialise { dir PKG_LIB_FILE PACKAGE_NAME} {
     variable _platform_namespace
     variable _drop_file_temp_dir
-    variable _auto_update 1
-    global _macpath ;#put array of Mac drop targets in global namespace
+    global env
 
-    bind TkDND_Drag1 <ButtonPress-1> {tkdnd::_begin_drag press  %W %s %X %Y}
-    bind TkDND_Drag1 <B1-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
-    bind TkDND_Drag2 <ButtonPress-2> {tkdnd::_begin_drag press  %W %s %X %Y}
-    bind TkDND_Drag2 <B2-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
-    bind TkDND_Drag3 <ButtonPress-3> {tkdnd::_begin_drag press  %W %s %X %Y}
-    bind TkDND_Drag3 <B3-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
-    
-    # ----------------------------------------------------------------------------
-    #  Command tkdnd::initialise: Initialise the TkDND package.
-    # ----------------------------------------------------------------------------
-    proc initialise { dir PKG_LIB_FILE PACKAGE_NAME} {
-	variable _platform_namespace
-	variable _drop_file_temp_dir
-	global env
-
-	## Get User's home directory: We try to locate the proper path from a set of
-	## environmental variables...
-	foreach var {HOME HOMEPATH USERPROFILE ALLUSERSPROFILE APPDATA} {
-	    if {[info exists env($var)]} {
-		if {[file isdirectory $env($var)]} {
-		    set UserHomeDir $env($var)
-		    break
-		}
-	    }
-	}
-
-	## Should use [tk windowingsystem] instead of tcl platform array:
-	## OS X returns "unix," but that's not useful because it has its own
-	## windowing system, aqua
-	## Under windows we have to also combine HOMEDRIVE & HOMEPATH...
-	if {![info exists UserHomeDir] && 
-	    [string equal[tk windowingsystem] windows] &&
-	    [info exist env(HOMEDRIVE)] && [info exist env(HOMEPATH)]} {
-	    if {[file isdirectory $env(HOMEDRIVE)$env(HOMEPATH)]} {
-		set UserHomeDir $env(HOMEDRIVE)$env(HOMEPATH)
-	    }
-	}
-	## Have we located the needed path?
-	if {![info exists UserHomeDir]} {
-	    set UserHomeDir [pwd]
-	}
-	
-	## Try to locate a temporary directory...
-	foreach var {TKDND_TEMP_DIR TEMP TMP} {
-	    if {[info exists env($var)]} {
-		if {[file isdirectory $env($var)] && [file writable $env($var)]} {
-		    set _drop_file_temp_dir $env($var)
-		    break
-		}
-	    }
-	}
-	if {![info exists _drop_file_temp_dir]} {
-	    foreach _dir [list $UserHomeDir/Local Settings/Temp /tmp \
-			      C:/WINDOWS/Temp C:/Temp C:/tmp D:/WINDOWS/Temp D:/Temp D:/tmp] {
-		if {[file isdirectory $_dir] && [file writable $_dir]} {
-		    set _drop_file_temp_dir $_dir
-		    break
-		}
-	    }
-	}
-	if {![info exists _drop_file_temp_dir]} {
-	    set _drop_file_temp_dir $UserAppDir
-	}
-	set _drop_file_temp_dir [file native $_drop_file_temp_dir]
-	
-	switch [tk windowingsystem] {
-	    x11 {
-		source $dir/tkdnd_unix.tcl
-		set _platform_namespace xdnd
-		load $dir/$PKG_LIB_FILE $PACKAGE_NAME
-	    }
-	    windows {
-		source $dir/tkdnd_windows.tcl
-		set _platform_namespace olednd
-		load $dir/libtkdnd20.dll TkDND
-	    }
-	    aqua  {
-		global _macpath
-		source $dir/tkdnd_macosx.tcl
-		set _platform_namespace macdnd
-		load $dir/$PKG_LIB_FILE $PACKAGE_NAME
-	    }
-	}
-	source $dir/tkdnd_compat.tcl
-    };# initialise
-
-    proc GetDropFileTempDirectory { } {
-	variable _drop_file_temp_dir
-	return $_drop_file_temp_dir
+    ## Get User's home directory: We try to locate the proper path from a set of
+    ## environmental variables...
+    foreach var {HOME HOMEPATH USERPROFILE ALLUSERSPROFILE APPDATA} {
+      if {[info exists env($var)]} {
+        if {[file isdirectory $env($var)]} {
+          set UserHomeDir $env($var)
+          break
+        }
+      }
     }
-    proc SetDropFileTempDirectory { dir } {
-	variable _drop_file_temp_dir
-	set _drop_file_temp_dir $dir
+
+    ## Should use [tk windowingsystem] instead of tcl platform array:
+    ## OS X returns "unix," but that's not useful because it has its own
+    ## windowing system, aqua
+    ## Under windows we have to also combine HOMEDRIVE & HOMEPATH...
+    if {![info exists UserHomeDir] && 
+        [string equal[tk windowingsystem] windows] &&
+        [info exist env(HOMEDRIVE)] && [info exist env(HOMEPATH)]} {
+      if {[file isdirectory $env(HOMEDRIVE)$env(HOMEPATH)]} {
+        set UserHomeDir $env(HOMEDRIVE)$env(HOMEPATH)
+      }
+    }
+    ## Have we located the needed path?
+    if {![info exists UserHomeDir]} {
+      set UserHomeDir [pwd]
     }
     
+    ## Try to locate a temporary directory...
+    foreach var {TKDND_TEMP_DIR TEMP TMP} {
+      if {[info exists env($var)]} {
+        if {[file isdirectory $env($var)] && [file writable $env($var)]} {
+          set _drop_file_temp_dir $env($var)
+          break
+        }
+      }
+    }
+    if {![info exists _drop_file_temp_dir]} {
+      foreach _dir [list $UserHomeDir/Local Settings/Temp /tmp \
+               C:/WINDOWS/Temp C:/Temp C:/tmp D:/WINDOWS/Temp D:/Temp D:/tmp] {
+        if {[file isdirectory $_dir] && [file writable $_dir]} {
+          set _drop_file_temp_dir $_dir
+          break
+        }
+      }
+    }
+    if {![info exists _drop_file_temp_dir]} {
+      set _drop_file_temp_dir $UserAppDir
+    }
+    set _drop_file_temp_dir [file native $_drop_file_temp_dir]
+    
+    switch [tk windowingsystem] {
+      x11 {
+        source $dir/tkdnd_unix.tcl
+        set _platform_namespace xdnd
+        load $dir/$PKG_LIB_FILE $PACKAGE_NAME
+      }
+      windows {
+        source $dir/tkdnd_windows.tcl
+        set _platform_namespace olednd
+        load $dir/libtkdnd20.dll TkDND
+      }
+      aqua  {
+        source $dir/tkdnd_unix.tcl
+        source $dir/tkdnd_macosx.tcl
+        set _platform_namespace macdnd
+        load $dir/$PKG_LIB_FILE $PACKAGE_NAME
+      }
+    }
+    source $dir/tkdnd_compat.tcl
+  };# initialise
+
+  proc GetDropFileTempDirectory { } {
+    variable _drop_file_temp_dir
+    return $_drop_file_temp_dir
+  }
+  proc SetDropFileTempDirectory { dir } {
+    variable _drop_file_temp_dir
+    set _drop_file_temp_dir $dir
+  }
+  
 };# namespace tkdnd
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::drag_source
 # ----------------------------------------------------------------------------
 proc tkdnd::drag_source { mode path { types {} } { event 1 } } {
-    set tags [bindtags $path]
-    set idx  [lsearch $tags "TkDND_Drag*"]
-    switch -- $mode {
-	register {
-	    if { $idx != -1 } {
-		bindtags $path [lreplace $tags $idx $idx TkDND_Drag$event]
-	    } else {
-		bindtags $path [concat $tags TkDND_Drag$event]
-	    }
-	    set types [platform_specific_types $types]
-	    set old_types [bind $path <<DragSourceTypes>>]
-	    foreach type $types {
-		if {[lsearch $old_types $type] < 0} {lappend old_types $type}
-	    }
-	    bind $path <<DragSourceTypes>> $old_types
-	}
-	unregister {
-	    if { $idx != -1 } {
-		bindtags $path [lreplace $tags $idx $idx]
-	    }
-	}
+  set tags [bindtags $path]
+  set idx  [lsearch $tags "TkDND_Drag*"]
+  switch -- $mode {
+    register {
+      if { $idx != -1 } {
+        bindtags $path [lreplace $tags $idx $idx TkDND_Drag$event]
+      } else {
+        bindtags $path [concat $tags TkDND_Drag$event]
+      }
+      set types [platform_specific_types $types]
+      set old_types [bind $path <<DragSourceTypes>>]
+      foreach type $types {
+        if {[lsearch $old_types $type] < 0} {lappend old_types $type}
+      }
+      bind $path <<DragSourceTypes>> $old_types
     }
+    unregister {
+      if { $idx != -1 } {
+        bindtags $path [lreplace $tags $idx $idx]
+      }
+    }
+  }
 };# tkdnd::drag_source
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::drop_target
 # ----------------------------------------------------------------------------
 proc tkdnd::drop_target { mode path { types {} } } {
-    switch -- $mode {
-	set types [platform_specific_types $types]
-	register {
-	    switch [tk windowingsystem] {
-		x11 {
-		    _register_types $path [winfo toplevel $path] $types
-		}
-		windows {
-		    _RegisterDragDrop $path
-		    bind <Destroy> $path {+ tkdnd::_RevokeDragDrop %W}
-		}
-		aqua {
-		    global _macpath
-		    global _mactypes ;#list of registered drag types
-                    macdnd::registerdragwidget $path $types
-		    set _macpath($path) $path
-		    set _mactypes $types
-		}
-	    }
-	    set old_types [bind $path <<DropTargetTypes>>]
-	    foreach type $types {
-		if {[lsearch $old_types $type] < 0} {lappend old_types $type}
-	    }
-	    bind $path <<DropTargetTypes>> $old_types
-	}
-	unregister {
-	    switch [tk windowingsystem] {
-		x11 {
-		}
-		windows {
-		    _RevokeDragDrop $path
-		}
-		aqua {
-		    global _macpath
-		    macdnd::unregisterdragwidget _macpath($path)  
-		}
-	    }
-	    bind $path <<DropTargetTypes>> {}
-	}
+  switch -- $mode {
+    set types [platform_specific_types $types]
+    register {
+      switch [tk windowingsystem] {
+        x11 {
+          _register_types $path [winfo toplevel $path] $types
+        }
+        windows {
+          _RegisterDragDrop $path
+          bind <Destroy> $path {+ tkdnd::_RevokeDragDrop %W}
+        }
+        aqua {
+          macdnd::registerdragwidget [winfo toplevel $path] $types
+        }
+      }
+      set old_types [bind $path <<DropTargetTypes>>]
+      foreach type $types {
+        if {[lsearch $old_types $type] < 0} {lappend old_types $type}
+      }
+      bind $path <<DropTargetTypes>> $old_types
     }
+    unregister {
+      switch [tk windowingsystem] {
+        x11 {
+        }
+        windows {
+          _RevokeDragDrop $path
+        }
+        aqua {
+          error todo
+        }
+      }
+      bind $path <<DropTargetTypes>> {}
+    }
+  }
 };# tkdnd::drop_target
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_begin_drag
 # ----------------------------------------------------------------------------
 proc tkdnd::_begin_drag { event source state X Y } {
-    variable _x0
-    variable _y0
-    variable _state
+  variable _x0
+  variable _y0
+  variable _state
 
-    switch -- $event {
-	press {
-	    set _x0    $X
-	    set _y0    $Y
-	    set _state "press"
-	}
-	motion {
-	    if { ![info exists _state] } {
-		# This is just extra protection. There seem to be
-		# rare cases where the motion comes before the press.
-		return
-	    }
-	    if { [string equal $_state "press"] } {
-		if { abs($_x0-$X) > 3 || abs($_y0-$Y) > 3 } {
-		    set _state "done"
-		    _init_drag $source $state $X $Y
-		}
-	    }
-	}
+  switch -- $event {
+    press {
+      set _x0    $X
+      set _y0    $Y
+      set _state "press"
     }
+    motion {
+      if { ![info exists _state] } {
+        # This is just extra protection. There seem to be
+        # rare cases where the motion comes before the press.
+        return
+      }
+      if { [string equal $_state "press"] } {
+        if { abs($_x0-$X) > 3 || abs($_y0-$Y) > 3 } {
+          set _state "done"
+          _init_drag $source $state $X $Y
+        }
+      }
+    }
+  }
 };# tkdnd::_begin_drag
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_init_drag
 # ----------------------------------------------------------------------------
 proc tkdnd::_init_drag { source state rootX rootY } {
-    # Call the <<DragInitCmd>> binding.
-    set cmd [bind $source <<DragInitCmd>>]
-    if {[string length $cmd]} {
-	set cmd [string map [list %W $source %X $rootX %Y $rootY \
-				 %S $state  %e <<DragInitCmd>> %A \{\} \
-				 %t [bind $source <<DragSourceTypes>>]] $cmd]
-	set info [uplevel \#0 $cmd]
-	if { $info != "" } {
-	    foreach { actions types data } $info { break }
-	    set types [platform_specific_types $types]
-	    set action [_DoDragDrop $source $actions $types $data]
-	    _end_drag $source {} $action {} $data {} $state $rootX $rootY
-	}
+  # Call the <<DragInitCmd>> binding.
+  set cmd [bind $source <<DragInitCmd>>]
+  if {[string length $cmd]} {
+    set cmd [string map [list %W $source %X $rootX %Y $rootY \
+                              %S $state  %e <<DragInitCmd>> %A \{\} \
+                              %t [bind $source <<DragSourceTypes>>]] $cmd]
+    set info [uplevel \#0 $cmd]
+    if { $info != "" } {
+      foreach { actions types data } $info { break }
+      set types [platform_specific_types $types]
+      set action [_DoDragDrop $source $actions $types $data]
+      _end_drag $source {} $action {} $data {} $state $rootX $rootY
     }
+  }
 };# tkdnd::_init_drag
 
 # ----------------------------------------------------------------------------
@@ -275,51 +269,51 @@ proc tkdnd::_init_drag { source state rootX rootY } {
 # ----------------------------------------------------------------------------
 proc tkdnd::_end_drag { source target action type data result
                         state rootX rootY } {
-    set rootX 0
-    set rootY 0
-    # Call the <<DragEndCmd>> binding.
-    set cmd [bind $source <<DragEndCmd>>]
-    if {[string length $cmd]} {
-	set cmd [string map [list %W $source %X $rootX %Y $rootY \
-				 %S $state %e <<DragEndCmd>> %A \{$action\}] $cmd]
-	set info [uplevel \#0 $cmd]
-	if {$info != ""} {
-	    foreach { actions types data } $info { break }
-	    set types [platform_specific_types $types]
-	    set action [_DoDragDrop $source $actions $types $data]
-	    _end_drag $source {} $action {} $data {}
-	}
+  set rootX 0
+  set rootY 0
+  # Call the <<DragEndCmd>> binding.
+  set cmd [bind $source <<DragEndCmd>>]
+  if {[string length $cmd]} {
+    set cmd [string map [list %W $source %X $rootX %Y $rootY \
+                              %S $state %e <<DragEndCmd>> %A \{$action\}] $cmd]
+    set info [uplevel \#0 $cmd]
+    if {$info != ""} {
+      foreach { actions types data } $info { break }
+      set types [platform_specific_types $types]
+      set action [_DoDragDrop $source $actions $types $data]
+      _end_drag $source {} $action {} $data {}
     }
+  }
 };# tkdnd::_end_drag
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_specific_types
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_specific_types { types } {
-    variable _platform_namespace
-    return [${_platform_namespace}::_platform_specific_types $types]
+  variable _platform_namespace
+  return [${_platform_namespace}::_platform_specific_types $types]
 }; # tkdnd::platform_specific_types
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_independent_types
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_independent_types { types } {
-    variable _platform_namespace
-    return [${_platform_namespace}::_platform_independent_types $types]
+  variable _platform_namespace
+  return [${_platform_namespace}::_platform_independent_types $types]
 }; # tkdnd::platform_independent_types
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_specific_type
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_specific_type { type } {
-    variable _platform_namespace
-    return [${_platform_namespace}::_platform_specific_type $type]
+  variable _platform_namespace
+  return [${_platform_namespace}::_platform_specific_type $type]
 }; # tkdnd::platform_specific_type
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_independent_type
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_independent_type { type } {
-    variable _platform_namespace
-    return [${_platform_namespace}::_platform_independent_type $type]
+  variable _platform_namespace
+  return [${_platform_namespace}::_platform_independent_type $type]
 }; # tkdnd::platform_independent_type

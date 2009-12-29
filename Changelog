@@ -1,5 +1,13 @@
 2009-12-09  Petasis George  <petasis@iit.demokritos.gr>
         * /library/tkdnd_macosx.tcl:
+        * /macosx/macdnd.m: Changes to better integrate the work done by
+        Kevin Walzer with the rest of TkDND, since OS X seems to mimic the
+        XDND implementation. tkdnd_macosx.tcl is now a stub file, with most of
+        the work being done by the unix (XDND) code.
+        I think that OS X drop support is now working.
+
+2009-12-09  Petasis George  <petasis@iit.demokritos.gr>
+        * /library/tkdnd_macosx.tcl:
         * /macosx/macdnd.m: Updates to better integrate the OS X type
         registration command with the rest of the TkDND internal API.
 
