@@ -65,6 +65,7 @@ proc xdnd::_HandleXdndEnter { path drag_source typelist } {
   # puts "xdnd::_HandleXdndEnter: path=$path, drag_source=$drag_source,\
   #             typelist=$typelist"
   update
+  return default
 };# xdnd::_HandleXdndEnter
 
 # ----------------------------------------------------------------------------
