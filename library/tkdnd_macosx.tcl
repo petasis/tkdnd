@@ -3,6 +3,13 @@
 # 
 #    This file implements some utility procedures that are used by the TkDND
 #    package.
+
+#   This software is copyrighted by:
+#   Georgios Petasis, Athens, Greece.
+#   e-mail: petasisg@yahoo.gr, petasis@iit.demokritos.gr
+#
+#   Mac portions (c) 2009 Kevin Walzer/WordTech Communications LLC,
+#   kw@codebykevin.com
 #
 #
 # The following terms apply to all files associated
