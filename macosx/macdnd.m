@@ -241,12 +241,12 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
  */
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
   static char *DropActions[] = {
-    "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
+    "copy", "move", "link", "ask",  "private", "refuse_drop", "default", "",
     (char *) NULL
   };
   enum dropactions {
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
-    refuse_drop, ActionDefault
+    refuse_drop, ActionDefault, NoReturnedAction
   };
   TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
   Tk_Window tkwin    = (Tk_Window) winPtr;
@@ -298,8 +298,9 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   status = Tcl_GetIndexFromObj(interp, result, (const char **) DropActions,
 			       "dropactions", 0, &index);
   Tcl_DecrRefCount(result);
-  if (status != TCL_OK) index = refuse_drop;
+  if (status != TCL_OK) index = NoReturnedAction;
   switch ((enum dropactions) index) {
+    case NoReturnedAction:
     case ActionDefault:
     case ActionCopy:
     case ActionMove:
@@ -311,7 +312,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
       return NO; /* Refuse drop. */
     }
   }
-  return NO;
+  return YES;
 }; /* performDragOperation */
 
 /*

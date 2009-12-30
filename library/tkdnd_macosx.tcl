@@ -81,7 +81,7 @@ proc macdnd::_HandleDrop { args } {
 # ----------------------------------------------------------------------------
 proc macdnd::_GetDroppedData {  } {
   ## Use [clipboard get] because Xselection code returns error
-  return [clipboard get]\n
+  return [clipboard get]
 };# macdnd::_GetDroppedData
 proc xdnd::_GetDroppedData {  } {
   return [::tkdnd::macdnd::_GetDroppedData]
