@@ -48,6 +48,8 @@ namespace eval tkdnd {
   variable _drop_file_temp_dir
   variable _auto_update 1
 
+  variable _windowingsystem
+
   bind TkDND_Drag1 <ButtonPress-1> {tkdnd::_begin_drag press  %W %s %X %Y}
   bind TkDND_Drag1 <B1-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
   bind TkDND_Drag2 <ButtonPress-2> {tkdnd::_begin_drag press  %W %s %X %Y}
@@ -61,7 +63,24 @@ namespace eval tkdnd {
   proc initialise { dir PKG_LIB_FILE PACKAGE_NAME} {
     variable _platform_namespace
     variable _drop_file_temp_dir
+    variable _windowingsystem
     global env
+
+    switch [tk windowingsystem] {
+      x11 {
+        set _windowingsystem x11
+      }
+      win32 -
+      windows {
+        set _windowingsystem windows
+      }
+      aqua  {
+        set _windowingsystem aqua
+      }
+      default {
+        error "unknown Tk windowing system"
+      }
+    }
 
     ## Get User's home directory: We try to locate the proper path from a set of
     ## environmental variables...
@@ -79,7 +98,7 @@ namespace eval tkdnd {
     ## windowing system, aqua
     ## Under windows we have to also combine HOMEDRIVE & HOMEPATH...
     if {![info exists UserHomeDir] && 
-        [string equal[tk windowingsystem] windows] &&
+        [string equal $_windowingsystem windows] &&
         [info exist env(HOMEDRIVE)] && [info exist env(HOMEPATH)]} {
       if {[file isdirectory $env(HOMEDRIVE)$env(HOMEPATH)]} {
         set UserHomeDir $env(HOMEDRIVE)$env(HOMEPATH)
@@ -113,24 +132,26 @@ namespace eval tkdnd {
     }
     set _drop_file_temp_dir [file native $_drop_file_temp_dir]
     
-    switch [tk windowingsystem] {
+    switch $_windowingsystem {
       x11 {
         source $dir/tkdnd_unix.tcl
         set _platform_namespace xdnd
-        load $dir/$PKG_LIB_FILE $PACKAGE_NAME
       }
+      win32 -
       windows {
         source $dir/tkdnd_windows.tcl
         set _platform_namespace olednd
-        load $dir/libtkdnd20.dll TkDND
       }
       aqua  {
         source $dir/tkdnd_unix.tcl
         source $dir/tkdnd_macosx.tcl
         set _platform_namespace macdnd
-        load $dir/$PKG_LIB_FILE $PACKAGE_NAME
+      }
+      default {
+        error "unknown Tk windowing system"
       }
     }
+    load $dir/$PKG_LIB_FILE $PACKAGE_NAME
     source $dir/tkdnd_compat.tcl
   };# initialise
 
@@ -177,19 +198,24 @@ proc tkdnd::drag_source { mode path { types {} } { event 1 } } {
 #  Command tkdnd::drop_target
 # ----------------------------------------------------------------------------
 proc tkdnd::drop_target { mode path { types {} } } {
+  variable _windowingsystem
   switch -- $mode {
     set types [platform_specific_types $types]
     register {
-      switch [tk windowingsystem] {
+      switch $_windowingsystem {
         x11 {
           _register_types $path [winfo toplevel $path] $types
         }
+        win32 -
         windows {
           _RegisterDragDrop $path
           bind <Destroy> $path {+ tkdnd::_RevokeDragDrop %W}
         }
         aqua {
           macdnd::registerdragwidget [winfo toplevel $path] $types
+        }
+        default {
+          error "unknown Tk windowing system"
         }
       }
       set old_types [bind $path <<DropTargetTypes>>]
@@ -199,14 +225,18 @@ proc tkdnd::drop_target { mode path { types {} } } {
       bind $path <<DropTargetTypes>> $old_types
     }
     unregister {
-      switch [tk windowingsystem] {
+      switch $_windowingsystem {
         x11 {
         }
+        win32 -
         windows {
           _RevokeDragDrop $path
         }
         aqua {
           error todo
+        }
+        default {
+          error "unknown Tk windowing system"
         }
       }
       bind $path <<DropTargetTypes>> {}

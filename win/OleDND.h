@@ -62,7 +62,13 @@ struct __declspec(uuid("{4657278B-411B-11d2-839A-00C04FD918D0}"))
  
 #include <tcl.h>
 #include <tk.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <tkPlatDecls.h>
+#ifdef __cplusplus
+}
+#endif
 
 #define TkDND_TkWin(x) \
   (Tk_NameToWindow(interp, Tcl_GetString(x), Tk_MainWindow(interp)))
@@ -924,15 +930,15 @@ private:
       int new_file;
       HRESULT hr = S_OK;
     
-      new_file = sopen(file_name, O_RDWR | O_BINARY | O_CREAT,
+      new_file = _sopen(file_name, O_RDWR | O_BINARY | O_CREAT,
                                   SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
         do {
           hr = stream->Read(buffer, BLOCK_SIZE, &bytes_read);
-          if (bytes_read) bytes_written = write(new_file, buffer, bytes_read);
+          if (bytes_read) bytes_written = _write(new_file, buffer, bytes_read);
         } while (S_OK == hr && bytes_read == BLOCK_SIZE);
-        close(new_file);
-        if (bytes_written == 0) unlink(file_name);
+        _close(new_file);
+        if (bytes_written == 0) _unlink(file_name);
       } else {
         unsigned long error;
         if ((error = GetLastError()) == 0L) error = _doserrno;
@@ -1016,22 +1022,22 @@ private:
       return result;
     }; /* GetData_FileGroupDescriptor */
 
-    HRESULT StreamToFileW(IStream *stream, Tcl_UniChar *file_name) {
+    HRESULT StreamToFileW(IStream *stream, const Tcl_UniChar *file_name) {
       byte buffer[BLOCK_SIZE];
       unsigned long bytes_read = 0;
       int bytes_written = 0;
       int new_file;
       HRESULT hr = S_OK;
     
-      new_file = _wsopen(file_name, O_RDWR | O_BINARY | O_CREAT,
-                                  SH_DENYNO, S_IREAD | S_IWRITE);
+      new_file = _wsopen((wchar_t *) file_name, O_RDWR | O_BINARY | O_CREAT,
+                                               SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
         do {
           hr = stream->Read(buffer, BLOCK_SIZE, &bytes_read);
-          if (bytes_read) bytes_written = write(new_file, buffer, bytes_read);
+          if (bytes_read) bytes_written = _write(new_file, buffer, bytes_read);
         } while (S_OK == hr && bytes_read == BLOCK_SIZE);
-        close(new_file);
-        if (bytes_written == 0) _wunlink(file_name);
+        _close(new_file);
+        if (bytes_written == 0) _wunlink((wchar_t *) file_name);
         return S_OK;
       } else {
         unsigned long error;
@@ -1074,7 +1080,8 @@ private:
           item = Tcl_NewStringObj(szTempStr, -1);
           Tcl_AppendToObj(item, "\\", 1);
           Tcl_GetUnicode(item);
-          Tcl_AppendUnicodeToObj(item, file_descriptor.cFileName, -1);
+          Tcl_AppendUnicodeToObj(item, (Tcl_UniChar *)
+                                       file_descriptor.cFileName, -1);
           GlobalLock(content_storage.pstm);
           if (StreamToFileW(content_storage.pstm, Tcl_GetUnicode(item))==S_OK) {
             Tcl_ListObjAppendElement(NULL, result, item);
@@ -1167,6 +1174,5 @@ public:
 private:
     LONG   m_lRefCount;
 }; /* TkDND_DropSource */
-
 
 #endif _OLE_DND_H

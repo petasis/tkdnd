@@ -1,4 +1,9 @@
-2009-12-09  Petasis George  <petasis@iit.demokritos.gr>
+2009-12-30  Petasis George  <petasis@iit.demokritos.gr>
+        * /cmake:
+        * /CMakeLists.txt: Added support for building TkDND with cmake (i.e.
+        under windows).
+
+2009-12-29  Petasis George  <petasis@iit.demokritos.gr>
         * /library/tkdnd_macosx.tcl:
         * /macosx/macdnd.m: Changes to better integrate the work done by
         Kevin Walzer with the rest of TkDND, since OS X seems to mimic the
