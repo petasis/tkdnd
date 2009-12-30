@@ -576,7 +576,7 @@ class TkDND_DropTarget: public IDropTarget {
         status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = refuse_drop;
+        if (status != TCL_OK) index = ActionDefault;
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    *pdwEffect = DROPEFFECT_COPY; break;
@@ -633,7 +633,7 @@ class TkDND_DropTarget: public IDropTarget {
         status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = refuse_drop;
+        if (status != TCL_OK) index = ActionDefault;
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    *pdwEffect = DROPEFFECT_COPY; break;
@@ -766,7 +766,7 @@ class TkDND_DropTarget: public IDropTarget {
         status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = refuse_drop;
+        if (status != TCL_OK) index = ActionDefault;
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    *pdwEffect = DROPEFFECT_COPY; break;
