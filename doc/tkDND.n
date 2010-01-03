@@ -638,6 +638,9 @@ And that was all!
 .SH BUGS
 \fBUnix:\fR
 Dragging from Tk windows has not yet been implemented.
+\fBOS X:\fR
+TkDND under OS X is built on top of the Cocoa framework. Thus, it is compatible
+with Tk version >= 8.6
 .br
 .SH KEYWORDS
 dnd, drag and drop
