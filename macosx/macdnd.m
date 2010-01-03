@@ -252,42 +252,42 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   Tk_Window tkwin    = (Tk_Window) winPtr;
   Tcl_Interp *interp = Tk_Interp(tkwin);
   sourcePasteBoard   = [sender draggingPasteboard];
+  Tcl_Obj *data      = NULL;
 
   /* Retrieve string data from clipboard... */
-  NSArray  *types           = [sourcePasteBoard types];
-  NSString *pasteboardvalue = nil;
+  NSArray    *types           = [sourcePasteBoard types];
+  NSString   *pasteboardvalue = nil;
   for (NSString *type in types) {
     if ([type isEqualToString:NSStringPboardType]) {
-      /* string type... */
+      /* String type... */
       pasteboardvalue = [sourcePasteBoard stringForType:NSStringPboardType];
+      data = Tcl_NewStringObj([pasteboardvalue UTF8String], -1);
     } else if ([type isEqualToString:NSFilenamesPboardType]) { 
-      /* file array, convert to string separated with tabs... */
-      NSString *filename;
+      Tcl_Obj *element;
+      data = Tcl_NewListObj(0, NULL);
+      /* File array... */
       NSArray  *files = 
                [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
-      filename = [files componentsJoinedByString:@"\t"];
-      pasteboardvalue = filename;
+      for (NSString *filename in files) {
+        element = Tcl_NewStringObj([filename UTF8String], -1);
+        if (element == NULL) continue;
+        Tcl_IncrRefCount(element);
+        Tcl_ListObjAppendElement(interp, data, element);
+        Tcl_DecrRefCount(element);
+      }
     }
-    /*
-     * Get the string from the drag pasteboard to the general pasteboard...
-     */
-    NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
-    NSArray      *pasteboardtypes   = 
-                    [NSArray arrayWithObjects:NSStringPboardType, nil];
-    [generalpasteboard declareTypes:pasteboardtypes owner:self];
-    [generalpasteboard setString:pasteboardvalue forType:NSStringPboardType];
   }
+  if (data == NULL) data = Tcl_NewStringObj(NULL, 0);
 
-  Tcl_Obj* objv[4], *result;
+  Tcl_Obj* objv[3], *result;
   int i, index, status;
   
   objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleDrop", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
-  objv[2] = Tcl_NewLongObj(0);
-  objv[3] = Tcl_NewListObj(0, NULL);
+  objv[2] = data;
 
   /* Evaluate the command and get the result...*/
-  TkDND_Status_Eval(4);
+  TkDND_Status_Eval(3);
   //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
   if (status != TCL_OK) {
     /* An error has happened. Cancel the drop! */

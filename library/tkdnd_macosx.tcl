@@ -52,7 +52,7 @@ if {[tk windowingsystem] eq "aqua" && "AppKit" ni [winfo server .]} {
 }
 
 namespace eval macdnd {
-  variable xdnd ::tkdnd::tkdnd::xdnd
+  variable _dropped_data
 };# namespace macdnd
 
 # ----------------------------------------------------------------------------
@@ -79,7 +79,9 @@ proc macdnd::_HandleLeave { args  } {
 # ----------------------------------------------------------------------------
 #  Command macdnd::_HandleXdndDrop
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleDrop { args } {
+proc macdnd::_HandleDrop { drop_target data args } {
+  variable _dropped_data
+  set _dropped_data $data
   return [::tkdnd::xdnd::_HandleXdndDrop 0]
 };# macdnd::_HandleDrop
 
@@ -87,8 +89,8 @@ proc macdnd::_HandleDrop { args } {
 #  Command macdnd::_GetDroppedData
 # ----------------------------------------------------------------------------
 proc macdnd::_GetDroppedData {  } {
-  ## Use [clipboard get] because Xselection code returns error
-  return [clipboard get]
+  variable _dropped_data
+  return $_dropped_data
 };# macdnd::_GetDroppedData
 proc xdnd::_GetDroppedData {  } {
   return [::tkdnd::macdnd::_GetDroppedData]
