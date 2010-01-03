@@ -1,3 +1,12 @@
+2010-01-03  Petasis George  <petasis@iit.demokritos.gr>
+        * /library/tkdnd_macosx.tcl:
+        * /macosx/macdnd.m: Changed the way dropped data is handled: during
+        the drop event the data are converted into a utf-8 string (in case of
+        dropping string data) or a Tcl list object of utf-8 filenames (in case
+        of dropping files). The data object is stored directly in the 
+        tkdnd::macdnd:_dropped_data variable, instead of the selection
+        clipboard. _GetDroppedData was modified to return this stored data.
+
 2009-12-30  Petasis George  <petasis@iit.demokritos.gr>
         * /cmake:
         * /CMakeLists.txt: Added support for building TkDND with cmake (i.e.
