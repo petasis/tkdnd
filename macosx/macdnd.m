@@ -61,6 +61,9 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender;
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)sender;
+- (void)mouseDown:(NSEvent*)event;
+- (BOOL)acceptsFirstMouse:(NSEvent *)event;
+- (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal;
 TkWindow* TkMacOSXGetTkWindow( NSWindow *w);
 
 @end
@@ -77,7 +80,66 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
 	  (TkWindow *)Tk_IdToWindow(dispPtr->display, window) : NULL);
 }
 
+//source operations
 
+//this is the correct way to specify a drag source in a Cocoa window, but this appears to completely override any script-level code. For instance, a Tk-level command to append text to the clipboard is ignored: this method grabs existing data from the clipboard. Also, there appears to be no way to turn this method on or off from the script level and this causes script-level collisions. Dragging to select text in the Tk text widget introduces the drag-and-drop motion, which isn't the right approach.
+
+- (void)mouseDown:(NSEvent*)event {
+
+  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
+  Tk_Window tkwin    = (Tk_Window) winPtr;
+  Tcl_Interp *interp = Tk_Interp(tkwin);
+ 
+  NSPasteboard* dragPasteboard=[NSPasteboard pasteboardWithName:NSDragPboard];
+  [dragPasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:self];
+  [dragPasteboard addTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:self];
+
+ 
+  //write the string from the general pasteboard to the drag pasteboard
+  NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
+    
+  NSArray *types = [generalpasteboard types];
+  NSString *pasteboardvalue = nil;
+  for (NSString *type in types) {
+    if ([type isEqualToString:NSStringPboardType]) {
+      pasteboardvalue = [generalpasteboard stringForType:NSStringPboardType];
+      //file array, convert to string
+    } else if ([type isEqualToString:NSFilenamesPboardType]) { 
+      NSArray *files = [generalpasteboard propertyListForType:NSFilenamesPboardType];
+      NSString *filename;
+      filename =  [files componentsJoinedByString:@"\t"];
+      pasteboardvalue = filename;
+    }
+    [dragPasteboard setString:pasteboardvalue forType:NSStringPboardType];
+
+    NSString *dragvalue = [dragPasteboard stringForType:NSStringPboardType];
+    NSLog(dragvalue);
+  }
+
+
+  NSImage *image = [[NSWorkspace sharedWorkspace] iconForFileType:@"dylib"];
+   
+  NSPoint point;
+
+  point = [event locationInWindow];
+  [self dragImage:image
+	       at:point
+	   offset:NSMakeSize(0, 0)
+	    event:event
+       pasteboard:dragPasteboard
+	   source:self
+	slideBack:YES];
+    
+}
+
+
+//set flags for local drag operation
+- (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal {
+ if (isLocal) return NSDragOperationCopy;
+return NSDragOperationCopy|NSDragOperationGeneric|NSDragOperationLink;
+}
+
+  
 /*
  * We are only implementing dragging destination methods here:
  * widget is drop target. Making a Tk widget a drag source under
@@ -136,20 +198,20 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-    case ActionDefault:
-    case ActionCopy:
-      return NSDragOperationCopy;
-    case ActionMove:
-      return NSDragOperationMove;
-    case ActionAsk:
-      return NSDragOperationGeneric;
-    case ActionPrivate: 
-      return NSDragOperationPrivate;
-    case ActionLink:
-      return NSDragOperationLink;
-    case refuse_drop: {
-      return NSDragOperationNone; /* Refuse drop. */
-    }
+  case ActionDefault:
+  case ActionCopy:
+    return NSDragOperationCopy;
+  case ActionMove:
+    return NSDragOperationMove;
+  case ActionAsk:
+    return NSDragOperationGeneric;
+  case ActionPrivate: 
+    return NSDragOperationPrivate;
+  case ActionLink:
+    return NSDragOperationLink;
+  case refuse_drop: {
+    return NSDragOperationNone; /* Refuse drop. */
+  }
   }
   return NSDragOperationNone;
 }; /* draggingEntered */
@@ -211,20 +273,20 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-    case ActionDefault:
-    case ActionCopy:
-      return NSDragOperationCopy;
-    case ActionMove:
-      return NSDragOperationMove;
-    case ActionAsk:
-      return NSDragOperationGeneric;
-    case ActionPrivate: 
-      return NSDragOperationPrivate;
-    case ActionLink:
-      return NSDragOperationLink;
-    case refuse_drop: {
-      return NSDragOperationNone; /* Refuse drop. */
-    }
+  case ActionDefault:
+  case ActionCopy:
+    return NSDragOperationCopy;
+  case ActionMove:
+    return NSDragOperationMove;
+  case ActionAsk:
+    return NSDragOperationGeneric;
+  case ActionPrivate: 
+    return NSDragOperationPrivate;
+  case ActionLink:
+    return NSDragOperationLink;
+  case refuse_drop: {
+    return NSDragOperationNone; /* Refuse drop. */
+  }
   }
   return NSDragOperationNone;
 }; /* draggingUpdated */
@@ -267,7 +329,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
       data = Tcl_NewListObj(0, NULL);
       /* File array... */
       NSArray  *files = 
-               [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
+	[sourcePasteBoard propertyListForType:NSFilenamesPboardType];
       for (NSString *filename in files) {
         element = Tcl_NewStringObj([filename UTF8String], -1);
         if (element == NULL) continue;
@@ -300,17 +362,17 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = NoReturnedAction;
   switch ((enum dropactions) index) {
-    case NoReturnedAction:
-    case ActionDefault:
-    case ActionCopy:
-    case ActionMove:
-    case ActionAsk:
-    case ActionPrivate: 
-    case ActionLink:
-      return YES;
-    case refuse_drop: {
-      return NO; /* Refuse drop. */
-    }
+  case NoReturnedAction:
+  case ActionDefault:
+  case ActionCopy:
+  case ActionMove:
+  case ActionAsk:
+  case ActionPrivate: 
+  case ActionLink:
+    return YES;
+  case refuse_drop: {
+    return NO; /* Refuse drop. */
+  }
   }
   return YES;
 }; /* performDragOperation */
@@ -338,6 +400,212 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
 }; /* draggingExited */
 
 @end
+
+// int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
+//                            int objc, Tcl_Obj *CONST objv[]) {
+//   TkDND_DataObject *pDataObject = NULL;
+//   TkDND_DropSource *pDropSource = NULL;
+//   Tcl_Obj         **elem;
+//   DWORD             actions = 0;
+//   DWORD             dwEffect;
+//   DWORD             dwResult;
+//   int               status, elem_nu, i, index, nDataLength;
+//   char             *ptr;
+//   Tcl_UniChar      *unicode, *ptr_u;
+//   FORMATETC        *m_pfmtetc;
+//   STGMEDIUM        *m_pstgmed;
+//   static char *DropTypes[] = {
+//     "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
+//     (char *) NULL
+//   };
+//   enum droptypes {
+//     TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP
+//   };
+//   static char *DropActions[] = {
+//     "copy", "move", "link", "ask",  "private", "refuse_drop",
+//     "default",
+//     (char *) NULL
+//   };
+//   enum dropactions {
+//     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
+//     refuse_drop, ActionDefault
+//   };
+
+//   if (objc != 5) {
+//     Tcl_WrongNumArgs(interp, 1, objv, "path actions types data");
+//     return TCL_ERROR;
+//   }
+//   Tcl_ResetResult(interp);
+
+//   /* Process drag actions. */
+//   status = Tcl_ListObjGetElements(interp, objv[2], &elem_nu, &elem);
+//   if (status != TCL_OK) return status;
+//   for (i = 0; i < elem_nu; i++) {
+//     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **)DropActions,
+//                                  "dropactions", 0, &index);
+//     if (status != TCL_OK) return status;
+//     switch ((enum dropactions) index) {
+//       case ActionCopy:    actions |= DROPEFFECT_COPY; break;
+//       case ActionMove:    actions |= DROPEFFECT_MOVE; break;
+//       case ActionLink:    actions |= DROPEFFECT_LINK; break;
+//       case ActionAsk:     /* not supported */;        break;
+//       case ActionPrivate: actions |= DROPEFFECT_NONE; break;
+//       case ActionDefault: /* not supported */;        break;
+//       case refuse_drop:   /* not supported */;        break;
+//     }
+//   }
+
+//   /* Process drag types. */
+//   status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
+//   if (status != TCL_OK) return status;
+//   m_pfmtetc  = new FORMATETC[elem_nu];
+//   if (m_pfmtetc == NULL) return TCL_ERROR;
+//   m_pstgmed  = new STGMEDIUM[elem_nu];
+//   if (m_pstgmed == NULL) {
+//     delete[] m_pfmtetc; return TCL_ERROR;
+//   }
+//   for (i = 0; i < elem_nu; i++) {
+//     m_pfmtetc[i].ptd            = 0;
+//     m_pfmtetc[i].dwAspect       = DVASPECT_CONTENT;
+//     m_pfmtetc[i].lindex         = -1;
+//     m_pfmtetc[i].tymed          = TYMED_HGLOBAL;
+//     m_pstgmed[i].tymed          = TYMED_HGLOBAL;
+//     m_pstgmed[i].pUnkForRelease = 0;
+//     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
+//                                  "dropactions", 0, &index);
+//     if (status == TCL_OK) {
+//       switch ((enum droptypes) index) {
+//         case TYPE_CF_UNICODETEXT: {
+//           m_pfmtetc[i].cfFormat = CF_UNICODETEXT;
+//           unicode = Tcl_GetUnicodeFromObj(objv[4], &nDataLength);
+//           m_pstgmed[i].hGlobal = GlobalAlloc(GHND, (nDataLength+1) *
+//                                                    sizeof(Tcl_UniChar));
+//           if (m_pstgmed[i].hGlobal) {
+//             ptr_u = (Tcl_UniChar *) GlobalLock(m_pstgmed[i].hGlobal);
+//             lstrcpyW((LPWSTR) ptr_u, (LPWSTR) unicode);
+//             GlobalUnlock(m_pstgmed[i].hGlobal);
+//           }
+//           break;
+//         }
+//         case TYPE_CF_TEXT: {
+//           m_pfmtetc[i].cfFormat = CF_TEXT;
+//           nDataLength = Tcl_GetCharLength(objv[4]);
+//           m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength+1);
+//           if (m_pstgmed[i].hGlobal) {
+//             ptr = (char *) GlobalLock(m_pstgmed[i].hGlobal);
+//             memcpy(ptr, Tcl_GetString(objv[4]), nDataLength);
+//             ptr[nDataLength] = '\0';
+//             GlobalUnlock(m_pstgmed[i].hGlobal);
+//           }
+//           break;
+//         }
+//         case TYPE_CF_HDROP: {
+//           LPDROPFILES pDropFiles;
+//           Tcl_DString ds;
+//           Tcl_Obj **File;
+//           int file_nu;
+//           status = Tcl_ListObjGetElements(interp, objv[4], &file_nu, &File);
+//           if (status !=TCL_OK) { elem_nu = i; goto error;}
+//           m_pfmtetc[i].cfFormat = CF_HDROP;
+//           m_pstgmed[i].hGlobal = GlobalAlloc(GHND, 
+//                        (DWORD) (sizeof(DROPFILES)+(_MAX_PATH)*file_nu+1));
+//           if (m_pstgmed[i].hGlobal) {
+//             pDropFiles = (LPDROPFILES) GlobalLock(m_pstgmed[i].hGlobal);
+//             // Set the offset where the starting point of the file start.
+//             pDropFiles->pFiles = sizeof(DROPFILES);
+//             // File contains wide characters?
+//             pDropFiles->fWide = FALSE;
+//             int CurPosition = sizeof(DROPFILES);
+//             for (i=0; i<file_nu; i++) {
+//               TCHAR *pszFileName;
+//               // Convert File Name to native paths...
+//               Tcl_DStringInit(&ds);
+//               pszFileName = Tcl_TranslateFileName(NULL, 
+//                                 Tcl_GetString(File[i]), &ds);
+//               if (pszFileName != NULL) {
+//                 // Convert the file name using the system encoding.
+//                 pszFileName = Tcl_UtfToExternalDString(NULL,
+//                                   Tcl_GetString(File[i]), -1, &ds);
+//               }
+//               // Copy the file name into global memory.
+//               lstrcpy((LPSTR)((LPSTR)(pDropFiles)+CurPosition),
+//                       TEXT(pszFileName));
+//               /*
+//                * Move the current position beyond the file name copied, and
+//                * don't forget the Null terminator (+1)
+//                */
+//               CurPosition +=Tcl_DStringLength(&ds)+1;
+//               Tcl_DStringFree(&ds);
+//             }
+//             /*
+//              * Finally, add an additional null terminator, as per CF_HDROP
+//              * Format specs.
+//              */
+//             ((LPSTR)pDropFiles)[CurPosition]=0;
+//             GlobalUnlock(m_pstgmed[i].hGlobal);
+//           }
+//           break;
+//         }
+//       }
+//     } else {
+//       unsigned char *bytes;
+//       /* A user defined type? */
+//       m_pfmtetc[i].cfFormat = RegisterClipboardFormat(Tcl_GetString(elem[i]));
+//       bytes = Tcl_GetByteArrayFromObj(objv[4], &nDataLength);
+//       m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength);
+//       if (m_pstgmed[i].hGlobal) {
+//         ptr = (char *) GlobalLock(m_pstgmed[i].hGlobal);
+//         memcpy(ptr, bytes, nDataLength);
+//         GlobalUnlock(m_pstgmed[i].hGlobal);
+//       }
+//       break;
+//     }
+//   }; /* for (i = 0; i < elem_nu; i++) */
+  
+//   pDataObject = new TkDND_DataObject(m_pfmtetc, m_pstgmed, elem_nu);
+//   if (pDataObject == NULL) {
+//     Tcl_SetResult(interp, "unable to create OLE Data object", TCL_STATIC);
+//     return TCL_ERROR;
+//   }
+  
+//   pDropSource = new TkDND_DropSource();
+//   if (pDropSource == NULL) {
+//     pDataObject->Release();
+//     Tcl_SetResult(interp, "unable to create OLE Drop Source object",TCL_STATIC);
+//     return TCL_ERROR;
+//   }
+
+//   dwResult = DoDragDrop(pDataObject, pDropSource, actions, &dwEffect);
+//   // release the COM interfaces
+//   pDropSource->Release();
+//   pDataObject->Release();
+//   for (i = 0; i < elem_nu; i++) {
+//     ReleaseStgMedium(&m_pstgmed[i]);
+//   }
+//   delete[] m_pfmtetc;
+//   delete[] m_pstgmed;
+//   if (dwResult == DRAGDROP_S_DROP) {
+//     switch (dwEffect) {
+//       case DROPEFFECT_COPY: Tcl_SetResult(interp, "copy", TCL_STATIC); break;
+//       case DROPEFFECT_MOVE: Tcl_SetResult(interp, "move", TCL_STATIC); break;
+//       case DROPEFFECT_LINK: Tcl_SetResult(interp, "link", TCL_STATIC); break;
+//     }
+//   } else {
+//     Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
+//   }
+//   return TCL_OK;
+// error:
+//   // release the COM interfaces
+//   if (pDropSource) pDropSource->Release();
+//   if (pDataObject) pDataObject->Release();
+//   for (i = 0; i < elem_nu; i++) {
+//     ReleaseStgMedium(&m_pstgmed[i]);
+//   }
+//   delete[] m_pfmtetc;
+//   delete[] m_pstgmed;
+//   return TCL_ERROR;
+// }; /* TkDND_DoDragDropObjCmd */
+
 
 //Register add Cocoa subview to serve as drop target; register dragged data types
 int RegisterDragWidget(ClientData clientData, Tcl_Interp *ip,
