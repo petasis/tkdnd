@@ -1,3 +1,6 @@
+2010-04-06  Petasis George  <petasis@iit.demokritos.gr>
+        * /macosx/macdnd.m: Some attempts towards drag support for OS X.
+
 2010-01-03  Petasis George  <petasis@iit.demokritos.gr>
         * /library/tkdnd_macosx.tcl:
         * /macosx/macdnd.m: Changed the way dropped data is handled: during

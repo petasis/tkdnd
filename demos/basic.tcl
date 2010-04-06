@@ -16,10 +16,12 @@ bind .text_drag_source <<DragEndCmd>>  \
   [list drag_source DND_Text $text_data %e %W %s %X %Y %A]
 bind .file_drag_source <<DragInitCmd>> \
   [list drag_source DND_Files $file_data %e %W %s %X %Y %A]
+bind .file_drag_source <<DragEndCmd>> \
+  [list drag_source DND_Files $file_data %e %W %s %X %Y %A]
 proc drag_source {type data event path state x y action} {
   switch $event {
     <<DragInitCmd>> {return [list copy $type $data]}
-    <<DragEndCmd>>  {}
+    <<DragEndCmd>>  {puts "Drag action: $action (type: $type)"}
   }
 };# drag_source
 

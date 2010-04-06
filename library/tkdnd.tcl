@@ -286,9 +286,27 @@ proc tkdnd::_init_drag { source state rootX rootY } {
                               %t [bind $source <<DragSourceTypes>>]] $cmd]
     set info [uplevel \#0 $cmd]
     if { $info != "" } {
+      variable _windowingsystem
       foreach { actions types data } $info { break }
       set types [platform_specific_types $types]
-      set action [_DoDragDrop $source $actions $types $data]
+      set action refuse_drop
+      switch $_windowingsystem {
+        x11 {
+          error "dragging from Tk widgets not yet supported"
+        }
+        win32 -
+        windows {
+          set action [_DoDragDrop $source $actions $types $data]
+        }
+        aqua {
+          set action [macdnd::dodragdrop $source $actions $types $data]
+        }
+        default {
+          error "unknown Tk windowing system"
+        }
+      }
+      ## Call _end_drag to notify the widget of the result of the drag
+      ## operation...
       _end_drag $source {} $action {} $data {} $state $rootX $rootY
     }
   }
@@ -307,11 +325,28 @@ proc tkdnd::_end_drag { source target action type data result
     set cmd [string map [list %W $source %X $rootX %Y $rootY \
                               %S $state %e <<DragEndCmd>> %A \{$action\}] $cmd]
     set info [uplevel \#0 $cmd]
-    if {$info != ""} {
+    if { $info != "" } {
+      variable _windowingsystem
       foreach { actions types data } $info { break }
       set types [platform_specific_types $types]
-      set action [_DoDragDrop $source $actions $types $data]
-      _end_drag $source {} $action {} $data {}
+      switch $_windowingsystem {
+        x11 {
+          error "dragging from Tk widgets not yet supported"
+        }
+        win32 -
+        windows {
+          set action [_DoDragDrop $source $actions $types $data]
+        }
+        aqua {
+          macdnd::dodragdrop $source $actions $types $data
+        }
+        default {
+          error "unknown Tk windowing system"
+        }
+      }
+      ## Call _end_drag to notify the widget of the result of the drag
+      ## operation...
+      _end_drag $source {} $action {} $data {} $state $rootX $rootY
     }
   }
 };# tkdnd::_end_drag
