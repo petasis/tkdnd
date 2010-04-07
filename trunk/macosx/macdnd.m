@@ -65,7 +65,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender;
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)sender;
-- (void)mouseDown:(NSEvent*)event;
+- (void)mouseDrag:(NSEvent*)theEvent;
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal;
 TkWindow* TkMacOSXGetTkWindow( NSWindow *w);
 
@@ -81,7 +81,7 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   TkDisplay *dispPtr = TkGetDisplayList();
 
   return (window != None ? (TkWindow *)Tk_IdToWindow(dispPtr->display, window) :
-                           NULL);
+	  NULL);
 }; /* TkMacOSXGetTkWindow */
 
 
@@ -93,174 +93,44 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
 
 //this is the correct way to specify a drag source in a Cocoa window, but this appears to completely override any script-level code. For instance, a Tk-level command to append text to the clipboard is ignored: this method grabs existing data from the clipboard. Also, there appears to be no way to turn this method on or off from the script level and this causes script-level collisions. Dragging to select text in the Tk text widget introduces the drag-and-drop motion, which isn't the right approach.
 
+//define virtual event here
+- (void)mouseDown:(NSEvent*)theEvent {
 
-#if 0
-- (void)mouseDown:(NSEvent*)event {
-
-  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin    = (Tk_Window) winPtr;
+  XVirtualEvent event;
+  int x, y;
+  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
+  Tk_Window tkwin = (Tk_Window) winPtr;
   Tcl_Interp *interp = Tk_Interp(tkwin);
 
-
-  NSPasteboard* dragPasteboard=[NSPasteboard pasteboardWithName:NSDragPboard];
-  [dragPasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:self];
-  [dragPasteboard addTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:self];
-
-
-  //write the string from the general pasteboard to the drag pasteboard
-
-  NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
-
-  NSArray *types = [generalpasteboard types];
-  NSString *pasteboardvalue = nil;
-  for (NSString *type in types) {
-    if ([type isEqualToString:NSStringPboardType]) {
-      pasteboardvalue = [generalpasteboard stringForType:NSStringPboardType];
-      //file array, convert to string
-    } else if ([type isEqualToString:NSFilenamesPboardType]) {
-      NSArray *files = [generalpasteboard propertyListForType:NSFilenamesPboardType];
-      NSString *filename;
-      filename =  [files componentsJoinedByString:@"\t"];
-      pasteboardvalue = filename;
-    }
-    [dragPasteboard setString:pasteboardvalue forType:NSStringPboardType];
-  }
-
-
-  //simple drag icon taken from NSImage constants: four small grouped squares
-NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
-
-
-  NSPoint point;
-  point = [event locationInWindow];
-  [self dragImage:dragicon
-	       at:point
-	   offset:NSMakeSize(0, 0)
-	    event:event
-       pasteboard:dragPasteboard
-	   source:self
-	slideBack:YES];
+  bzero(&event, sizeof(XVirtualEvent));
+  event.type = VirtualEvent;
+  event.serial = LastKnownRequestProcessed(Tk_Display(tkwin));
+  event.send_event = false;
+  event.display = Tk_Display(tkwin);
+  event.event = Tk_WindowId(tkwin);
+  event.root = XRootWindow(Tk_Display(tkwin), 0);
+  event.subwindow = None;
+  event.time = TkpGetMS();
+  XQueryPointer(NULL, winPtr->window, NULL, NULL,
+		&event.x_root, &event.y_root, &x, &y, &event.state);
+  Tk_TopCoordsToWindow(tkwin, x, y, &event.x, &event.y);
+  event.same_screen = true;
+  event.name = Tk_GetUid("MacDragSource");
+  Tk_QueueWindowEvent((XEvent *) &event, TCL_QUEUE_TAIL);
 
 }
 
 
 //set flags for local drag operation: not sure if this is necessary or not
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal {
- if (isLocal) return NSDragOperationCopy;
-return NSDragOperationCopy|NSDragOperationGeneric|NSDragOperationLink;
+  if (isLocal) return NSDragOperationCopy;
+  return NSDragOperationCopy|NSDragOperationGeneric|NSDragOperationLink;
 }
-#endif
+
 
 /*
  * 
  */
-int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
-                           int objc, Tcl_Obj *CONST objv[]) {
-  Tcl_Obj         **elem;
-  int               actions = 0;
-  int               status, elem_nu, i, index, nDataLength;
-  char             *ptr;
-  Tcl_UniChar      *unicode, *ptr_u;
-  static char *DropTypes[] = {
-    "NSStringPboardType", "NSFilenamesPboardType",
-    (char *) NULL
-  };
-  enum droptypes {
-    TYPE_NSStringPboardType, TYPE_NSFilenamesPboardType
-  };
-  static char *DropActions[] = {
-    "copy", "move", "link", "ask",  "private", "refuse_drop",
-    "default",
-    (char *) NULL
-  };
-  enum dropactions {
-    ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
-    refuse_drop, ActionDefault
-  };
-
-  if (objc != 5) {
-    Tcl_WrongNumArgs(interp, 1, objv, "path actions types data");
-    return TCL_ERROR;
-  }
-  Tcl_ResetResult(interp);
-  //  Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
-
-  /* Process drag actions. */
-  status = Tcl_ListObjGetElements(interp, objv[2], &elem_nu, &elem);
-  if (status != TCL_OK) return status;
-  for (i = 0; i < elem_nu; i++) {
-    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **)DropActions,
-                                 "dropactions", 0, &index);
-    if (status != TCL_OK) return status;
-    switch ((enum dropactions) index) {
-      case ActionCopy:    actions |= NSDragOperationCopy;    break;
-      case ActionMove:    actions |= NSDragOperationMove;    break;
-      case ActionLink:    actions |= NSDragOperationLink;    break;
-      case ActionAsk:     actions |= NSDragOperationGeneric; break;
-      case ActionPrivate: actions |= NSDragOperationPrivate; break;
-      case ActionDefault: /* not supported */;               break;
-      case refuse_drop:   /* not supported */;               break;
-    }
-  }
-
-  /* Get the object that holds this Tk Window... */
-  // TODO: how to do this?
-
-  //get pasteboard
- NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
- [generalpasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
-  [generalpasteboard declareTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:nil];
-
-  /* Process drag types. */
-  Tcl_Obj *data      = NULL;
-  Tcl_Obj *indexptr = NULL;
-  status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
-  if (status != TCL_OK) return status;
-  for (i = 0; i < elem_nu; i++) {
-    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
-                                 "dropactions", 0, &index);
-    if (status == TCL_OK) {
-      switch ((enum droptypes) index) {
-        case TYPE_NSStringPboardType: {
-          // Place the string in the clipboard
-	  NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(objv[4])] ;
-    	  [generalpasteboard setString:datastring forType:NSStringPboardType];  
-          break;
-        }
-        case TYPE_NSFilenamesPboardType: {
-	  NSMutableArray *filelist = nil;
-   
-          // Place the filenames in the clipboard
-	  status = Tcl_ListObjGetElements(interp, objv[4], &elem_nu, &elem);
-	  for (i = 0; i < elem_nu; i++) {
-	     /* Get string value of file name from list */
-	    status = Tcl_ListObjIndex(interp,  objv[4], elem[i], &indexptr);
-
-    if (TCL_OK != Tcl_GetString(&indexptr)) {
-      return TCL_ERROR ;
-    }
- 
-    
-    //convert file names to NSSString, add to NSMutableArray, set pasteboard type
-    NSString *filestring = [NSString stringWithUTF8String:Tcl_GetString(indexptr)];
-	    [filelist addObject: [NSString stringWithString:filestring]]; 
-	    [generalpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
-	  }
-	  break;
-	}
-
-      }
-    } else {
-      /* An unknown (or user defined) type. Silently skip it... */
-    }
-  }
-
-  /* Do drag & drop... */
-
-  /* Get the drop action... */
-  // Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
-  return TCL_OK;
-}; /* TkDND_DoDragDropObjCmd */
 
 /*******************************************************************************
  *******************************************************************************
@@ -319,20 +189,20 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-    case ActionDefault:
-    case ActionCopy:
-      return NSDragOperationCopy;
-    case ActionMove:
-      return NSDragOperationMove;
-    case ActionAsk:
-      return NSDragOperationGeneric;
-    case ActionPrivate:
-      return NSDragOperationPrivate;
-    case ActionLink:
-      return NSDragOperationLink;
-    case refuse_drop: {
-      return NSDragOperationNone; /* Refuse drop. */
-    }
+  case ActionDefault:
+  case ActionCopy:
+    return NSDragOperationCopy;
+  case ActionMove:
+    return NSDragOperationMove;
+  case ActionAsk:
+    return NSDragOperationGeneric;
+  case ActionPrivate:
+    return NSDragOperationPrivate;
+  case ActionLink:
+    return NSDragOperationLink;
+  case refuse_drop: {
+    return NSDragOperationNone; /* Refuse drop. */
+  }
   }
   return NSDragOperationNone;
 }; /* draggingEntered */
@@ -393,20 +263,20 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-    case ActionDefault:
-    case ActionCopy:
-      return NSDragOperationCopy;
-    case ActionMove:
-      return NSDragOperationMove;
-    case ActionAsk:
-      return NSDragOperationGeneric;
-    case ActionPrivate:
-      return NSDragOperationPrivate;
-    case ActionLink:
-      return NSDragOperationLink;
-    case refuse_drop: {
-      return NSDragOperationNone; /* Refuse drop. */
-    }
+  case ActionDefault:
+  case ActionCopy:
+    return NSDragOperationCopy;
+  case ActionMove:
+    return NSDragOperationMove;
+  case ActionAsk:
+    return NSDragOperationGeneric;
+  case ActionPrivate:
+    return NSDragOperationPrivate;
+  case ActionLink:
+    return NSDragOperationLink;
+  case refuse_drop: {
+    return NSDragOperationNone; /* Refuse drop. */
+  }
   }
   return NSDragOperationNone;
 }; /* draggingUpdated */
@@ -449,7 +319,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       data = Tcl_NewListObj(0, NULL);
       /* File array... */
       NSArray *files =
-               [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
+	[sourcePasteBoard propertyListForType:NSFilenamesPboardType];
       for (NSString *filename in files) {
         element = Tcl_NewStringObj([filename UTF8String], -1);
         if (element == NULL) continue;
@@ -482,17 +352,17 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = NoReturnedAction;
   switch ((enum dropactions) index) {
-    case NoReturnedAction:
-    case ActionDefault:
-    case ActionCopy:
-    case ActionMove:
-    case ActionAsk:
-    case ActionPrivate:
-    case ActionLink:
-      return YES;
-    case refuse_drop: {
-      return NO; /* Refuse drop. */
-    }
+  case NoReturnedAction:
+  case ActionDefault:
+  case ActionCopy:
+  case ActionMove:
+  case ActionAsk:
+  case ActionPrivate:
+  case ActionLink:
+    return YES;
+  case refuse_drop: {
+    return NO; /* Refuse drop. */
+  }
   }
   return YES;
 }; /* performDragOperation */
@@ -520,6 +390,149 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 }; /* draggingExited */
 
 @end
+
+/*End Cocoa class methods: now we begin Tcl functions calling the class methods*/
+
+
+//Implements drag source in Tk windows
+int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *ip,
+                           int objc, Tcl_Obj *CONST objv[]) {
+  Tcl_Obj         **elem;
+  int               actions = 0;
+  int               status, elem_nu, i, index, nDataLength;
+  char             *ptr;
+  Tcl_UniChar      *unicode, *ptr_u;
+  static char *DropTypes[] = {
+    "NSStringPboardType", "NSFilenamesPboardType",
+    (char *) NULL
+  };
+  enum droptypes {
+    TYPE_NSStringPboardType, TYPE_NSFilenamesPboardType
+  };
+  static char *DropActions[] = {
+    "copy", "move", "link", "ask",  "private", "refuse_drop",
+    "default",
+    (char *) NULL
+  };
+  enum dropactions {
+    ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
+    refuse_drop, ActionDefault
+  };
+
+  if (objc != 5) {
+    Tcl_WrongNumArgs(ip, 1, objv, "path actions types data");
+    return TCL_ERROR;
+  }
+  Tcl_ResetResult(ip);
+
+  
+  //  Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
+
+  /* Process drag actions. */
+  status = Tcl_ListObjGetElements(ip, objv[2], &elem_nu, &elem);
+  if (status != TCL_OK) return status;
+  for (i = 0; i < elem_nu; i++) {
+    status = Tcl_GetIndexFromObj(ip, elem[i], (const char **)DropActions,
+                                 "dropactions", 0, &index);
+    if (status != TCL_OK) return status;
+    switch ((enum dropactions) index) {
+    case ActionCopy:    actions |= NSDragOperationCopy;    break;
+    case ActionMove:    actions |= NSDragOperationMove;    break;
+    case ActionLink:    actions |= NSDragOperationLink;    break;
+    case ActionAsk:     actions |= NSDragOperationGeneric; break;
+    case ActionPrivate: actions |= NSDragOperationPrivate; break;
+    case ActionDefault: /* not supported */;               break;
+    case refuse_drop:   /* not supported */;               break;
+    }
+  }
+
+  /* Get the object that holds this Tk Window... */
+  Rect bounds;
+  NSRect frame;
+  Tk_Window path;
+  path = Tk_NameToWindow(ip, Tcl_GetString(objv[1]), Tk_MainWindow(ip));
+  if (path == NULL) {
+    return TCL_ERROR;
+  }
+
+  Tk_MakeWindowExist(path);
+  Tk_MapWindow(path);
+  Drawable d = Tk_WindowId(path);
+
+ //get NSView from Tk window and add subview to serve as drag source
+  DNDView *dragview = [[DNDView alloc] init];
+  NSView *view = TkMacOSXGetRootControl(d);
+  if ([dragview superview] != view) {
+    [view addSubview:dragview positioned:NSWindowBelow relativeTo:nil];
+  }
+
+ TkMacOSXWinBounds((TkWindow*)path, &bounds);
+
+  //hack to make sure subview is set to take up entire geometry of window
+  frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
+  frame.origin.y = 0;
+
+  if (!NSEqualRects(frame, [dragview frame])) {
+    [dragview setFrame:frame];
+  }
+
+
+  //get pasteboard
+  NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
+  [generalpasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:dragview];
+  [generalpasteboard declareTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:dragview];
+
+  /* Process drag types. */
+
+  status = Tcl_ListObjGetElements(ip, objv[3], &elem_nu, &elem);
+  if (status != TCL_OK) return status;
+  for (i = 0; i < elem_nu; i++) {
+    status = Tcl_GetIndexFromObj(ip, elem[i], (const char **) DropTypes,
+                                 "dropactions", 0, &index);
+    if (status == TCL_OK) {
+      switch ((enum droptypes) index) {
+      case TYPE_NSStringPboardType: {
+	// Place the string in the clipboard
+	NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(objv[4])];
+	[generalpasteboard setString:datastring forType:NSStringPboardType];  
+	break;
+      }
+      case TYPE_NSFilenamesPboardType: {
+	NSMutableArray *filelist = nil;
+   
+	// Place the filenames in the clipboard
+	status = Tcl_ListObjGetElements(ip, objv[4], &elem_nu, &elem);
+	for (i = 0; i < elem_nu; i++) {
+	  /* Get string value of file name from list */
+	  char* filename;
+	  Tcl_Obj* fileObject;
+	  Tcl_ListObjIndex(ip,  objv[4], elem[i], &fileObject);
+
+	  if (TCL_OK != Tcl_GetString(&fileObject)) {
+	    return TCL_ERROR ;
+	  }
+
+	  //convert file names to NSSString, add to NSMutableArray, set pasteboard type
+	  NSString *filestring = [NSString stringWithUTF8String:filename];
+	  [filelist addObject: [NSString stringWithString:filestring]]; 
+	  [generalpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+	}
+	break;
+      }
+
+      }
+    } else {
+      /* An unknown (or user defined) type. Silently skip it... */
+    }
+  }
+
+  /* Do drag & drop... */
+
+  /* Get the drop action... */
+  // Tcl_SetResult(ip, "refuse_drop", TCL_STATIC);
+  return TCL_OK;
+}; /* TkDND_DoDragDropObjCmd */
+
 
 //Register add Cocoa subview to serve as drop target; register dragged data types
 int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
@@ -658,14 +671,14 @@ int Tkdnd_Init (Tcl_Interp *interp) {
   }
 
   Tcl_CreateObjCommand(interp, "::macdnd::registerdragwidget",
-      TkDND_RegisterDragWidgetObjCmd,
-      (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+		       TkDND_RegisterDragWidgetObjCmd,
+		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
   Tcl_CreateObjCommand(interp, "::macdnd::unregisterdragwidget",
-      TkDND_UnregisterDragWidgetObjCmd,
-      (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+		       TkDND_UnregisterDragWidgetObjCmd,
+		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
   Tcl_CreateObjCommand(interp, "::macdnd::dodragdrop",
-      TkDND_DoDragDropObjCmd,
-      (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+		       TkDND_DoDragDropObjCmd,
+		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
 
   if (Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION) != TCL_OK) {
     return TCL_ERROR;
