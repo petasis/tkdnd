@@ -183,7 +183,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     return TCL_ERROR;
   }
   Tcl_ResetResult(interp);
-  Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
+  //  Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
 
   /* Process drag actions. */
   status = Tcl_ListObjGetElements(interp, objv[2], &elem_nu, &elem);
@@ -206,7 +206,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   /* Get the object that holds this Tk Window... */
   // TODO: how to do this?
 
+  //get pasteboard
+ NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
+ [generalpasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
+  [generalpasteboard declareTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:nil];
+
   /* Process drag types. */
+  Tcl_Obj *data      = NULL;
+  Tcl_Obj *indexptr = NULL;
   status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
   if (status != TCL_OK) return status;
   for (i = 0; i < elem_nu; i++) {
@@ -216,12 +223,32 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       switch ((enum droptypes) index) {
         case TYPE_NSStringPboardType: {
           // Place the string in the clipboard
+	  NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(objv[4])] ;
+    	  [generalpasteboard setString:datastring forType:NSStringPboardType];  
           break;
         }
         case TYPE_NSFilenamesPboardType: {
+	  NSMutableArray *filelist = nil;
+   
           // Place the filenames in the clipboard
-          break;
-        }
+	  status = Tcl_ListObjGetElements(interp, objv[4], &elem_nu, &elem);
+	  for (i = 0; i < elem_nu; i++) {
+	     /* Get string value of file name from list */
+	    status = Tcl_ListObjIndex(interp,  objv[4], elem[i], &indexptr);
+
+    if (TCL_OK != Tcl_GetString(&indexptr)) {
+      return TCL_ERROR ;
+    }
+ 
+    
+    //convert file names to NSSString, add to NSMutableArray, set pasteboard type
+    NSString *filestring = [NSString stringWithUTF8String:Tcl_GetString(indexptr)];
+	    [filelist addObject: [NSString stringWithString:filestring]]; 
+	    [generalpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+	  }
+	  break;
+	}
+
       }
     } else {
       /* An unknown (or user defined) type. Silently skip it... */
@@ -231,7 +258,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   /* Do drag & drop... */
 
   /* Get the drop action... */
-  Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
+  // Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
   return TCL_OK;
 }; /* TkDND_DoDragDropObjCmd */
 
