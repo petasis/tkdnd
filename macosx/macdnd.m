@@ -65,7 +65,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender;
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)sender;
-- (void)mouseDrag:(NSEvent*)theEvent;
+- (void)mouseDown:(NSEvent*)theEvent;
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal;
 TkWindow* TkMacOSXGetTkWindow( NSWindow *w);
 
@@ -91,17 +91,17 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
  *******************************************************************************
  *******************************************************************************/
 
-//this is the correct way to specify a drag source in a Cocoa window, but this appears to completely override any script-level code. For instance, a Tk-level command to append text to the clipboard is ignored: this method grabs existing data from the clipboard. Also, there appears to be no way to turn this method on or off from the script level and this causes script-level collisions. Dragging to select text in the Tk text widget introduces the drag-and-drop motion, which isn't the right approach.
-
-//define virtual event here
+//this method is crucial for integrating the Cocoa and Tk event loops; not yet clear how to drag to select text in Tk text widget without drag icon, but it does drag string data in the basic.tcl demo to non-Tk applications
 - (void)mouseDown:(NSEvent*)theEvent {
 
   XVirtualEvent event;
   int x, y;
   TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
   Tk_Window tkwin = (Tk_Window) winPtr;
-  Tcl_Interp *interp = Tk_Interp(tkwin);
+  Tcl_Interp *ip= Tk_Interp(tkwin);
 
+
+  //defining virtual event here, but not yet sure how to use it in Tk scripts--not sure if it's necessary 
   bzero(&event, sizeof(XVirtualEvent));
   event.type = VirtualEvent;
   event.serial = LastKnownRequestProcessed(Tk_Display(tkwin));
@@ -112,12 +112,25 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   event.subwindow = None;
   event.time = TkpGetMS();
   XQueryPointer(NULL, winPtr->window, NULL, NULL,
-		&event.x_root, &event.y_root, &x, &y, &event.state);
+  		&event.x_root, &event.y_root, &x, &y, &event.state);
   Tk_TopCoordsToWindow(tkwin, x, y, &event.x, &event.y);
   event.same_screen = true;
   event.name = Tk_GetUid("MacDragSource");
   Tk_QueueWindowEvent((XEvent *) &event, TCL_QUEUE_TAIL);
 
+
+  //Simple drag icon taken from NSImage constants: four small grouped squares. The drag icon is also essential for connecting the dragged data to the rest of OS X via the NSDragPboard.
+NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
+
+  NSPoint point;
+  point = [theEvent locationInWindow];
+  [self dragImage:dragicon
+	       at:point
+	   offset:NSMakeSize(0, 0)
+	    event:theEvent
+       pasteboard: [NSPasteboard pasteboardWithName:NSDragPboard]
+	   source:self
+	slideBack:YES];
 }
 
 
@@ -477,10 +490,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *ip,
   }
 
 
-  //get pasteboard
-  NSPasteboard *generalpasteboard = [NSPasteboard generalPasteboard];
-  [generalpasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:dragview];
-  [generalpasteboard declareTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:dragview];
+  //get pasteboard--make sure it is NSDragPboard; this will make data available to drop targets via [sender draggingPasteboard]
+  NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
+  [dragpasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
+  [dragpasteboard declareTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:nil];
 
   /* Process drag types. */
 
@@ -493,33 +506,38 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *ip,
       switch ((enum droptypes) index) {
       case TYPE_NSStringPboardType: {
 	// Place the string in the clipboard
+	  //this successfully writes the string path data to the clipboard, and it is available to other non-Tk applications
 	NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(objv[4])];
-	[generalpasteboard setString:datastring forType:NSStringPboardType];  
+	[dragpasteboard setString:datastring forType:NSStringPboardType]; 
 	break;
       }
       case TYPE_NSFilenamesPboardType: {
-	NSMutableArray *filelist = nil;
+	NSMutableArray *filelist = [[NSMutableArray alloc] init];
    
 	// Place the filenames in the clipboard
 	status = Tcl_ListObjGetElements(ip, objv[4], &elem_nu, &elem);
+	// printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+	
 	for (i = 0; i < elem_nu; i++) {
 	  /* Get string value of file name from list */
 	  char* filename;
 	  Tcl_Obj* fileObject;
 	  Tcl_ListObjIndex(ip,  objv[4], elem[i], &fileObject);
 
-	  if (TCL_OK != Tcl_GetString(&fileObject)) {
-	    return TCL_ERROR ;
-	  }
+	  filename = Tcl_GetString(elem[i]);
 
 	  //convert file names to NSSString, add to NSMutableArray, set pasteboard type
 	  NSString *filestring = [NSString stringWithUTF8String:filename];
-	  [filelist addObject: [NSString stringWithString:filestring]]; 
-	  [generalpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+	  [filelist addObject: filestring]; 
+	  //  NSString *foo =  [NSString stringWithString:filestring];
+	  //NSLog(foo);
+	}
+
+	  //this successfully writes the file path data to the clipboard, and it is available to other non-Tk applications
+	  [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+
 	}
 	break;
-      }
-
       }
     } else {
       /* An unknown (or user defined) type. Silently skip it... */
