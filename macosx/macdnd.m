@@ -137,7 +137,7 @@ NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
 //set flags for local drag operation: not sure if this is necessary or not
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal {
   if (isLocal) return NSDragOperationCopy;
-  return NSDragOperationCopy|NSDragOperationGeneric|NSDragOperationLink;
+  return NSDragOperationCopy|NSDragOperationMove|NSDragOperationLink;
 }
 
 
@@ -529,8 +529,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *ip,
 	  //convert file names to NSSString, add to NSMutableArray, set pasteboard type
 	  NSString *filestring = [NSString stringWithUTF8String:filename];
 	  [filelist addObject: filestring]; 
-	  //  NSString *foo =  [NSString stringWithString:filestring];
-	  //NSLog(foo);
 	}
 
 	  //this successfully writes the file path data to the clipboard, and it is available to other non-Tk applications
