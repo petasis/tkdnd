@@ -673,7 +673,6 @@ int Tkdnd_Init (Tcl_Interp *interp) {
     return TCL_ERROR;
   }
 
-
   if (Tk_InitStubs(interp, "8.5", 0) == NULL) {
     return TCL_ERROR;
   }
