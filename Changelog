@@ -1,3 +1,18 @@
+2010-04-30  Petasis George  <petasis@iit.demokritos.gr>
+        * /macosx/macdnd.m: Several changes:
+        Moved drag operation inside TkDND_DoDragDropObjCmd. This means that
+          drag operation can be started with a Tk binding.
+        Fixed the way drag types are declared in the drag clipboard. Now types
+          are reported correctly during drops.
+        Added a tag in the DNDView class.
+        Added a function to get the DNDView pointer from an NSView pointer.
+          Hopefully this will not permit to add more than one DNDView to any
+          view. This function always return a DNDView pointer (it creates a
+          new DNDView if a view does not already has one).
+
+        The demos seem to work, although the garbage collector seems to print
+        some messages during drags from Tk windows.
+
 2010-04-06  Petasis George  <petasis@iit.demokritos.gr>
         * /macosx/macdnd.m: Some attempts towards drag support for OS X.
 

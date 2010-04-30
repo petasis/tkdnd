@@ -1,11 +1,11 @@
 /*
  * macdnd.m --
  *
- *	This module implements drag and drop for Mac OS X.
+ *        This module implements drag and drop for Mac OS X.
  *
- * Copyright (c) 2009 Kevin Walzer/WordTech Communications LLC.
- * Copyright (c) 2009 Daniel A. Steffen <das@users.sourceforge.net>
- * Copyright (c) 2009 Georgios P. Petasis <petasis@iit.demokritos.gr>
+ * Copyright (c) 2009-2010 Kevin Walzer/WordTech Communications LLC.
+ * Copyright (c) 2009-2010 Daniel A. Steffen <das@users.sourceforge.net>
+ * Copyright (c) 2009-2010 Georgios P. Petasis <petasis@iit.demokritos.gr>
  *
  * See the file "license.terms" for information on usage and redistribution of
  * this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -19,19 +19,21 @@
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
 
-#define TkDND_TkWin(x)							\
+#define TkDND_Tag    1234
+
+#define TkDND_TkWin(x)                                                        \
   (Tk_NameToWindow(interp, Tcl_GetString(x), Tk_MainWindow(interp)))
 
-#define TkDND_Eval(objc)						\
-  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);			\
-  if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK)	\
-    Tk_BackgroundError(interp);						\
+#define TkDND_Eval(objc)                                                \
+  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                        \
+  if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK)        \
+    Tk_BackgroundError(interp);                                                \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
-#define TkDND_Status_Eval(objc)					\
-  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);		\
-  status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);	\
-  if (status != TCL_OK) Tk_BackgroundError(interp);		\
+#define TkDND_Status_Eval(objc)                                        \
+  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                \
+  status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);        \
+  if (status != TCL_OK) Tk_BackgroundError(interp);                \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
 #ifndef Tk_Interp
@@ -59,19 +61,29 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
   NSDragOperation sourceDragMask;
   NSPasteboard   *sourcePasteBoard;
   NSMutableArray *draggedtypes;
+  NSInteger       tag;
 }
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender;
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)sender;
-- (void)mouseDown:(NSEvent*)theEvent;
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal;
+- (void)setTag:(NSInteger) t;
+- (NSInteger)tag;
 TkWindow* TkMacOSXGetTkWindow( NSWindow *w);
-
+DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 @end
 
 @implementation DNDView
+
+- (void)setTag:(NSInteger) t {
+  tag = t;
+}; /* setTag */
+
+- (NSInteger)tag {
+  return tag;
+}; /* tag */
 
 /*
  * Ripped from Tk-Cocoa source code to map Tk window to Cocoa window
@@ -81,69 +93,42 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
   TkDisplay *dispPtr = TkGetDisplayList();
 
   return (window != None ? (TkWindow *)Tk_IdToWindow(dispPtr->display, window) :
-	  NULL);
+          NULL);
 }; /* TkMacOSXGetTkWindow */
 
+/*
+ * TkDND_GetDNDSubview: returns the subview of type DNDView.
+ * If such a view does not exist in the provided view, a new one is
+ * added, and returned.
+ */
+DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
+  Rect bounds;
+  NSRect frame;
+  DNDView* dnd_view = [view viewWithTag:TkDND_Tag];
 
-/*******************************************************************************
- *******************************************************************************
- ***** Drag Source Operations                                              *****
- *******************************************************************************
- *******************************************************************************/
+  if (dnd_view != nil) return dnd_view;
+  dnd_view = [[DNDView alloc] init];
+  [dnd_view setTag:TkDND_Tag];
+  if ([dnd_view superview] != view) {
+    [view addSubview:dnd_view positioned:NSWindowBelow relativeTo:nil];
+  }
 
-//this method is crucial for integrating the Cocoa and Tk event loops; not yet clear how to drag to select text in Tk text widget without drag icon, but it does drag string data in the basic.tcl demo to non-Tk applications
-- (void)mouseDown:(NSEvent*)theEvent {
+  TkMacOSXWinBounds((TkWindow*)tkwin, &bounds);
 
-  XVirtualEvent event;
-  int x, y;
-  TkWindow *winPtr = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin = (Tk_Window) winPtr;
-  Tcl_Interp *ip= Tk_Interp(tkwin);
-
-
-  //defining virtual event here, but not yet sure how to use it in Tk scripts--not sure if it's necessary 
-  bzero(&event, sizeof(XVirtualEvent));
-  event.type = VirtualEvent;
-  event.serial = LastKnownRequestProcessed(Tk_Display(tkwin));
-  event.send_event = false;
-  event.display = Tk_Display(tkwin);
-  event.event = Tk_WindowId(tkwin);
-  event.root = XRootWindow(Tk_Display(tkwin), 0);
-  event.subwindow = None;
-  event.time = TkpGetMS();
-  XQueryPointer(NULL, winPtr->window, NULL, NULL,
-  		&event.x_root, &event.y_root, &x, &y, &event.state);
-  Tk_TopCoordsToWindow(tkwin, x, y, &event.x, &event.y);
-  event.same_screen = true;
-  event.name = Tk_GetUid("MacDragSource");
-  Tk_QueueWindowEvent((XEvent *) &event, TCL_QUEUE_TAIL);
-
-
-  //Simple drag icon taken from NSImage constants: four small grouped squares. The drag icon is also essential for connecting the dragged data to the rest of OS X via the NSDragPboard.
-NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
-
-  NSPoint point;
-  point = [theEvent locationInWindow];
-  [self dragImage:dragicon
-	       at:point
-	   offset:NSMakeSize(0, 0)
-	    event:theEvent
-       pasteboard: [NSPasteboard pasteboardWithName:NSDragPboard]
-	   source:self
-	slideBack:YES];
-}
-
+  /* Hack to make sure subview is set to take up entire geometry of window... */
+  frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
+  frame.origin.y = 0;
+  if (!NSEqualRects(frame, [dnd_view frame])) {
+    [dnd_view setFrame:frame];
+  }
+  return dnd_view;
+}; /* TkDND_GetDNDSubview */
 
 //set flags for local drag operation: not sure if this is necessary or not
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal {
   if (isLocal) return NSDragOperationCopy;
   return NSDragOperationCopy|NSDragOperationMove|NSDragOperationLink;
 }
-
-
-/*
- * 
- */
 
 /*******************************************************************************
  *******************************************************************************
@@ -198,24 +183,24 @@ NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
   /* We have a result: the returned action... */
   result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
   status = Tcl_GetIndexFromObj(interp, result, (const char **) DropActions,
-			       "dropactions", 0, &index);
+                               "dropactions", 0, &index);
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-  case ActionDefault:
-  case ActionCopy:
-    return NSDragOperationCopy;
-  case ActionMove:
-    return NSDragOperationMove;
-  case ActionAsk:
-    return NSDragOperationGeneric;
-  case ActionPrivate:
-    return NSDragOperationPrivate;
-  case ActionLink:
-    return NSDragOperationLink;
-  case refuse_drop: {
-    return NSDragOperationNone; /* Refuse drop. */
-  }
+    case ActionDefault:
+    case ActionCopy:
+      return NSDragOperationCopy;
+    case ActionMove:
+      return NSDragOperationMove;
+    case ActionAsk:
+      return NSDragOperationGeneric;
+    case ActionPrivate:
+      return NSDragOperationPrivate;
+    case ActionLink:
+      return NSDragOperationLink;
+    case refuse_drop: {
+      return NSDragOperationNone; /* Refuse drop. */
+    }
   }
   return NSDragOperationNone;
 }; /* draggingEntered */
@@ -276,20 +261,20 @@ NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = refuse_drop;
   switch ((enum dropactions) index) {
-  case ActionDefault:
-  case ActionCopy:
-    return NSDragOperationCopy;
-  case ActionMove:
-    return NSDragOperationMove;
-  case ActionAsk:
-    return NSDragOperationGeneric;
-  case ActionPrivate:
-    return NSDragOperationPrivate;
-  case ActionLink:
-    return NSDragOperationLink;
-  case refuse_drop: {
-    return NSDragOperationNone; /* Refuse drop. */
-  }
+    case ActionDefault:
+    case ActionCopy:
+      return NSDragOperationCopy;
+    case ActionMove:
+      return NSDragOperationMove;
+    case ActionAsk:
+      return NSDragOperationGeneric;
+    case ActionPrivate:
+      return NSDragOperationPrivate;
+    case ActionLink:
+      return NSDragOperationLink;
+    case refuse_drop: {
+      return NSDragOperationNone; /* Refuse drop. */
+    }
   }
   return NSDragOperationNone;
 }; /* draggingUpdated */
@@ -332,7 +317,7 @@ NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
       data = Tcl_NewListObj(0, NULL);
       /* File array... */
       NSArray *files =
-	[sourcePasteBoard propertyListForType:NSFilenamesPboardType];
+        [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
       for (NSString *filename in files) {
         element = Tcl_NewStringObj([filename UTF8String], -1);
         if (element == NULL) continue;
@@ -365,17 +350,17 @@ NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
   Tcl_DecrRefCount(result);
   if (status != TCL_OK) index = NoReturnedAction;
   switch ((enum dropactions) index) {
-  case NoReturnedAction:
-  case ActionDefault:
-  case ActionCopy:
-  case ActionMove:
-  case ActionAsk:
-  case ActionPrivate:
-  case ActionLink:
-    return YES;
-  case refuse_drop: {
-    return NO; /* Refuse drop. */
-  }
+    case NoReturnedAction:
+    case ActionDefault:
+    case ActionCopy:
+    case ActionMove:
+    case ActionAsk:
+    case ActionPrivate:
+    case ActionLink:
+      return YES;
+    case refuse_drop: {
+      return NO; /* Refuse drop. */
+    }
   }
   return YES;
 }; /* performDragOperation */
@@ -404,17 +389,28 @@ NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
 
 @end
 
-/*End Cocoa class methods: now we begin Tcl functions calling the class methods*/
+/*
+ * End Cocoa class methods: now we begin Tcl functions calling the class methods
+ */
 
+/*******************************************************************************
+ *******************************************************************************
+ ***** Drag Source Operations                                              *****
+ *******************************************************************************
+ *******************************************************************************/
 
-//Implements drag source in Tk windows
-int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *ip,
+/*
+ * Implements drag source in Tk windows
+ */
+int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                            int objc, Tcl_Obj *CONST objv[]) {
   Tcl_Obj         **elem;
   int               actions = 0;
-  int               status, elem_nu, i, index, nDataLength;
-  char             *ptr;
-  Tcl_UniChar      *unicode, *ptr_u;
+  int               status, elem_nu, i, index;
+  Tk_Window         path;
+  Drawable          d;
+  NSView           *view;
+  DNDView          *dragview;
   static char *DropTypes[] = {
     "NSStringPboardType", "NSFilenamesPboardType",
     (char *) NULL
@@ -431,111 +427,114 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *ip,
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
     refuse_drop, ActionDefault
   };
+  bool added_string = false, added_filenames = false;
 
   if (objc != 5) {
-    Tcl_WrongNumArgs(ip, 1, objv, "path actions types data");
+    Tcl_WrongNumArgs(interp, 1, objv, "path actions types data");
     return TCL_ERROR;
   }
-  Tcl_ResetResult(ip);
-
+  Tcl_ResetResult(interp);
   
   //  Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
 
   /* Process drag actions. */
-  status = Tcl_ListObjGetElements(ip, objv[2], &elem_nu, &elem);
+  status = Tcl_ListObjGetElements(interp, objv[2], &elem_nu, &elem);
   if (status != TCL_OK) return status;
   for (i = 0; i < elem_nu; i++) {
-    status = Tcl_GetIndexFromObj(ip, elem[i], (const char **)DropActions,
+    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **)DropActions,
                                  "dropactions", 0, &index);
     if (status != TCL_OK) return status;
     switch ((enum dropactions) index) {
-    case ActionCopy:    actions |= NSDragOperationCopy;    break;
-    case ActionMove:    actions |= NSDragOperationMove;    break;
-    case ActionLink:    actions |= NSDragOperationLink;    break;
-    case ActionAsk:     actions |= NSDragOperationGeneric; break;
-    case ActionPrivate: actions |= NSDragOperationPrivate; break;
-    case ActionDefault: /* not supported */;               break;
-    case refuse_drop:   /* not supported */;               break;
+      case ActionCopy:    actions |= NSDragOperationCopy;    break;
+      case ActionMove:    actions |= NSDragOperationMove;    break;
+      case ActionLink:    actions |= NSDragOperationLink;    break;
+      case ActionAsk:     actions |= NSDragOperationGeneric; break;
+      case ActionPrivate: actions |= NSDragOperationPrivate; break;
+      case ActionDefault: /* not supported */;               break;
+      case refuse_drop:   /* not supported */;               break;
     }
   }
 
   /* Get the object that holds this Tk Window... */
-  Rect bounds;
-  NSRect frame;
-  Tk_Window path;
-  path = Tk_NameToWindow(ip, Tcl_GetString(objv[1]), Tk_MainWindow(ip));
-  if (path == NULL) {
-    return TCL_ERROR;
-  }
+  path = Tk_NameToWindow(interp, Tcl_GetString(objv[1]), Tk_MainWindow(interp));
+  if (path == NULL) return TCL_ERROR;
+  d = Tk_WindowId(path);
+  if (d == None) return TCL_ERROR;
+  /* Get the NSView from Tk window and add subview to serve as drag source */
+  view     = TkMacOSXGetRootControl(d);
+  if (view == NULL) return TCL_ERROR;
+  /* Get the DNDview for this view... */
+  dragview = TkDND_GetDNDSubview(view, path);
+  if (dragview == NULL) return TCL_ERROR;
 
-  Tk_MakeWindowExist(path);
-  Tk_MapWindow(path);
-  Drawable d = Tk_WindowId(path);
-
- //get NSView from Tk window and add subview to serve as drag source
-  DNDView *dragview = [[DNDView alloc] init];
-  NSView *view = TkMacOSXGetRootControl(d);
-  if ([dragview superview] != view) {
-    [view addSubview:dragview positioned:NSWindowBelow relativeTo:nil];
-  }
-
- TkMacOSXWinBounds((TkWindow*)path, &bounds);
-
-  //hack to make sure subview is set to take up entire geometry of window
-  frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
-  frame.origin.y = 0;
-
-  if (!NSEqualRects(frame, [dragview frame])) {
-    [dragview setFrame:frame];
-  }
-
-
-  //get pasteboard--make sure it is NSDragPboard; this will make data available to drop targets via [sender draggingPasteboard]
+  /*
+   * Get pasteboard. Make sure it is NSDragPboard; this will make data available
+   * to drop targets via [sender draggingPasteboard]
+   */
   NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
-  [dragpasteboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
-  [dragpasteboard declareTypes:[NSArray arrayWithObject:NSFilenamesPboardType] owner:nil];
 
   /* Process drag types. */
-
-  status = Tcl_ListObjGetElements(ip, objv[3], &elem_nu, &elem);
+  status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
   if (status != TCL_OK) return status;
+
+  /* Initialize array of drag types... */
+  NSMutableArray *draggedtypes=[[NSMutableArray alloc] init];
+  /* Iterate over all data, to collect the types... */
   for (i = 0; i < elem_nu; i++) {
-    status = Tcl_GetIndexFromObj(ip, elem[i], (const char **) DropTypes,
+    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
+                                 "dropactions", 0, &index);
+    if (status != TCL_OK) continue;
+    switch ((enum droptypes) index) {
+      case TYPE_NSStringPboardType: {
+        if (!added_string) {
+          [draggedtypes addObject: NSStringPboardType];
+          added_string = true;
+        }
+        break;
+      }
+      case TYPE_NSFilenamesPboardType: {
+        if (!added_filenames) {
+          [draggedtypes addObject: NSFilenamesPboardType];
+          added_filenames = true;
+        }
+        break;
+      }
+    }
+  }
+  [dragpasteboard declareTypes:draggedtypes owner:nil];
+
+  for (i = 0; i < elem_nu; i++) {
+    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
                                  "dropactions", 0, &index);
     if (status == TCL_OK) {
       switch ((enum droptypes) index) {
-      case TYPE_NSStringPboardType: {
-	// Place the string in the clipboard
-	  //this successfully writes the string path data to the clipboard, and it is available to other non-Tk applications
-	NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(objv[4])];
-	[dragpasteboard setString:datastring forType:NSStringPboardType]; 
-	break;
-      }
-      case TYPE_NSFilenamesPboardType: {
-	NSMutableArray *filelist = [[NSMutableArray alloc] init];
+        case TYPE_NSStringPboardType: {
+          // Place the string in the clipboard
+          NSString *datastring =
+             [NSString stringWithUTF8String:Tcl_GetString(objv[4])];
+          [dragpasteboard setString:datastring forType:NSStringPboardType]; 
+          break;
+        }
+        case TYPE_NSFilenamesPboardType: {
+          NSMutableArray *filelist = [[NSMutableArray alloc] init];
    
-	// Place the filenames in the clipboard
-	status = Tcl_ListObjGetElements(ip, objv[4], &elem_nu, &elem);
-	// printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
-	
-	for (i = 0; i < elem_nu; i++) {
-	  /* Get string value of file name from list */
-	  char* filename;
-	  Tcl_Obj* fileObject;
-	  Tcl_ListObjIndex(ip,  objv[4], elem[i], &fileObject);
-
-	  filename = Tcl_GetString(elem[i]);
-
-	  //convert file names to NSSString, add to NSMutableArray, set pasteboard type
-	  NSString *filestring = [NSString stringWithUTF8String:filename];
-	  [filelist addObject: filestring]; 
-	}
-
-	  //this successfully writes the file path data to the clipboard, and it is available to other non-Tk applications
-	  [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
-
-	}
-	break;
+          // Place the filenames in the clipboard
+          status = Tcl_ListObjGetElements(interp, objv[4], &elem_nu, &elem);
+          if ( status == TCL_OK) {
+            for (i = 0; i < elem_nu; i++) {
+              /* Get string value of file name from list */
+              char* filename = Tcl_GetString(elem[i]);
+              /* Convert file names to NSSString, add to NSMutableArray,
+               * and set pasteboard type */
+              NSString *filestring = [NSString stringWithUTF8String:filename];
+              [filelist addObject: filestring]; 
+            }
+          }
+          /* This successfully writes the file path data to the clipboard,
+           * and it is available to other non-Tk applications... */
+          [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+          break;
+        }
       }
     } else {
       /* An unknown (or user defined) type. Silently skip it... */
@@ -543,12 +542,32 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *ip,
   }
 
   /* Do drag & drop... */
+  
+  /*
+   * We need an icon for the drag:
+   * Simple drag icon taken from NSImage constants: four small grouped squares.
+   * The drag icon is also essential for connecting the dragged data to the rest
+   * of OS X via the NSDragPboard.
+   */
+  NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
+  NSPoint p = NSMakePoint(0,0);
+  NSSize  s = NSMakeSize(0, 0);
+
+  /* Initiate the drag operation... */
+  [dragview dragImage:dragicon
+                   at:p
+               offset:s
+                event:NULL
+           pasteboard:dragpasteboard
+               source:dragview
+            slideBack:YES];
 
   /* Get the drop action... */
-  // Tcl_SetResult(ip, "refuse_drop", TCL_STATIC);
+
+  /* There is no way we can know the drag action! */
+  Tcl_SetResult(interp, "copy", TCL_STATIC);
   return TCL_OK;
 }; /* TkDND_DoDragDropObjCmd */
-
 
 //Register add Cocoa subview to serve as drop target; register dragged data types
 int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
@@ -571,34 +590,18 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
   }
 
   //get window information for drop target
-  Rect bounds;
-  NSRect frame;
   Tk_Window path;
   path = Tk_NameToWindow(ip, Tcl_GetString(objv[1]), Tk_MainWindow(ip));
-  if (path == NULL) {
-    return TCL_ERROR;
-  }
+  if (path == NULL) return TCL_ERROR;
 
   Tk_MakeWindowExist(path);
   Tk_MapWindow(path);
   Drawable d = Tk_WindowId(path);
 
   //get NSView from Tk window and add subview to serve as drop target
-  DNDView *dropview = [[DNDView alloc] init];
-  NSView *view = TkMacOSXGetRootControl(d);
-  if ([dropview superview] != view) {
-    [view addSubview:dropview positioned:NSWindowBelow relativeTo:nil];
-  }
-
-  TkMacOSXWinBounds((TkWindow*)path, &bounds);
-
-  //hack to make sure subview is set to take up entire geometry of window
-  frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
-  frame.origin.y = 0;
-
-  if (!NSEqualRects(frame, [dropview frame])) {
-    [dropview setFrame:frame];
-  }
+  NSView  *view = TkMacOSXGetRootControl(d);
+  DNDView *dropview  = TkDND_GetDNDSubview(view, path);
+  if (dropview == NULL) return TCL_ERROR;
 
   //initialize array of drag types
   NSMutableArray *draggedtypes=[[NSMutableArray alloc] init];
@@ -656,26 +659,15 @@ int TkDND_UnregisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
 
   Drawable d = Tk_WindowId(path);
   NSView *view = TkMacOSXGetRootControl(d);
-
-  //get array of subviews and unregister the drag types for each subview
-  NSArray *viewarray = [view subviews];
-  int arrayCount = [viewarray count];
-  int i;
-  NSAutoreleasePool *pool =  [[NSAutoreleasePool alloc] init];
-  for (i = 0; i < arrayCount; i++) {
-    [[viewarray objectAtIndex:i] unregisterDraggedTypes];
-  }
-
-  [pool release];
+  DNDView *dropview  = TkDND_GetDNDSubview(view, path);
+  if (dropview == NULL) return TCL_ERROR;
+  [dropview unregisterDraggedTypes];
 
   return TCL_OK;
 }; /* TkDND_UnregisterDragWidgetObjCmd */
 
 //initalize the package in the tcl interpreter, create tcl commands
 int Tkdnd_Init (Tcl_Interp *interp) {
-
-  // set up an autorelease pool
-  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
   if (Tcl_InitStubs(interp, "8.5", 0) == NULL) {
     return TCL_ERROR;
@@ -687,21 +679,18 @@ int Tkdnd_Init (Tcl_Interp *interp) {
   }
 
   Tcl_CreateObjCommand(interp, "::macdnd::registerdragwidget",
-		       TkDND_RegisterDragWidgetObjCmd,
-		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+                       TkDND_RegisterDragWidgetObjCmd,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
   Tcl_CreateObjCommand(interp, "::macdnd::unregisterdragwidget",
-		       TkDND_UnregisterDragWidgetObjCmd,
-		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+                       TkDND_UnregisterDragWidgetObjCmd,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
   Tcl_CreateObjCommand(interp, "::macdnd::dodragdrop",
-		       TkDND_DoDragDropObjCmd,
-		       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+                       TkDND_DoDragDropObjCmd,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
 
   if (Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION) != TCL_OK) {
     return TCL_ERROR;
   }
-
-  //release memory
-  [pool release];
 
   return TCL_OK;
 }; /* Tkdnd_Init */
