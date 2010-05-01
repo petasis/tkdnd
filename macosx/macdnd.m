@@ -124,7 +124,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   return dnd_view;
 }; /* TkDND_GetDNDSubview */
 
-//set flags for local drag operation: not sure if this is necessary or not
+/*Set flags for local DND operations, i.e. dragging within a single application window.*/
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal {
   if (isLocal) return NSDragOperationCopy;
   return NSDragOperationCopy|NSDragOperationMove|NSDragOperationLink;
@@ -411,6 +411,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   Drawable          d;
   NSView           *view;
   DNDView          *dragview;
+  NSImage		 *dragicon;
   static char *DropTypes[] = {
     "NSStringPboardType", "NSFilenamesPboardType",
     (char *) NULL
@@ -435,8 +436,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
   Tcl_ResetResult(interp);
   
-  //  Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
-
   /* Process drag actions. */
   status = Tcl_ListObjGetElements(interp, objv[2], &elem_nu, &elem);
   if (status != TCL_OK) return status;
@@ -502,6 +501,13 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     }
   }
   [dragpasteboard declareTypes:draggedtypes owner:nil];
+	
+	
+	/*
+	 * We need an icon for the drag:
+     * Interate over data types to process dragged data and display correct drag icon...
+	 */
+
 
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
@@ -512,7 +518,15 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           // Place the string in the clipboard
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(objv[4])];
-          [dragpasteboard setString:datastring forType:NSStringPboardType]; 
+            [dragpasteboard setString:datastring forType:NSStringPboardType]; 
+			
+			//draw dragged string into drag icon, make sure icon is large enough to contain several lines of text
+			dragicon = [[NSImage alloc] initWithSize:NSMakeSize(1000,1000)];
+			[dragicon lockFocus];
+		    [[NSColor clearColor] set];
+			NSRectFill(NSMakeRect(0, 0, 1000,1000));
+			[datastring drawAtPoint: NSZeroPoint withAttributes: nil];
+			[dragicon unlockFocus];
           break;
         }
         case TYPE_NSFilenamesPboardType: {
@@ -527,12 +541,21 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
               /* Convert file names to NSSString, add to NSMutableArray,
                * and set pasteboard type */
               NSString *filestring = [NSString stringWithUTF8String:filename];
-              [filelist addObject: filestring]; 
+              [filelist addObject: filestring];
+				
             }
           }
           /* This successfully writes the file path data to the clipboard,
            * and it is available to other non-Tk applications... */
           [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+			
+		  //set correct icon depending on whether single file [iconForFileType] or multiple files [NSImageNameMultipleDocuments]
+		   if ([filelist count] == 1) {
+				NSString *pathtype = [[filelist objectAtIndex:0] pathExtension];
+				dragicon =  [[NSWorkspace sharedWorkspace] iconForFileType: pathtype];
+		   } else {
+				dragicon = [NSImage imageNamed:NSImageNameMultipleDocuments];
+			}
           break;
         }
       }
@@ -543,13 +566,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 
   /* Do drag & drop... */
   
-  /*
-   * We need an icon for the drag:
-   * Simple drag icon taken from NSImage constants: four small grouped squares.
-   * The drag icon is also essential for connecting the dragged data to the rest
-   * of OS X via the NSDragPboard.
-   */
-  NSImage *dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
   NSPoint p = NSMakePoint(0,0);
   NSSize  s = NSMakeSize(0, 0);
 
@@ -560,7 +576,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                 event:NULL
            pasteboard:dragpasteboard
                source:dragview
-            slideBack:YES];
+            slideBack:NO];
 
   /* Get the drop action... */
 
