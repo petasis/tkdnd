@@ -565,10 +565,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /* Do drag & drop... */
-  
+		  
   NSPoint p = NSMakePoint(0,0);
   NSSize  s = NSMakeSize(0, 0);
-
+	
   /* Initiate the drag operation... */
   [dragview dragImage:dragicon
                    at:p
@@ -576,7 +576,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                 event:NULL
            pasteboard:dragpasteboard
                source:dragview
-            slideBack:NO];
+            slideBack:YES];
 
   /* Get the drop action... */
 
