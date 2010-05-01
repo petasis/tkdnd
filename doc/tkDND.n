@@ -293,10 +293,12 @@ tkdnd \- Tk Drag and Drop Interface
 .SH INTRODUCTION
 The \fBtkdnd\fR family commands provide a Tcl interface to native,
 platform specific drag and drop mechanism.
-Under unix the drag & drop protocol in use is the XDND protocol version 5
-(also used by the Qt toolkit, and the KDE and GNOME desktops).
+Under Unix the drag & drop protocol in use is the XDND protocol version 5
+(also used by the Qt toolkit, and the KDE and GNOME desktops). 
 Under Windows, the OLE2 drag & drop interfaces are used.
-The Macintosh platform is not yet supported.
+Under Macintoshh, the Cocoa drag and drop interfaces are used.
+.PP
+The \fbtkdnd\fR family can be built from source code using the standard configure; make; make install procedure. Cmake is also supported. Some binary package are available from the SourceForge download site, from ActiveState's ActiveTcl distribution, and elsewhere.
 .PP
 With the \fBtkdnd\fR family commands the user is able to register existing Tk
 widgets as drag sources or drop targets, that are able to send or receive data
@@ -388,6 +390,8 @@ to the following platform specific formats:
 Windows: \fBCF_UNICODETEXT\fR, \fBCF_TEXT\fR.
 .br
 Unix: \fBtext/plain;charset=UTF-8\fR, \fBtext/plain\fR.
+.br
+Mac: \fBNSStringPboardType\fR.
 .IP  \fBDND_Files\fR: 5
 This type can be used for transfering a list of file names.
 Internally, it is translated to the following platform specific formats:
@@ -395,6 +399,8 @@ Internally, it is translated to the following platform specific formats:
 Windows: \fBCF_HDROP\fR.
 .br
 Unix: \fBtext/uri-list\fR.
+.br
+Mac: \fBNSFilenamesPboardType\fR.
 .TP
 Additionally to the platform independent types, tkdnd supports the following platform specific types:
 .IP  \fBWindows\fR: 5

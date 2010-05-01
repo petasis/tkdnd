@@ -54,7 +54,10 @@ platform specific drag and drop mechanism.
 Under unix the drag &amp; drop protocol in use is the XDND protocol version 5
 (also used by the Qt toolkit, and the KDE and GNOME desktops).
 Under Windows, the OLE2 drag &amp; drop interfaces are used.
-The Macintosh platform is not yet supported.
+Under Macintosh, the Cocoa drag &amp; drop interfaces are used.
+<P>
+
+The <B>tkdnd</B> family can be built from source code using the standard configure; make; make install procedure. Cmake is also supported. Some binary package are available from the SourceForge download site, from ActiveState's ActiveTcl distribution, and elsewhere.
 <P>
 
 With the <B>tkdnd</B> family commands the user is able to register existing Tk
@@ -147,6 +150,10 @@ Windows: <B>CF_UNICODETEXT</B>, <B>CF_TEXT</B>.
 <BR>
 
 Unix: <B>text/plain;charset=UTF-8</B>, <B>text/plain</B>.
+<BR>
+
+Mac: <B>NSStringPboardType</B>
+  <BR>
 <DT><B>DND_Files</B>:<DD>
 This type can be used for transfering a list of file names.
 Internally, it is translated to the following platform specific formats:
@@ -156,6 +163,9 @@ Windows: <B>CF_HDROP</B>.
 <BR>
 
 Unix: <B>text/uri-list</B>.
+  <BR>
+
+Mac: <B>NSFilenamesPboardType</B>.
 <DT>Additionally to the platform independent types, tkdnd supports the following platform specific types:<DD>
 <DT><B>Windows</B>:<DD>
 <B>CF_UNICODETEXT</B>: Text transfer encoded in unicode.
