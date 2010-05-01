@@ -296,7 +296,7 @@ platform specific drag and drop mechanism.
 Under Unix the drag & drop protocol in use is the XDND protocol version 5
 (also used by the Qt toolkit, and the KDE and GNOME desktops). 
 Under Windows, the OLE2 drag & drop interfaces are used.
-Under Macintoshh, the Cocoa drag and drop interfaces are used.
+Under Macintosh, the Cocoa drag and drop interfaces are used.
 .PP
 The \fbtkdnd\fR family can be built from source code using the standard configure; make; make install procedure. Cmake is also supported. Some binary package are available from the SourceForge download site, from ActiveState's ActiveTcl distribution, and elsewhere.
 .PP
