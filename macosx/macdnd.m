@@ -62,6 +62,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
   NSPasteboard   *sourcePasteBoard;
   NSMutableArray *draggedtypes;
   NSInteger       tag;
+  NSEvent        *lastMouseEvent;
 }
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
@@ -102,19 +103,39 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
  * added, and returned.
  */
 DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
-  Rect bounds;
-  NSRect frame;
+  NSRect frame, bounds;
   DNDView* dnd_view = [view viewWithTag:TkDND_Tag];
 
-  if (dnd_view != nil) return dnd_view;
-  dnd_view = [[DNDView alloc] init];
-  [dnd_view setTag:TkDND_Tag];
-  if ([dnd_view superview] != view) {
-    [view addSubview:dnd_view positioned:NSWindowBelow relativeTo:nil];
+  if (dnd_view == nil) {
+    dnd_view = [[DNDView alloc] init];
+    [dnd_view setTag:TkDND_Tag];
+    [dnd_view mouseDown:NULL];
+    if ([dnd_view superview] != view) {
+      [view addSubview:dnd_view positioned:NSWindowBelow relativeTo:nil];
+    }
+    [view setAutoresizesSubviews:true];
+    // Rect bnds;
+    // TkMacOSXWinBounds((TkWindow*)tkwin, &bnds);
+    // frame = NSMakeRect(bnds.left, bnds.top, 100000, 100000);
+    // frame.origin.y = 0;
+    // if (!NSEqualRects(frame, [dnd_view frame])) {
+    //   [dnd_view setFrame:frame];
+    // }
+  }
+  if (dnd_view == nil) return dnd_view;
+
+  /* Ensure that we have the correct geometry... */
+  frame = [view frame];
+  if (!NSEqualRects(frame, [dnd_view frame])) {
+    [dnd_view setFrame:frame];
   }
 
-  TkMacOSXWinBounds((TkWindow*)tkwin, &bounds);
-
+  bounds = [view bounds];
+  if (!NSEqualRects(bounds, [dnd_view bounds])) {
+    [dnd_view setBounds:bounds];
+  }
+  return dnd_view;
+#if 0
   /* Hack to make sure subview is set to take up entire geometry of window... */
   frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
   frame.origin.y = 0;
@@ -122,9 +143,11 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
     [dnd_view setFrame:frame];
   }
   return dnd_view;
+#endif
 }; /* TkDND_GetDNDSubview */
 
-/*Set flags for local DND operations, i.e. dragging within a single application window.*/
+/* Set flags for local DND operations, i.e. dragging within a single
+   application window.*/
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal {
   if (isLocal) return NSDragOperationCopy;
   return NSDragOperationCopy|NSDragOperationMove|NSDragOperationLink;
@@ -411,7 +434,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   Drawable          d;
   NSView           *view;
   DNDView          *dragview;
-  NSImage		 *dragicon;
+  NSImage          *dragicon = NULL;
   static char *DropTypes[] = {
     "NSStringPboardType", "NSFilenamesPboardType",
     (char *) NULL
@@ -428,14 +451,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
     refuse_drop, ActionDefault
   };
-  bool added_string = false, added_filenames = false;
+  bool added_string = false, added_filenames = false, perform_drag = false;
 
   if (objc != 5) {
     Tcl_WrongNumArgs(interp, 1, objv, "path actions types data");
     return TCL_ERROR;
   }
   Tcl_ResetResult(interp);
-  
+
   /* Process drag actions. */
   status = Tcl_ListObjGetElements(interp, objv[2], &elem_nu, &elem);
   if (status != TCL_OK) return status;
@@ -466,12 +489,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   dragview = TkDND_GetDNDSubview(view, path);
   if (dragview == NULL) return TCL_ERROR;
 
-  /*
-   * Get pasteboard. Make sure it is NSDragPboard; this will make data available
-   * to drop targets via [sender draggingPasteboard]
-   */
-  NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
-
   /* Process drag types. */
   status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
   if (status != TCL_OK) return status;
@@ -488,6 +505,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
         if (!added_string) {
           [draggedtypes addObject: NSStringPboardType];
           added_string = true;
+          perform_drag = true;
         }
         break;
       }
@@ -495,44 +513,59 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
         if (!added_filenames) {
           [draggedtypes addObject: NSFilenamesPboardType];
           added_filenames = true;
+          perform_drag    = true;
         }
         break;
       }
     }
   }
-  [dragpasteboard declareTypes:draggedtypes owner:nil];
-	
-	
-	/*
-	 * We need an icon for the drag:
-     * Interate over data types to process dragged data and display correct drag icon...
-	 */
 
+  if (!perform_drag) {
+    /* No need to start a drag, the clipboard will be empty... */
+    Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
+    return TCL_OK;
+  }
 
+  /*
+   * Get pasteboard. Make sure it is NSDragPboard; this will make data available
+   * to drop targets via [sender draggingPasteboard]
+   */
+  NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
+  [dragpasteboard declareTypes:draggedtypes owner:dragview];
+
+  /*
+   * We need an icon for the drag:
+   * Interate over data types to process dragged data and display
+   * correct drag icon.
+   */
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
                                  "dropactions", 0, &index);
     if (status == TCL_OK) {
       switch ((enum droptypes) index) {
         case TYPE_NSStringPboardType: {
-          // Place the string in the clipboard
+          /* Place the string into the clipboard. */
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(objv[4])];
-            [dragpasteboard setString:datastring forType:NSStringPboardType]; 
-			
-			//draw dragged string into drag icon, make sure icon is large enough to contain several lines of text
-			dragicon = [[NSImage alloc] initWithSize:NSMakeSize(1000,1000)];
-			[dragicon lockFocus];
-		    [[NSColor clearColor] set];
-			NSRectFill(NSMakeRect(0, 0, 1000,1000));
-			[datastring drawAtPoint: NSZeroPoint withAttributes: nil];
-			[dragicon unlockFocus];
+            [dragpasteboard setString:datastring forType:NSStringPboardType];
+
+          /* Create a custom icon: draw dragged string into drag icon,
+           * make sure icon is large enough to contain several lines of text */
+          if (dragicon == NULL) {
+            dragicon = [[NSImage alloc]
+              initWithSize:NSMakeSize(Tk_Width(path), Tk_Height(path))];
+            [dragicon lockFocus];
+            [[NSColor clearColor] set];
+            NSRectFill(NSMakeRect(0, 0, 1000,1000));
+            [datastring drawAtPoint: NSZeroPoint withAttributes: nil];
+            [dragicon unlockFocus];
+          }
           break;
         }
         case TYPE_NSFilenamesPboardType: {
           NSMutableArray *filelist = [[NSMutableArray alloc] init];
-   
-          // Place the filenames in the clipboard
+
+          /* Place the filenames into the clipboard. */
           status = Tcl_ListObjGetElements(interp, objv[4], &elem_nu, &elem);
           if ( status == TCL_OK) {
             for (i = 0; i < elem_nu; i++) {
@@ -542,20 +575,23 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                * and set pasteboard type */
               NSString *filestring = [NSString stringWithUTF8String:filename];
               [filelist addObject: filestring];
-				
             }
           }
           /* This successfully writes the file path data to the clipboard,
            * and it is available to other non-Tk applications... */
           [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
-			
-		  //set correct icon depending on whether single file [iconForFileType] or multiple files [NSImageNameMultipleDocuments]
-		   if ([filelist count] == 1) {
-				NSString *pathtype = [[filelist objectAtIndex:0] pathExtension];
-				dragicon =  [[NSWorkspace sharedWorkspace] iconForFileType: pathtype];
-		   } else {
-				dragicon = [NSImage imageNamed:NSImageNameMultipleDocuments];
-			}
+
+          /* Set the correct icon depending on whether a single file
+           * [iconForFileType] or multiple files [NSImageNameMultipleDocuments]
+           * have been placed into the clipboard... */
+          if (dragicon == NULL) {
+            if ([filelist count] == 1) {
+              NSString *pathtype = [[filelist objectAtIndex:0] pathExtension];
+              dragicon = [[NSWorkspace sharedWorkspace] iconForFileType: pathtype];
+            } else {
+              dragicon = [NSImage imageNamed:NSImageNameMultipleDocuments];
+            }
+          }
           break;
         }
       }
@@ -565,15 +601,35 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /* Do drag & drop... */
-		  
-  NSPoint p = NSMakePoint(0,0);
-  NSSize  s = NSMakeSize(0, 0);
-	
+
+  /* Ensure that we always have a drag icon. If not, use a default one... */
+  if (dragicon == NULL) {
+    dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
+  }
+
+  NSSize dragOffset = NSMakeSize(0.0, 0.0);
+
+  /* Get the mouse coordinates, so as the icon can slide back at the correct
+   * location, if the drag is cancelled. */
+  NSPoint global         = [NSEvent mouseLocation];
+  NSPoint imageLocation  = [[dragview window] convertScreenToBase:global];
+  NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseDragged
+                            location:imageLocation
+                            modifierFlags:NSLeftMouseDownMask
+                            timestamp:0
+                            windowNumber:[[dragview window] windowNumber]
+                            context:NULL
+                            eventNumber:0
+                            clickCount:0
+                            pressure:0
+                            ];
+
+
   /* Initiate the drag operation... */
   [dragview dragImage:dragicon
-                   at:p
-               offset:s
-                event:NULL
+                   at:imageLocation
+               offset:dragOffset
+                event:event
            pasteboard:dragpasteboard
                source:dragview
             slideBack:YES];
@@ -678,6 +734,7 @@ int TkDND_UnregisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
   DNDView *dropview  = TkDND_GetDNDSubview(view, path);
   if (dropview == NULL) return TCL_ERROR;
   [dropview unregisterDraggedTypes];
+  [dropview mouseDown:NULL];
 
   return TCL_OK;
 }; /* TkDND_UnregisterDragWidgetObjCmd */
