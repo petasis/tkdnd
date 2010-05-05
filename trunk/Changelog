@@ -1,3 +1,9 @@
+2010-05-05  Petasis George  <petasis@iit.demokritos.gr>
+        * /macosx/macdnd.m: Several fixes. The most important are:
+        Do not initiate a drag if the clipboard is empty (i.e. because we
+          cannot handle any of the provided types).
+        Fixed drag icon slide when the drag is canceled.
+
 2010-04-30  Petasis George  <petasis@iit.demokritos.gr>
         * /macosx/macdnd.m: Several changes:
         Moved drag operation inside TkDND_DoDragDropObjCmd. This means that
