@@ -21,19 +21,19 @@
 
 #define TkDND_Tag    1234
 
-#define TkDND_TkWin(x)                                                        \
+#define TkDND_TkWin(x)                                                  \
   (Tk_NameToWindow(interp, Tcl_GetString(x), Tk_MainWindow(interp)))
 
 #define TkDND_Eval(objc)                                                \
-  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                        \
-  if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK)        \
-    Tk_BackgroundError(interp);                                                \
+  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                     \
+  if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK)      \
+    Tk_BackgroundError(interp);                                         \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
-#define TkDND_Status_Eval(objc)                                        \
-  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                \
-  status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);        \
-  if (status != TCL_OK) Tk_BackgroundError(interp);                \
+#define TkDND_Status_Eval(objc)                                         \
+  for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                     \
+  status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);           \
+  if (status != TCL_OK) Tk_BackgroundError(interp);                     \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
 #ifndef Tk_Interp
@@ -62,7 +62,6 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
   NSPasteboard   *sourcePasteBoard;
   NSMutableArray *draggedtypes;
   NSInteger       tag;
-  NSEvent        *lastMouseEvent;
 }
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
@@ -416,11 +415,11 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
  * End Cocoa class methods: now we begin Tcl functions calling the class methods
  */
 
-/*******************************************************************************
- *******************************************************************************
- ***** Drag Source Operations                                              *****
- *******************************************************************************
- *******************************************************************************/
+/******************************************************************************
+ ******************************************************************************
+ ***** Drag Source Operations                                             *****
+ ******************************************************************************
+ ******************************************************************************/
 
 /*
  * Implements drag source in Tk windows
@@ -536,7 +535,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   /*
    * We need an icon for the drag:
    * Interate over data types to process dragged data and display
-   * correct drag icon.
+   * the correct drag icon.
    */
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
@@ -579,7 +578,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           }
           /* This successfully writes the file path data to the clipboard,
            * and it is available to other non-Tk applications... */
-          [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+          [dragpasteboard setPropertyList:filelist
+                                  forType:NSFilenamesPboardType];
 
           /* Set the correct icon depending on whether a single file
            * [iconForFileType] or multiple files [NSImageNameMultipleDocuments]
@@ -587,7 +587,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           if (dragicon == NULL) {
             if ([filelist count] == 1) {
               NSString *pathtype = [[filelist objectAtIndex:0] pathExtension];
-              dragicon = [[NSWorkspace sharedWorkspace] iconForFileType: pathtype];
+              dragicon = [[NSWorkspace sharedWorkspace] 
+                                       iconForFileType:pathtype];
             } else {
               dragicon = [NSImage imageNamed:NSImageNameMultipleDocuments];
             }
@@ -614,16 +615,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   NSPoint global         = [NSEvent mouseLocation];
   NSPoint imageLocation  = [[dragview window] convertScreenToBase:global];
   NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseDragged
-                            location:imageLocation
-                            modifierFlags:NSLeftMouseDownMask
-                            timestamp:0
-                            windowNumber:[[dragview window] windowNumber]
-                            context:NULL
-                            eventNumber:0
-                            clickCount:0
-                            pressure:0
-                            ];
-
+                                      location:imageLocation
+                                 modifierFlags:NSLeftMouseDownMask
+                                     timestamp:0
+                                  windowNumber:[[dragview window] windowNumber]
+                                       context:NULL
+                                   eventNumber:0
+                                    clickCount:0
+                                      pressure:0];
 
   /* Initiate the drag operation... */
   [dragview dragImage:dragicon
@@ -641,7 +640,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 }; /* TkDND_DoDragDropObjCmd */
 
-//Register add Cocoa subview to serve as drop target; register dragged data types
+/*
+ * Register: add a Cocoa subview to serve as drop target;
+ *           register dragged data types
+ */
 int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
                                    int objc, Tcl_Obj *CONST objv[]) {
   Tcl_Obj **type;
@@ -661,7 +663,7 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
     return TCL_ERROR;
   }
 
-  //get window information for drop target
+  /* Get window information for drop target... */
   Tk_Window path;
   path = Tk_NameToWindow(ip, Tcl_GetString(objv[1]), Tk_MainWindow(ip));
   if (path == NULL) return TCL_ERROR;
@@ -670,12 +672,12 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
   Tk_MapWindow(path);
   Drawable d = Tk_WindowId(path);
 
-  //get NSView from Tk window and add subview to serve as drop target
+  /* Get NSView from Tk window and add subview to serve as drop target */
   NSView  *view = TkMacOSXGetRootControl(d);
   DNDView *dropview  = TkDND_GetDNDSubview(view, path);
   if (dropview == NULL) return TCL_ERROR;
 
-  //initialize array of drag types
+  /* Initialize array of drag types */
   NSMutableArray *draggedtypes=[[NSMutableArray alloc] init];
 
   /*
@@ -708,13 +710,13 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
     }
   }
 
-  //finally, register the drag types
+  /* Finally, register the drag types... */
   [dropview registerForDraggedTypes:draggedtypes];
 
   return TCL_OK;
 }; /* TkDND_RegisterDragWidgetObjCmd */
 
-//unregister the drag widget
+/* Unregister the drag widget */
 int TkDND_UnregisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
                                      int objc, Tcl_Obj *CONST objv[]) {
   if (objc != 2) {
@@ -722,24 +724,24 @@ int TkDND_UnregisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
     return TCL_ERROR;
   }
 
-  //get NSView from TK window
-  Tk_Window path = Tk_NameToWindow(ip, Tcl_GetString(objv[1]), Tk_MainWindow(ip));
+  /* Get NSView from TK window... */
+  Tk_Window path = Tk_NameToWindow(ip, Tcl_GetString(objv[1]),
+                                       Tk_MainWindow(ip));
 
-  if (path == NULL) {
-    return TCL_ERROR;
-  }
+  if (path == NULL) return TCL_ERROR;
 
-  Drawable d = Tk_WindowId(path);
-  NSView *view = TkMacOSXGetRootControl(d);
+  Drawable d         = Tk_WindowId(path);
+  NSView  *view      = TkMacOSXGetRootControl(d);
   DNDView *dropview  = TkDND_GetDNDSubview(view, path);
   if (dropview == NULL) return TCL_ERROR;
   [dropview unregisterDraggedTypes];
-  [dropview mouseDown:NULL];
 
   return TCL_OK;
 }; /* TkDND_UnregisterDragWidgetObjCmd */
 
-//initalize the package in the tcl interpreter, create tcl commands
+/*
+ * Initalize the package in the tcl interpreter, create tcl commands...
+ */
 int Tkdnd_Init (Tcl_Interp *interp) {
 
   if (Tcl_InitStubs(interp, "8.5", 0) == NULL) {
