@@ -286,6 +286,9 @@ $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macosx
 .c.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
+.cpp.@OBJEXT@:
+	$(COMPILE) -c `@CYGPATH@ $<` -o $@
+
 .m.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
