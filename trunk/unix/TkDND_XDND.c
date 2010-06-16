@@ -124,7 +124,7 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
                   (unsigned char *) &version, 1);
   return TCL_OK;
 #endif
-}; /* TkDND_RegisterTypesObjCmd */
+} /* TkDND_RegisterTypesObjCmd */
 
 int TkDND_HandleXdndEnter(Tk_Window tkwin, XClientMessageEvent cm) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
@@ -400,6 +400,28 @@ static int TkDND_XDNDHandler(Tk_Window tkwin, XEvent *xevent) {
   return False;
 } /* TkDND_XDNDHandler */
 
+int TkDND_GetSelectionObjCmd(ClientData clientData, Tcl_Interp *interp,
+                             int objc, Tcl_Obj *CONST objv[]) {
+  Time time;
+  Tk_Window path;
+  Atom selection;
+
+  if (objc != 4) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path time type");
+    return TCL_ERROR;
+  }
+
+  if (Tcl_GetLongFromObj(interp, objv[2], &time) != TCL_OK) return TCL_ERROR;
+
+  path      = TkDND_TkWin(objv[1]);
+  selection = Tk_InternAtom(path, "XdndSelection");
+  
+  XConvertSelection(Tk_Display(path), selection,
+                    Tk_InternAtom(path, Tcl_GetString(objv[3])),
+                    selection, Tk_WindowId(path), time);
+  return TCL_OK;
+} /* TkDND_GetSelectionObjCmd */
+
 /*
  * For C++ compilers, use extern "C"
  */
@@ -447,6 +469,12 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
   /* Register the various commands */
   if (Tcl_CreateObjCommand(interp, "_register_types",
            (Tcl_ObjCmdProc*) TkDND_RegisterTypesObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_get_selection",
+           (Tcl_ObjCmdProc*) TkDND_GetSelectionObjCmd,
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
     return TCL_ERROR;
   }
