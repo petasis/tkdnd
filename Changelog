@@ -1,3 +1,17 @@
+2010-06-16  Petasis George  <petasis@iit.demokritos.gr>
+        TkDND 2.2 released.
+	* Makefile.in:
+	* configure.in:
+	* win/Makefile:
+	* win/TkDND_OleDND.cpp:
+	* unix/TkDND_XDND.c: Applied a patch from Andreas Kupries, which
+	make the unix code compatible with compilers supporting C89 (i.e.
+	AIX's cc). Also, the TEA files were updated.
+
+	* /unix/TkDND_XDND.c: Fixed a bug in TkDND_RegisterTypesObjCmd.
+	It seems that KDE wants the XdndAware property on the window these
+	days, and not at the toplevel one.
+
 2010-06-11  Petasis George  <petasis@iit.demokritos.gr>
         TkDND 2.1 released.
 

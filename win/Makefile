@@ -57,7 +57,7 @@ RMDIR           = rmdir /S /Q
 
 all:
 	$(cc32) $(cflags) $(INCDIR) TkDND_OleDND.cpp \
-	  -D TKDND_PACKAGE="\"tkdnd\"" -D TKDND_VERSION="\"2.0\"" 
+	  -D PACKAGE_NAME="\"tkdnd\"" -D PACKAGE_VERSION="\"2.1\"" 
 	$(link32) $(lflags) $(LIBDIR) tclstub84.lib tkstub84.lib $(LIBS)\
 	  TkDND_OleDND.obj -out:"..\libtkdnd20.dll"
 	$(RM) ..\*.exp ..\*.lib *.idb *.pch *.obj

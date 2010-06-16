@@ -76,12 +76,16 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
     return ((TkWindow *)tkwin)->mainPtr->interp;
   }
   return NULL;
-}; /* Tk_Interp */
+} /* Tk_Interp */
 #define Tk_Interp TkDND_Interp
 #endif /* Tk_Interp */
 
 int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
                               int objc, Tcl_Obj *CONST objv[]) {
+
+  Atom version       = XDND_VERSION;
+  Tk_Window path     = TkDND_TkWin(objv[1]);
+
   if (objc != 4) {
     Tcl_WrongNumArgs(interp, 1, objv, "path toplevel types-list");
     return TCL_ERROR;
@@ -91,11 +95,6 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
    * We must make the toplevel that holds this widget XDND aware. This means
    * that we have to set the XdndAware property on our toplevel.
    */
-  Window root_return, parent, *children_return = 0;
-  unsigned int nchildren_return;
-  int status;
-  Atom version       = XDND_VERSION;
-  Tk_Window path     = TkDND_TkWin(objv[1]);
   Tk_MakeWindowExist(path);
   XChangeProperty(Tk_Display(path), Tk_WindowId(path),
                   Tk_InternAtom(path, "XdndAware"),
@@ -103,6 +102,9 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
                   (unsigned char *) &version, 1);
   return TCL_OK;
 #if 0
+  int status;
+  Window root_return, parent, *children_return = 0;
+  unsigned int nchildren_return;
   Tk_Window toplevel = TkDND_TkWin(objv[2]);
   if (!Tk_IsTopLevel(toplevel)) {
     Tcl_ResetResult(interp);
@@ -129,8 +131,10 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XClientMessageEvent cm) {
   Atom *typelist;
   const long *l = cm.data.l;
   int i, version = (int)(((unsigned long)(l[1])) >> 24);
+  Window drag_source;
+  Tcl_Obj* objv[4], *element;
   if (interp == NULL) return False; 
-  Window drag_source = l[0];
+  drag_source = l[0];
   if (version > XDND_VERSION) return False;
   if (l[1] & 0x1UL) {
     /* Get the types from XdndTypeList property. */
@@ -157,7 +161,6 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XClientMessageEvent cm) {
   }
   /* We have all the information we need. Its time to pass it at the Tcl
    * level.*/
-  Tcl_Obj* objv[4], *element;
   objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndEnter", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
   objv[2] = Tcl_NewLongObj(drag_source);
@@ -169,7 +172,7 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XClientMessageEvent cm) {
   TkDND_Eval(4);
   Tcl_Free((char *) typelist);
   return True;
-}; /* TkDND_HandleXdndEnter */
+} /* TkDND_HandleXdndEnter */
 
 int TkDND_HandleXdndPosition(Tk_Window tkwin, XClientMessageEvent cm) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
@@ -239,10 +242,10 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XClientMessageEvent cm) {
   response.format       = 32;
   response.message_type = Tk_InternAtom(tkwin, "XdndStatus");
   response.data.l[0]    = (mouse_tkwin!=NULL) ? Tk_WindowId(mouse_tkwin) : 0;
-  response.data.l[1]    = 1; // yes
-  response.data.l[2]    = ((rootX) << 16) | ((rootY)  & 0xFFFFUL); // x, y
-  response.data.l[3]    = ((width) << 16) | ((height) & 0xFFFFUL); // w, h
-  response.data.l[4]    = 0; // action
+  response.data.l[1]    = 1; /* yes */
+  response.data.l[2]    = ((rootX) << 16) | ((rootY)  & 0xFFFFUL); /* x, y */
+  response.data.l[3]    = ((width) << 16) | ((height) & 0xFFFFUL); /* w, h */
+  response.data.l[4]    = 0; /* action */
   switch ((enum dropactions) index) {
     case ActionDefault:
     case ActionCopy:
@@ -262,17 +265,17 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XClientMessageEvent cm) {
   XSendEvent(cm.display, response.window, False, NoEventMask,
              (XEvent*)&response);
   return True;
-}; /* TkDND_HandleXdndPosition */
+} /* TkDND_HandleXdndPosition */
 
 int TkDND_HandleXdndLeave(Tk_Window tkwin, XClientMessageEvent cm) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
-  if (interp == NULL) return False; 
   Tcl_Obj* objv[1];
   int i;
+  if (interp == NULL) return False; 
   objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndLeave", -1);
   TkDND_Eval(1);
   return True;
-}; /* TkDND_HandleXdndLeave */
+} /* TkDND_HandleXdndLeave */
 
 int TkDND_HandleXdndDrop(Tk_Window tkwin, XClientMessageEvent cm) {
   XClientMessageEvent finished;
@@ -309,7 +312,7 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XClientMessageEvent cm) {
   objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndDrop", -1);
   objv[1] = Tcl_NewLongObj(time);
   TkDND_Status_Eval(2);
-  finished.data.l[1] = 1; // Accept drop.
+  finished.data.l[1] = 1; /* Accept drop. */
   if (status == TCL_OK) {
     /* Get the returned action... */
     result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
@@ -343,19 +346,20 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XClientMessageEvent cm) {
   XSendEvent(cm.display, finished.window, False, NoEventMask,
              (XEvent*)&finished);
   return True;
-}; /* TkDND_HandleXdndDrop */
+} /* TkDND_HandleXdndDrop */
 
 int TkDND_HandleXdndStatus(Tk_Window tkwin, XClientMessageEvent cm) {
   return False;
-}; /* TkDND_HandleXdndStatus */
+} /* TkDND_HandleXdndStatus */
 
 int TkDND_HandleXdndFinished(Tk_Window tkwin, XClientMessageEvent cm) {
   return False;
-}; /* TkDND_HandleXdndFinished */
+} /* TkDND_HandleXdndFinished */
 
 static int TkDND_XDNDHandler(Tk_Window tkwin, XEvent *xevent) {
+  XClientMessageEvent clientMessage;
   if (xevent->type != ClientMessage) return False;
-  XClientMessageEvent clientMessage = xevent->xclient;
+  clientMessage = xevent->xclient;
 
   if (clientMessage.message_type == Tk_InternAtom(tkwin, "XdndPosition")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER

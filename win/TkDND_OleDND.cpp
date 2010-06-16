@@ -396,7 +396,7 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
       return TCL_ERROR;
   }
 
-  Tcl_PkgProvide(interp, TKDND_PACKAGE, TKDND_VERSION);
+  Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION);
   return TCL_OK;
 } /* Tkdnd_Init */
 
