@@ -141,6 +141,9 @@ ADD_DEFINITIONS   ( -DPACKAGE_NAME_VERSION="${PKG_NAME_VERSION}" )
 ADD_DEFINITIONS   ( -DTKDND_PACKAGE="${PKG_NAME}" )
 ADD_DEFINITIONS   ( -DTKDND_VERSION="${PKG_VERSION}" )
 
+## Package debug definitions...
+# ADD_DEFINITIONS   ( -DDEBUG_CLIENTMESSAGE_HANDLER )
+
 ## ===========================================================================
 ##  Declare the package shared library target...
 ## ===========================================================================

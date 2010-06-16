@@ -199,8 +199,8 @@ proc tkdnd::drag_source { mode path { types {} } { event 1 } } {
 # ----------------------------------------------------------------------------
 proc tkdnd::drop_target { mode path { types {} } } {
   variable _windowingsystem
+  set types [platform_specific_types $types]
   switch -- $mode {
-    set types [platform_specific_types $types]
     register {
       switch $_windowingsystem {
         x11 {
@@ -219,10 +219,13 @@ proc tkdnd::drop_target { mode path { types {} } } {
         }
       }
       set old_types [bind $path <<DropTargetTypes>>]
+      set new_types {}
       foreach type $types {
-        if {[lsearch $old_types $type] < 0} {lappend old_types $type}
+        if {[lsearch -exact $old_types $type] < 0} {lappend new_types $type}
       }
-      bind $path <<DropTargetTypes>> $old_types
+      if {[llength $new_types]} {
+        bind $path <<DropTargetTypes>> [concat $old_types $new_types]
+      }
     }
     unregister {
       switch $_windowingsystem {

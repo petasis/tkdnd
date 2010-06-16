@@ -47,6 +47,10 @@ namespace eval xdnd {
   variable _common_drop_target_types {}
   variable _drag_source {}
   variable _drop_target {}
+
+  proc debug {msg} {
+    puts $msg
+  };# debug
 };# namespace xdnd
 
 # ----------------------------------------------------------------------------
@@ -63,9 +67,10 @@ proc xdnd::_HandleXdndEnter { path drag_source typelist } {
   variable _drop_target;              set _drop_target {}
   variable _actionlist;               set _actionlist  \
                                            {copy move link ask private}
-  # puts "xdnd::_HandleXdndEnter: path=$path, drag_source=$drag_source,\
-  #             typelist=$typelist"
-  update
+  debug "\n==============================================================="
+  debug "xdnd::_HandleXdndEnter: path=$path, drag_source=$drag_source,\
+         typelist=$typelist"
+  debug "xdnd::_HandleXdndEnter: ACTION: default"
   return default
 };# xdnd::_HandleXdndEnter
 
@@ -82,14 +87,17 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
   variable _common_drop_target_types
   variable _drag_source
   variable _drop_target
-  # puts "xdnd::_HandleXdndPosition: drop_target=$drop_target,\
-  #       _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
+  debug "xdnd::_HandleXdndPosition: drop_target=$drop_target,\
+               _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
 
   if {![info exists _drag_source] && ![string length $_drag_source]} {
+    debug "xdnd::_HandleXdndPosition: no or empty _drag_source:\
+                 return refuse_drop"
     return refuse_drop
   }
   ## Does the new drop target support any of our new types? 
   set _types [bind $drop_target <<DropTargetTypes>>]
+  debug ">> Accepted types: $drop_target $_types"
   if {[llength $_types]} {
     ## Examine the drop target types, to find at least one match with the drag
     ## source types...
@@ -103,10 +111,11 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
     }
   }
   
-  # puts "($_drop_target) -> ($drop_target)"
+  debug "\t($_drop_target) -> ($drop_target)"
   if {$drop_target != $_drop_target} {
     if {[string length $_drop_target]} {
       ## Call the <<DropLeave>> event.
+      debug "\t<<DropLeave>> on $_drop_target"
       set cmd [bind $_drop_target <<DropLeave>>]
       if {[string length $cmd]} {
         set _codelist $_typelist
@@ -180,6 +189,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
     }
   }
   # Return values: copy, move, link, ask, private, refuse_drop, default
+  debug "xdnd::_HandleXdndPosition: ACTION: $_action"
   return $_action
 };# xdnd::_HandleXdndPosition
 
@@ -196,8 +206,8 @@ proc xdnd::_HandleXdndLeave {  } {
   variable _common_drop_target_types
   variable _drag_source
   variable _drop_target
-
-  # puts "xdnd::_HandleXdndLeave! ($_drop_target)"
+  if {![info exists _drop_target]} {set _drop_target {}}
+  debug "xdnd::_HandleXdndLeave: _drop_target=$_drop_target"
   if {[info exists _drop_target] && [string length $_drop_target]} {
     set cmd [bind $_drop_target <<DropLeave>>]
     if {[string length $cmd]} {
