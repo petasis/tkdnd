@@ -95,7 +95,14 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
   unsigned int nchildren_return;
   int status;
   Atom version       = XDND_VERSION;
-  /* Tk_Window path  = TkDND_TkWin(objv[1]); */
+  Tk_Window path     = TkDND_TkWin(objv[1]);
+  Tk_MakeWindowExist(path);
+  XChangeProperty(Tk_Display(path), Tk_WindowId(path),
+                  Tk_InternAtom(path, "XdndAware"),
+                  XA_ATOM, 32, PropModeReplace,
+                  (unsigned char *) &version, 1);
+  return TCL_OK;
+#if 0
   Tk_Window toplevel = TkDND_TkWin(objv[2]);
   if (!Tk_IsTopLevel(toplevel)) {
     Tcl_ResetResult(interp);
@@ -114,6 +121,7 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
                   XA_ATOM, 32, PropModeReplace,
                   (unsigned char *) &version, 1);
   return TCL_OK;
+#endif
 }; /* TkDND_RegisterTypesObjCmd */
 
 int TkDND_HandleXdndEnter(Tk_Window tkwin, XClientMessageEvent cm) {
@@ -349,38 +357,33 @@ static int TkDND_XDNDHandler(Tk_Window tkwin, XEvent *xevent) {
   if (xevent->type != ClientMessage) return False;
   XClientMessageEvent clientMessage = xevent->xclient;
 
-  if (clientMessage.message_type ==
-             XInternAtom(clientMessage.display, "XdndEnter", False)) {
-#ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndEnter\n");
-#endif /* DEBUG_CLIENTMESSAGE_HANDLER */
-    return TkDND_HandleXdndEnter(tkwin, clientMessage);
-  } else if (clientMessage.message_type ==
-             XInternAtom(clientMessage.display, "XdndPosition", False)) {
+  if (clientMessage.message_type == Tk_InternAtom(tkwin, "XdndPosition")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
     printf("XDND_HandleClientMessage: Received XdndPosition\n");
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndPosition(tkwin, clientMessage);
-  } else if (clientMessage.message_type ==
-             XInternAtom(clientMessage.display, "XdndLeave", False)) {
+  } else if (clientMessage.message_type == Tk_InternAtom(tkwin, "XdndEnter")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndLeave\n");
+    printf("XDND_HandleClientMessage: Received XdndEnter\n");
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
-    return TkDND_HandleXdndLeave(tkwin, clientMessage);
-  } else if (clientMessage.message_type ==
-             XInternAtom(clientMessage.display, "XdndDrop", False)) {
-#ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndDrop\n");
-#endif /* DEBUG_CLIENTMESSAGE_HANDLER */
-    return TkDND_HandleXdndDrop(tkwin, clientMessage);
-  } else if (clientMessage.message_type ==
-             XInternAtom(clientMessage.display, "XdndStatus", False)) {
+    return TkDND_HandleXdndEnter(tkwin, clientMessage);
+  } else if (clientMessage.message_type == Tk_InternAtom(tkwin, "XdndStatus")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
     printf("XDND_HandleClientMessage: Received XdndStatus\n");
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndStatus(tkwin, clientMessage);
-  } else if (clientMessage.message_type ==
-             XInternAtom(clientMessage.display, "XdndFinished", False)) {
+  } else if (clientMessage.message_type == Tk_InternAtom(tkwin, "XdndLeave")) {
+#ifdef DEBUG_CLIENTMESSAGE_HANDLER
+    printf("XDND_HandleClientMessage: Received XdndLeave\n");
+#endif /* DEBUG_CLIENTMESSAGE_HANDLER */
+    return TkDND_HandleXdndLeave(tkwin, clientMessage);
+  } else if (clientMessage.message_type == Tk_InternAtom(tkwin, "XdndDrop")) {
+#ifdef DEBUG_CLIENTMESSAGE_HANDLER
+    printf("XDND_HandleClientMessage: Received XdndDrop\n");
+#endif /* DEBUG_CLIENTMESSAGE_HANDLER */
+    return TkDND_HandleXdndDrop(tkwin, clientMessage);
+  } else if (clientMessage.message_type == 
+                                         Tk_InternAtom(tkwin, "XdndFinished")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
     printf("XDND_HandleClientMessage: Received XdndFinished\n");
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
