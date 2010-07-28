@@ -133,9 +133,10 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XClientMessageEvent cm) {
   int i, version = (int)(((unsigned long)(l[1])) >> 24);
   Window drag_source;
   Tcl_Obj* objv[4], *element;
+
   if (interp == NULL) return False; 
-  drag_source = l[0];
   if (version > XDND_VERSION) return False;
+  drag_source = l[0];
   if (l[1] & 0x1UL) {
     /* Get the types from XdndTypeList property. */
     Atom actualType = None;
