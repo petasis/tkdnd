@@ -99,7 +99,7 @@ namespace eval tkdnd {
     ## Under windows we have to also combine HOMEDRIVE & HOMEPATH...
     if {![info exists UserHomeDir] && 
         [string equal $_windowingsystem windows] &&
-        [info exist env(HOMEDRIVE)] && [info exist env(HOMEPATH)]} {
+        [info exists env(HOMEDRIVE)] && [info exists env(HOMEPATH)]} {
       if {[file isdirectory $env(HOMEDRIVE)$env(HOMEPATH)]} {
         set UserHomeDir $env(HOMEDRIVE)$env(HOMEPATH)
       }
@@ -108,6 +108,7 @@ namespace eval tkdnd {
     if {![info exists UserHomeDir]} {
       set UserHomeDir [pwd]
     }
+    set UserHomeDir [file normalize $UserHomeDir]
     
     ## Try to locate a temporary directory...
     foreach var {TKDND_TEMP_DIR TEMP TMP} {
@@ -119,8 +120,11 @@ namespace eval tkdnd {
       }
     }
     if {![info exists _drop_file_temp_dir]} {
-      foreach _dir [list $UserHomeDir/Local Settings/Temp /tmp \
-               C:/WINDOWS/Temp C:/Temp C:/tmp D:/WINDOWS/Temp D:/Temp D:/tmp] {
+      foreach _dir [list "$UserHomeDir/Local Settings/Temp" \
+                         "$UserHomeDir/AppData/Local/Temp" \
+                         /tmp \
+                         C:/WINDOWS/Temp C:/Temp C:/tmp \
+                         D:/WINDOWS/Temp D:/Temp D:/tmp] {
         if {[file isdirectory $_dir] && [file writable $_dir]} {
           set _drop_file_temp_dir $_dir
           break
@@ -128,7 +132,7 @@ namespace eval tkdnd {
       }
     }
     if {![info exists _drop_file_temp_dir]} {
-      set _drop_file_temp_dir $UserAppDir
+      set _drop_file_temp_dir $UserHomeDir
     }
     set _drop_file_temp_dir [file native $_drop_file_temp_dir]
     
