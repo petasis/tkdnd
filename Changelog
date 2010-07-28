@@ -1,4 +1,6 @@
 2010-07-28  Petasis George  <petasis@iit.demokritos.gr>
+        * win/Makefile: Updated.
+
         * library/tkdnd_unix.tcl:
         * library/tkdnd_windows.tcl: Fixed bug 2169256.
 
