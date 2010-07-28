@@ -1,3 +1,6 @@
+2010-07-28  Petasis George  <petasis@iit.demokritos.gr>
+        * library/tkdnd.tcl: Fixed bug 2486830.
+
 2010-06-16  Petasis George  <petasis@iit.demokritos.gr>
         TkDND 2.2 released.
 	* Makefile.in:
