@@ -210,7 +210,7 @@ proc olednd::_HandleDrop { drop_target pressedkeys rootX rootY _type data } {
         %ST  \{$_typelist\}    %TT \{$_types\} \
         %A   $_action          %a \{$_actionlist\} \
         %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
-        %D   \{$data\}         %e <<Drop:$type>> \
+        %D   [list $data]      %e <<Drop:$type>> \
         %L   \{$_typelist\}    %% % \
         %t   \{$_typelist\}    %T \{[lindex $_common_drag_source_types 0]\} \
         %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
@@ -226,7 +226,7 @@ proc olednd::_HandleDrop { drop_target pressedkeys rootX rootY _type data } {
       %ST  \{$_typelist\}    %TT \{$_types\} \
       %A   $_action          %a \{$_actionlist\} \
       %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
-      %D   \{$data\}         %e <<Drop>> \
+      %D   [list $data]      %e <<Drop>> \
       %L   \{$_typelist\}    %% % \
       %t   \{$_typelist\}    %T \{[lindex $_common_drag_source_types 0]\} \
       %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
