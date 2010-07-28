@@ -9,7 +9,11 @@
 ##
 
 ## Location of the Tcl installation:
-TCL     = C:\Program Files\Tcl
+TCL                   = C:\Program Files\Tcl
+TCL_VERSION           = 8.4
+TCL_VERSION_NO_DOTS   = 84
+TKDND_VERSION         = 2.2
+TKDND_VERSION_NO_DOTS = 22
 
 ##
 ## Usage:
@@ -29,7 +33,7 @@ Please `cd` to its location first.
 
 ## Include directories:
 INCDIR = -I"$(TCL)\include" \
-	 -I"$(TCL)\include8.4"
+	 -I"$(TCL)\include$(TCL_VERSION)"
 
 ## library directories:
 LIBDIR = -libpath:"$(TCL)\lib"
@@ -57,7 +61,8 @@ RMDIR           = rmdir /S /Q
 
 all:
 	$(cc32) $(cflags) $(INCDIR) TkDND_OleDND.cpp \
-	  -D PACKAGE_NAME="\"tkdnd\"" -D PACKAGE_VERSION="\"2.1\"" 
-	$(link32) $(lflags) $(LIBDIR) tclstub84.lib tkstub84.lib $(LIBS)\
-	  TkDND_OleDND.obj -out:"..\libtkdnd20.dll"
+	  -D PACKAGE_NAME="\"tkdnd\"" -D PACKAGE_VERSION="\"$(TKDND_VERSION)\"" 
+	$(link32) $(lflags) $(LIBDIR) tclstub$(TCL_VERSION_NO_DOTS).lib \
+          tkstub$(TCL_VERSION_NO_DOTS).lib $(LIBS)\
+	  TkDND_OleDND.obj -out:"..\libtkdnd$(TKDND_VERSION_NO_DOTS).dll"
 	$(RM) ..\*.exp ..\*.lib *.idb *.pch *.obj
