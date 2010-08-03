@@ -309,7 +309,7 @@ proc olednd::_platform_independent_types { types } {
 # ----------------------------------------------------------------------------
 proc olednd::_normalise_data { type data } {
   switch $type {
-    CF_HDROP   {return [encoding convertfrom $data]}
+    CF_HDROP   {return $data}
     DND_Text   {return [list CF_UNICODETEXT CF_TEXT]}
     DND_Files  {return [list CF_HDROP]}
     default    {return $data}
