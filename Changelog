@@ -1,4 +1,5 @@
 2010-08-03  Petasis George  <petasis@iit.demokritos.gr>
+        * library/tkdnd_windows.tcl:
         * win/OleDND.h: Fixes for compiling with UNICODE & _UNICODE.
 
 2010-07-28  Petasis George  <petasis@iit.demokritos.gr>
