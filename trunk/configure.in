@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so you can encode the package version directly into the source files.
 #-----------------------------------------------------------------------
 
-AC_INIT([tkdnd], [2.1])
+AC_INIT([tkdnd], [2.2])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -94,6 +94,7 @@ TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_un
 #--------------------------------------------------------------------
 
 if test "${TEA_PLATFORM}" = "windows" ; then
+    TEA_ADD_CFLAGS([-DUNICODE -D_UNICODE])
     TEA_ADD_SOURCES([win/TkDND_OleDND.cpp])
     TEA_ADD_LIBS(kernel32.lib user32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib)
 
