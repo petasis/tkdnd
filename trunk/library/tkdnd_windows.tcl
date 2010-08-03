@@ -347,7 +347,7 @@ proc olednd::_platform_independent_type { type } {
 #  Command olednd::_supported_type
 # ----------------------------------------------------------------------------
 proc olednd::_supported_type { type } {
-  return 1;
+  # return 1;
   switch $type {
     CF_UNICODETEXT - CF_TEXT -
     FileGroupDescriptor - FileGroupDescriptorW -

@@ -224,38 +224,58 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           m_pstgmed[i].hGlobal = GlobalAlloc(GHND, 
                        (DWORD) (sizeof(DROPFILES)+(_MAX_PATH)*file_nu+1));
           if (m_pstgmed[i].hGlobal) {
+            TCHAR *CurPosition;
             pDropFiles = (LPDROPFILES) GlobalLock(m_pstgmed[i].hGlobal);
             // Set the offset where the starting point of the file start.
             pDropFiles->pFiles = sizeof(DROPFILES);
             // File contains wide characters?
+#ifdef UNICODE
+            pDropFiles->fWide = TRUE;
+#else
             pDropFiles->fWide = FALSE;
-            int CurPosition = sizeof(DROPFILES);
-            for (i=0; i<file_nu; i++) {
+#endif /* UNICODE */
+            CurPosition = (TCHAR *) (LPBYTE(pDropFiles) + sizeof(DROPFILES)); 
+            for (i = 0; i < file_nu; i++) {
+              char *native_name;
               TCHAR *pszFileName;
+              TCHAR api_name[MAX_PATH+2];
               // Convert File Name to native paths...
               Tcl_DStringInit(&ds);
-              pszFileName = Tcl_TranslateFileName(NULL, 
+              native_name = Tcl_TranslateFileName(NULL, 
                                 Tcl_GetString(File[i]), &ds);
-              if (pszFileName != NULL) {
+              if (native_name != NULL) {
+                if (Tcl_NumUtfChars(native_name, -1) > MAX_PATH) {
+                  native_name = "too long filename!";
+                }
+              }
+
+              if (native_name != NULL) {
+#ifdef UNICODE
+                Tcl_UtfToUniChar(native_name, (Tcl_UniChar *) api_name);
+                pszFileName = api_name;
+#else /* UNICODE */
+                lstrcpy(api_name, native_name);
                 // Convert the file name using the system encoding.
+                Tcl_DStringFree(&ds);
+                Tcl_DStringInit(&ds);
                 pszFileName = Tcl_UtfToExternalDString(NULL,
-                                  Tcl_GetString(File[i]), -1, &ds);
+                                                       api_name, -1, &ds);
+#endif /* UNICODE */
               }
               // Copy the file name into global memory.
-              lstrcpy((LPSTR)((LPSTR)(pDropFiles)+CurPosition),
-                      TEXT(pszFileName));
+              lstrcpy(CurPosition, pszFileName);
               /*
                * Move the current position beyond the file name copied, and
-               * don't forget the Null terminator (+1)
+               * don't forget the NULL terminator (+1)
                */
-              CurPosition +=Tcl_DStringLength(&ds)+1;
+              CurPosition = 1 + _tcschr(pszFileName, '\0');
               Tcl_DStringFree(&ds);
             }
             /*
              * Finally, add an additional null terminator, as per CF_HDROP
              * Format specs.
              */
-            ((LPSTR)pDropFiles)[CurPosition]=0;
+            CurPosition = '\0';
             GlobalUnlock(m_pstgmed[i].hGlobal);
           }
           break;
@@ -264,7 +284,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     } else {
       unsigned char *bytes;
       /* A user defined type? */
-      m_pfmtetc[i].cfFormat = RegisterClipboardFormat(Tcl_GetString(elem[i]));
+      m_pfmtetc[i].cfFormat = RegisterClipboardFormat(TCL_GETSTRING(elem[i]));
       bytes = Tcl_GetByteArrayFromObj(objv[4], &nDataLength);
       m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength);
       if (m_pstgmed[i].hGlobal) {

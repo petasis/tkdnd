@@ -49,6 +49,7 @@
 #include <fcntl.h>
 #include <share.h>
 #include <sys/stat.h>
+#include <tchar.h>
 #include <wchar.h>
 
 #ifdef DND_ENABLE_DROP_TARGET_HELPER
@@ -85,14 +86,27 @@ extern "C" {
   if (status != TCL_OK) Tk_BackgroundError(interp); \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);}
 
+#if defined(UNICODE) || defined(_MBCS)
+#  ifdef _MBCS
+#    define TCL_GETSTRING(x)    ((LPCSTR) Tcl_GetUnicode(x))
+#    define TCL_NEWSTRING(x, y) Tcl_NewStringObj(x, y)
+#  else
+#    define TCL_GETSTRING(x)    ((LPCWSTR) Tcl_GetUnicode(x))
+#    define TCL_NEWSTRING(x, y) Tcl_NewUnicodeObj((Tcl_UniChar *) x, y)
+#  endif
+#else
+#  define TCL_GETSTRING(x)    Tcl_GetString(x)
+#  define TCL_NEWSTRING(x, y) Tcl_NewStringObj(x, y)
+#endif
+
 
 /*****************************************************************************
  * Windows Clipboard formats.
  ****************************************************************************/
-#define STRING_(s) s,#s
+#define STRING_(s) s,TEXT(#s)
 typedef struct {
-  UINT  cfFormat;
-  char *name;
+  UINT   cfFormat;
+  TCHAR *name;
 } CLIP_FORMAT_STRING_TABLE;
 
 static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
@@ -380,7 +394,7 @@ public:
       return currentFormat;
     }; /* GetCurrentFormat */
 
-    char *GetCurrentFormatName(void) {
+    TCHAR *GetCurrentFormatName(void) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
         if (ClipboardFormatBook[i].cfFormat == currentFormat)
                      return ClipboardFormatBook[i].name;
@@ -389,7 +403,6 @@ public:
       return szTempStr;
     }; /* GetCurrentFormatName */
 
-    
 private:
 
     // any private members and functions
@@ -399,7 +412,7 @@ private:
     LONG       m_nNumFormats;
     UINT       currentFormat;
 
-    char szTempStr[80];
+    TCHAR szTempStr[80];
 
     int LookupFormatEtc(FORMATETC *pFormatEtc) {
       // check each of our formats in turn to see if one matches
@@ -443,14 +456,14 @@ class TkDND_DropTarget: public IDropTarget {
     LONG                 m_lRefCount; /* Reference count */
     Tcl_Interp          *interp;
     Tk_Window            tkwin;
-    char                 szTempStr[MAX_PATH];
+    TCHAR                szTempStr[MAX_PATH+2];
     
-    const char * FormatName(UINT cfFormat) {
+    const TCHAR * FormatName(UINT cfFormat) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
         if (ClipboardFormatBook[i].cfFormat == cfFormat)
                      return ClipboardFormatBook[i].name;
       }
-      GetClipboardFormatName((CLIPFORMAT) cfFormat, szTempStr, MAX_PATH - 2);
+      GetClipboardFormatName((CLIPFORMAT) cfFormat, szTempStr, MAX_PATH);
       return szTempStr;
     }; /* FormatName */
 
@@ -524,7 +537,7 @@ class TkDND_DropTarget: public IDropTarget {
         while (pEF->Next(1, &fetc, NULL) == S_OK) {
           if (pDataObject->QueryGetData(&fetc) == S_OK) {
             /* Get the format name from windows */
-            element = Tcl_NewStringObj(FormatName(fetc.cfFormat), -1);
+            element = TCL_NEWSTRING(FormatName(fetc.cfFormat), -1);
             Tcl_ListObjAppendElement(NULL, typelist, element);
             /* Store the numeric code of the format */
             sprintf(tmp, "0x%08x", fetc.cfFormat);
@@ -704,7 +717,7 @@ class TkDND_DropTarget: public IDropTarget {
               objv[0]=Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
               TkDND_Status_Eval(1);
               if (status == TCL_OK) {
-                strcpy(szTempStr, Tcl_GetStringResult(interp));
+                strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
                 data = GetData_FileGroupDescriptorW(pDataObject);
               }
               break;
@@ -713,7 +726,7 @@ class TkDND_DropTarget: public IDropTarget {
               objv[0] = Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
               TkDND_Status_Eval(1);
               if (status == TCL_OK) {
-                strcpy(szTempStr, Tcl_GetStringResult(interp));
+                strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
                 data = GetData_FileGroupDescriptor(pDataObject);
               }
               break;
@@ -790,7 +803,7 @@ private:
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       Tcl_Obj *result;
       unsigned char *bytes;
-      fmte.cfFormat = RegisterClipboardFormat(Tcl_GetString(formatObj));
+      fmte.cfFormat = RegisterClipboardFormat(TCL_GETSTRING(formatObj));
       if (pDataObject->QueryGetData(&fmte) != S_OK ||
           pDataObject->GetData(&fmte, &StgMed) != S_OK ) {
         Tcl_NewStringObj("unsupported type", -1);
@@ -858,8 +871,8 @@ private:
              * an LCID, on Windows 9x it really seems to expect a LanguageID.
              */
             locale = LANGIDFROMLCID(*((int*) data));
-            GetLocaleInfo(locale, LOCALE_IDEFAULTANSICODEPAGE,
-                    Tcl_DStringValue(&ds)+2, Tcl_DStringLength(&ds)-2);
+            GetLocaleInfoA(locale, LOCALE_IDEFAULTANSICODEPAGE,
+                     Tcl_DStringValue(&ds)+2, Tcl_DStringLength(&ds)-2);
             GlobalUnlock(StgMed.hGlobal);
             encoding = Tcl_GetEncoding(NULL, Tcl_DStringValue(&ds));
             Tcl_DStringFree(&ds);
@@ -894,23 +907,56 @@ private:
     }; /* GetData_CF_TEXT */
     
     Tcl_Obj *GetData_CF_HDROP(IDataObject *pDataObject) {
+#if defined(UNICODE)
+      Tcl_DString ds;
+      // char utf8[MAX_PATH*4+2];
+#endif /* UNICODE */
       STGMEDIUM StgMed;
+      memset(&StgMed, 0, sizeof(StgMed));
+      StgMed.tymed = TYMED_HGLOBAL;
       FORMATETC fmte = { CF_HDROP, (DVTARGETDEVICE FAR *)NULL,
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-      
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
-          HDROP hdrop = (HDROP) GlobalLock(StgMed.hGlobal);
-          UINT cFiles = ::DragQueryFile(hdrop, (UINT)-1, NULL, 0);
-          char szFile[MAX_PATH], *p;
-          Tcl_Obj *result = Tcl_NewListObj(0, NULL);
-          for( UINT count = 0; count < cFiles; count++ ) {
+          HDROP hdrop;
+          UINT cFiles;
+          TCHAR szFile[MAX_PATH+2];
+          Tcl_Obj *result, *item;
+          char *utf_8_data = NULL, *p;
+
+          hdrop = (HDROP) GlobalLock(StgMed.hGlobal);
+          if ( NULL == hdrop ) {
+            GlobalUnlock(hdrop);
+            ReleaseStgMedium(&StgMed);
+            return NULL;
+          }
+          cFiles = ::DragQueryFile(hdrop, (UINT)-1, NULL, 0);
+          result = Tcl_NewListObj(0, NULL);
+
+          for (UINT count = 0; count < cFiles; count++) {
             ::DragQueryFile(hdrop, count, szFile, sizeof(szFile));
+#if defined(UNICODE)
+            /* Convert UTF-16 to UTF-8... */
+            // memset(utf8, sizeof(utf8), 0);
+            // WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) szFile, -1,
+            //                                 utf8, sizeof(utf8), 0, 0);
+            Tcl_DStringInit(&ds);
+            Tcl_UniCharToUtfDString((Tcl_UniChar *) szFile,
+                Tcl_UniCharLen((Tcl_UniChar *) szFile), &ds);
+            utf_8_data = Tcl_DStringValue(&ds);
+            // utf_8_data = utf8;
+#else  /* UNICODE */
+            utf_8_data = (char *) &szFile[0];
+#endif /* UNICODE */
             /* Convert to forward slashes for easier access in scripts... */
-            for (p=szFile; *p!='\0'; p=(char *) CharNext(p)) {
+            for (p=utf_8_data; *p!='\0'; p=(char *) CharNextA(p)) {
               if (*p == '\\') *p = '/';
             }
-            Tcl_ListObjAppendElement(NULL, result, Tcl_NewStringObj(szFile,-1));
+            item = Tcl_NewStringObj(utf_8_data, -1);
+            Tcl_ListObjAppendElement(NULL, result, item);
+#if defined(UNICODE)
+            Tcl_DStringFree(&ds);
+#endif /* UNICODE */
           }
           GlobalUnlock(StgMed.hGlobal);
           ReleaseStgMedium(&StgMed);
@@ -983,7 +1029,7 @@ private:
            * an LCID, on Windows 9x it really seems to expect a LanguageID.
            */
           locale = LANGIDFROMLCID(*((int*) data));
-          GetLocaleInfo(locale, LOCALE_IDEFAULTANSICODEPAGE,
+          GetLocaleInfoA(locale, LOCALE_IDEFAULTANSICODEPAGE,
                   Tcl_DStringValue(&ds)+2, Tcl_DStringLength(&ds)-2);
           GlobalUnlock(StgMed.hGlobal);
           encoding = Tcl_GetEncoding(NULL, Tcl_DStringValue(&ds));
@@ -1003,7 +1049,7 @@ private:
           GlobalLock(content_storage.pstm);
           strcpy(file_name, (char *) szTempStr);
           strcat(file_name, "\\");
-          strcat(file_name, file_descriptor.cFileName);
+          strcat(file_name, (char *) file_descriptor.cFileName);
           if (StreamToFile(content_storage.pstm, file_name) == S_OK) {
             Tcl_DString ds;
             Tcl_DStringInit(&ds);
@@ -1077,7 +1123,7 @@ private:
         contents_fmt.lindex = file_index;
         if (pDataObject->GetData(&contents_fmt, &content_storage) == S_OK) {
           // Dump stream into a file.
-          item = Tcl_NewStringObj(szTempStr, -1);
+          item = Tcl_NewUnicodeObj((Tcl_UniChar *) szTempStr, -1);
           Tcl_AppendToObj(item, "\\", 1);
           Tcl_GetUnicode(item);
           Tcl_AppendUnicodeToObj(item, (Tcl_UniChar *)

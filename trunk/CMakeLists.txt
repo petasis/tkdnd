@@ -19,7 +19,7 @@ PROJECT ( tkdnd )
 ## Package version information:
 SET ( PKG_NAME          ${PROJECT_NAME} )
 SET ( PKG_MAJOR_VERSION 2 )
-SET ( PKG_MINOR_VERSION 1 )
+SET ( PKG_MINOR_VERSION 2 )
 SET ( PKG_BUILD_VERSION 0 )
 ## Author:
 SET ( PKG_VENDOR        "Georgios Petasis" )
@@ -32,6 +32,11 @@ IF ( WIN32 )
   INCLUDE_DIRECTORIES ( win )
   SET ( CMAKE_SHARED_LIBRARY_PREFIX lib )
   SET ( PKG_SOURCES win/TkDND_OleDND.cpp )
+
+  ADD_DEFINITIONS     ( -DUNICODE )
+  ADD_DEFINITIONS     ( -D_UNICODE )
+  # ADD_DEFINITIONS     ( -D_MBCS )
+
 ELSE  ( WIN32 )
   ## Unix and OS X...
   IF ( APPLE )
