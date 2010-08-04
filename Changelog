@@ -1,4 +1,5 @@
 2010-08-03  Petasis George  <petasis@iit.demokritos.gr>
+        TkDND 2.2 released.
         * library/tkdnd_windows.tcl:
         * win/OleDND.h: Fixes for compiling with UNICODE & _UNICODE.
 
@@ -11,7 +12,6 @@
         * library/tkdnd.tcl: Fixed bug 2486830.
 
 2010-06-16  Petasis George  <petasis@iit.demokritos.gr>
-        TkDND 2.2 released.
 	* Makefile.in:
 	* configure.in:
 	* win/Makefile:
