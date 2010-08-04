@@ -412,7 +412,9 @@ int TkDND_GetSelectionObjCmd(ClientData clientData, Tcl_Interp *interp,
     return TCL_ERROR;
   }
 
-  if (Tcl_GetLongFromObj(interp, objv[2], &time) != TCL_OK) return TCL_ERROR;
+  if (Tcl_GetLongFromObj(interp, objv[2], (long *) &time) != TCL_OK) {
+    return TCL_ERROR;
+  }
 
   path      = TkDND_TkWin(objv[1]);
   selection = Tk_InternAtom(path, "XdndSelection");
