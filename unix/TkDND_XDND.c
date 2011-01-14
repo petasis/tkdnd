@@ -311,7 +311,7 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XClientMessageEvent cm) {
 
   /* Call out Tcl callback. */
   objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndDrop", -1);
-  objv[1] = Tcl_NewLongObj(time);
+  objv[1] = Tcl_NewWideIntObj(time);
   TkDND_Status_Eval(2);
   finished.data.l[1] = 1; /* Accept drop. */
   if (status == TCL_OK) {

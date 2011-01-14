@@ -389,3 +389,30 @@ proc tkdnd::platform_independent_type { type } {
   variable _platform_namespace
   return [${_platform_namespace}::_platform_independent_type $type]
 }; # tkdnd::platform_independent_type
+
+# ----------------------------------------------------------------------------
+#  Command tkdnd::bytes_to_string
+# ----------------------------------------------------------------------------
+proc tkdnd::bytes_to_string { bytes } {
+  set string {}
+  foreach byte $bytes {
+    append string [binary format c $byte]
+  }
+  return $string
+};# tkdnd::bytes_to_string
+
+# ----------------------------------------------------------------------------
+#  Command tkdnd::urn_unquote
+# ----------------------------------------------------------------------------
+proc tkdnd::urn_unquote {url} {
+  set result ""
+  set start 0
+  while {[regexp -start $start -indices {%[0-9a-fA-F]{2}} $url match]} {
+    foreach {first last} $match break
+    append result [string range $url $start [expr {$first - 1}]]
+    append result [format %c 0x[string range $url [incr first] $last]]
+    set start [incr last]
+  }
+  append result [string range $url $start end]
+  return $result
+};# tkdnd::urn_unquote

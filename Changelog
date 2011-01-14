@@ -1,10 +1,14 @@
 2011-01-14  Petasis George  <petasis@iit.demokritos.gr>
-        * /library/tkdnd_macosx.tcl: Fixed a bug reported by Kevin Walzer:
+        * library/tkdnd_unix.tcl: Added support for accepting drops, if
+        TIP 370 is finally approved. Changes tested with a preliminary TIP 370
+        implementation.
+
+        * library/tkdnd_macosx.tcl: Fixed a bug reported by Kevin Walzer:
         macdnd::_GetDroppedData and xdnd::_GetDroppedData were missing the
         "time" argument, added in the XDND section for TIP 370 (if it gets
         accepted).
 
-        * /macosx/macdnd.m: Restored back a workarround by Kevin Walzer, as
+        * macosx/macdnd.m: Restored back a workarround by Kevin Walzer, as
         TkDND does not work well under all circumstances in OS X 10.6.
         (Reported by Kevin Walzer on 23 Dec 2010).
 
