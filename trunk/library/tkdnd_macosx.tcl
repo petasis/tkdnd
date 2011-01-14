@@ -77,7 +77,7 @@ proc macdnd::_HandleLeave { args  } {
 };# macdnd::_HandleLeave
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_HandleXdndDrop
+#  Command macdnd::_HandleDrop
 # ----------------------------------------------------------------------------
 proc macdnd::_HandleDrop { drop_target data args } {
   variable _dropped_data
@@ -88,12 +88,12 @@ proc macdnd::_HandleDrop { drop_target data args } {
 # ----------------------------------------------------------------------------
 #  Command macdnd::_GetDroppedData
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDroppedData {  } {
+proc macdnd::_GetDroppedData { time } {
   variable _dropped_data
   return $_dropped_data
 };# macdnd::_GetDroppedData
-proc xdnd::_GetDroppedData {  } {
-  return [::tkdnd::macdnd::_GetDroppedData]
+proc xdnd::_GetDroppedData { time } {
+  return [::tkdnd::macdnd::_GetDroppedData $time]
 };# xdnd::_GetDroppedData
 
 # ----------------------------------------------------------------------------
