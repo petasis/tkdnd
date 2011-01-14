@@ -106,6 +106,9 @@ TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
 DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   NSRect frame, bounds;
   DNDView* dnd_view = [view viewWithTag:TkDND_Tag];
+#ifdef TKDND_OSX_KEVIN_WORKARROUND
+  Rect bnds;
+#endif /* TKDND_OSX_KEVIN_WORKARROUND */
 
   if (dnd_view == nil) {
     dnd_view = [[DNDView alloc] init];
@@ -122,8 +125,8 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
      */
 #ifdef TKDND_OSX_KEVIN_WORKARROUND
     /* Hack to make sure subview is set to take up entire geometry of window. */
-    TkMacOSXWinBounds((TkWindow*)tkwin, &bounds);
-    frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
+    TkMacOSXWinBounds((TkWindow*)tkwin, &bnds);
+    frame = NSMakeRect(bnds.left, bnds.top, 100000, 100000);
     frame.origin.y = 0;
     if (!NSEqualRects(frame, [dnd_view frame])) {
       [dnd_view setFrame:frame];
