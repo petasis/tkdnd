@@ -19,6 +19,8 @@
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
 
+#define TKDND_OSX_KEVIN_WORKARROUND
+
 #define TkDND_Tag    1234
 
 #define TkDND_TkWin(x)                                                  \
@@ -113,14 +115,23 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
       [view addSubview:dnd_view positioned:NSWindowBelow relativeTo:nil];
     }
     [view setAutoresizesSubviews:true];
-    // Rect bnds;
-    // TkMacOSXWinBounds((TkWindow*)tkwin, &bnds);
-    // frame = NSMakeRect(bnds.left, bnds.top, 100000, 100000);
-    // frame.origin.y = 0;
-    // if (!NSEqualRects(frame, [dnd_view frame])) {
-    //   [dnd_view setFrame:frame];
-    // }
+    /*
+     * Bug fix by Kevin Walzer: On 23 Dec 2010, Kevin reported that he has
+     * found cases where the code below is needed, in order for DnD to work
+     * correctly under Snow Leopard 10.6. So, I am restoring it...
+     */
+#ifdef TKDND_OSX_KEVIN_WORKARROUND
+    /* Hack to make sure subview is set to take up entire geometry of window. */
+    TkMacOSXWinBounds((TkWindow*)tkwin, &bounds);
+    frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
+    frame.origin.y = 0;
+    if (!NSEqualRects(frame, [dnd_view frame])) {
+      [dnd_view setFrame:frame];
+    }
+#endif /* TKDND_OSX_KEVIN_WORKARROUND */
   }
+
+#ifndef TKDND_OSX_KEVIN_WORKARROUND
   if (dnd_view == nil) return dnd_view;
 
   /* Ensure that we have the correct geometry... */
@@ -133,16 +144,8 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   if (!NSEqualRects(bounds, [dnd_view bounds])) {
     [dnd_view setBounds:bounds];
   }
+#endif /* TKDND_OSX_KEVIN_WORKARROUND */
   return dnd_view;
-#if 0
-  /* Hack to make sure subview is set to take up entire geometry of window... */
-  frame = NSMakeRect(bounds.left, bounds.top, 100000, 100000);
-  frame.origin.y = 0;
-  if (!NSEqualRects(frame, [dnd_view frame])) {
-    [dnd_view setFrame:frame];
-  }
-  return dnd_view;
-#endif
 }; /* TkDND_GetDNDSubview */
 
 /* Set flags for local DND operations, i.e. dragging within a single
