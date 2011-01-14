@@ -311,9 +311,11 @@ proc xdnd::_GetDroppedData { time } {
     # puts "TYPE: $type ($_drop_target)"
     # _get_selection $_drop_target $time $type
     if {![catch {
+      # selection get -displayof $_drop_target -selection XdndSelection \
+      #               -type $type -time $time} result options]} {
       selection get -displayof $_drop_target -selection XdndSelection \
                     -type $type} result options]} {
-      return $result
+      return [_normalise_data $type $result]
     }
   }
   return -options $options $result
@@ -364,8 +366,35 @@ proc xdnd::_platform_specific_types { types } {
 #  Command xdnd::_normalise_data
 # ----------------------------------------------------------------------------
 proc xdnd::_normalise_data { type data } {
+  # Tk knows how to interpret the following types:
+  #    STRING, TEXT, COMPOUND_TEXT
+  #    UTF8_STRING
+  # Else, it returns a list of 8 or 32 bit numbers... 
   switch $type {
-    CF_HDROP   {return [encoding convertfrom $data]}
+    STRING - UTF8_STRING - TEXT - COMPOUND_TEXT {return $data}
+    text/html     -
+    text/plain    {
+      return [encoding convertfrom utf-8 [tkdnd::bytes_to_string $data]]
+    }
+    text/uri-list {
+      set string [tkdnd::bytes_to_string $data]
+      ## Get rid of \r\n
+      set string [string map {\r\n \n} $string]
+      set files {}
+      foreach quoted_file [split $string] {
+        set file [encoding convertfrom utf-8 [tkdnd::urn_unquote $quoted_file]]
+        switch -glob $file {
+          file://*  {lappend files [string range $file 7 end]}
+          ftp://*   -
+          https://* -
+          http://*  {lappend files $quoted_file}
+          default   {lappend files $file}
+        }
+      }
+      return $files
+    }
+    text/x-moz-url - 
+    application/q-iconlist -
     default    {return $data}
   }
 }; # xdnd::_normalise_data
