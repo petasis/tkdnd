@@ -307,6 +307,9 @@ proc xdnd::_HandleXdndDrop { time } {
 proc xdnd::_GetDroppedData { time } {
   variable _drop_target
   variable _common_drag_source_types
+  if {![llength $_common_drag_source_types]} {
+    error "no common data types between the drag source and drop target widgets"
+  }
   foreach type $_common_drag_source_types {
     # puts "TYPE: $type ($_drop_target)"
     # _get_selection $_drop_target $time $type

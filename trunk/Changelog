@@ -1,3 +1,9 @@
+2011-03-18  Petasis George  <petasis@iit.demokritos.gr>
+        * library/tkdnd_unix.tcl: Fixed a bug in xdnd::_GetDroppedData, where
+        an improper error was thrown in case no common types were found between
+        the drag source and drop target widgets. Now a more appropriate error
+        is returned.
+
 2011-01-14  Petasis George  <petasis@iit.demokritos.gr>
         * library/tkdnd_unix.tcl: Added support for accepting drops, if
         TIP 370 is finally approved. Changes tested with a preliminary TIP 370
