@@ -1,3 +1,7 @@
+2011-09-22  Petasis George  <petasis@iit.demokritos.gr>
+        * win/OleDND.h: Added a check if CF_DIBV5 is defined (i.e.
+        WINVER < 0x0500). SF Bug ID: 3411338.
+
 2011-03-18  Petasis George  <petasis@iit.demokritos.gr>
         * library/tkdnd_unix.tcl: Fixed a bug in xdnd::_GetDroppedData, where
         an improper error was thrown in case no common types were found between

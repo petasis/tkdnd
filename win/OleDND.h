@@ -126,7 +126,9 @@ static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
   STRING_(CF_ENHMETAFILE),
   STRING_(CF_HDROP),
   STRING_(CF_LOCALE),
+#ifdef CF_DIBV5
   STRING_(CF_DIBV5),
+#endif /* CF_DIBV5 */
   STRING_(CF_OWNERDISPLAY),
   STRING_(CF_DSPTEXT),
   STRING_(CF_DSPBITMAP),
@@ -1221,4 +1223,4 @@ private:
     LONG   m_lRefCount;
 }; /* TkDND_DropSource */
 
-#endif _OLE_DND_H
+#endif /* _OLE_DND_H */
