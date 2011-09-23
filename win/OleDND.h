@@ -42,6 +42,12 @@
 #ifndef _OLE_DND_H
 #define _OLE_DND_H
 
+#ifdef    __MINGW32__
+#ifndef WINVER
+#define WINVER 0x0500 /* version 5.0 */
+#endif /* !WINVER */
+#endif /* __MINGW32__ */
+
 #include <windows.h>
 #include <ole2.h>
 #include <shlobj.h>
