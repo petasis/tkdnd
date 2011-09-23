@@ -103,7 +103,7 @@ extern "C" {
 /*****************************************************************************
  * Windows Clipboard formats.
  ****************************************************************************/
-#define STRING_(s) s,TEXT(#s)
+#define STRING_(s) {s,TEXT(#s)}
 typedef struct {
   UINT   cfFormat;
   TCHAR *name;
@@ -124,9 +124,13 @@ static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
   STRING_(CF_WAVE),
   STRING_(CF_UNICODETEXT),
   STRING_(CF_ENHMETAFILE),
+#ifdef    CF_HDROP
   STRING_(CF_HDROP),
+#endif /* CF_HDROP */
+#ifdef    CF_LOCALE
   STRING_(CF_LOCALE),
-#ifdef CF_DIBV5
+#endif /* CF_LOCALE */
+#ifdef    CF_DIBV5
   STRING_(CF_DIBV5),
 #endif /* CF_DIBV5 */
   STRING_(CF_OWNERDISPLAY),
@@ -136,7 +140,7 @@ static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
   STRING_(CF_DSPENHMETAFILE),
   STRING_(CF_GDIOBJFIRST),
   STRING_(CF_PRIVATEFIRST),
-  0, 0
+  {0, 0}
 }; /* ClipboardFormatBook */
 
 /*****************************************************************************
