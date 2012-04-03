@@ -50,12 +50,12 @@ namespace eval tkdnd {
 
   variable _windowingsystem
 
-  bind TkDND_Drag1 <ButtonPress-1> {tkdnd::_begin_drag press  %W %s %X %Y}
-  bind TkDND_Drag1 <B1-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
-  bind TkDND_Drag2 <ButtonPress-2> {tkdnd::_begin_drag press  %W %s %X %Y}
-  bind TkDND_Drag2 <B2-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
-  bind TkDND_Drag3 <ButtonPress-3> {tkdnd::_begin_drag press  %W %s %X %Y}
-  bind TkDND_Drag3 <B3-Motion>     {tkdnd::_begin_drag motion %W %s %X %Y}
+  bind TkDND_Drag1 <ButtonPress-1> {tkdnd::_begin_drag press  1 %W %s %X %Y}
+  bind TkDND_Drag1 <B1-Motion>     {tkdnd::_begin_drag motion 1 %W %s %X %Y}
+  bind TkDND_Drag2 <ButtonPress-2> {tkdnd::_begin_drag press  2 %W %s %X %Y}
+  bind TkDND_Drag2 <B2-Motion>     {tkdnd::_begin_drag motion 2 %W %s %X %Y}
+  bind TkDND_Drag3 <ButtonPress-3> {tkdnd::_begin_drag press  3 %W %s %X %Y}
+  bind TkDND_Drag3 <B3-Motion>     {tkdnd::_begin_drag motion 3 %W %s %X %Y}
   
   # ----------------------------------------------------------------------------
   #  Command tkdnd::initialise: Initialise the TkDND package.
@@ -254,7 +254,7 @@ proc tkdnd::drop_target { mode path { types {} } } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_begin_drag
 # ----------------------------------------------------------------------------
-proc tkdnd::_begin_drag { event source state X Y } {
+proc tkdnd::_begin_drag { event button source state X Y } {
   variable _x0
   variable _y0
   variable _state
@@ -274,7 +274,7 @@ proc tkdnd::_begin_drag { event source state X Y } {
       if { [string equal $_state "press"] } {
         if { abs($_x0-$X) > 3 || abs($_y0-$Y) > 3 } {
           set _state "done"
-          _init_drag $source $state $X $Y
+          _init_drag $button $source $state $X $Y
         }
       }
     }
@@ -284,7 +284,7 @@ proc tkdnd::_begin_drag { event source state X Y } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_init_drag
 # ----------------------------------------------------------------------------
-proc tkdnd::_init_drag { source state rootX rootY } {
+proc tkdnd::_init_drag { button source state rootX rootY } {
   # Call the <<DragInitCmd>> binding.
   set cmd [bind $source <<DragInitCmd>>]
   if {[string length $cmd]} {
@@ -303,7 +303,7 @@ proc tkdnd::_init_drag { source state rootX rootY } {
         }
         win32 -
         windows {
-          set action [_DoDragDrop $source $actions $types $data]
+          set action [_DoDragDrop $source $actions $types $data $button]
         }
         aqua {
           set action [macdnd::dodragdrop $source $actions $types $data]
@@ -314,7 +314,7 @@ proc tkdnd::_init_drag { source state rootX rootY } {
       }
       ## Call _end_drag to notify the widget of the result of the drag
       ## operation...
-      _end_drag $source {} $action {} $data {} $state $rootX $rootY
+      _end_drag $button $source {} $action {} $data {} $state $rootX $rootY
     }
   }
 };# tkdnd::_init_drag
@@ -322,7 +322,7 @@ proc tkdnd::_init_drag { source state rootX rootY } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_end_drag
 # ----------------------------------------------------------------------------
-proc tkdnd::_end_drag { source target action type data result
+proc tkdnd::_end_drag { button source target action type data result
                         state rootX rootY } {
   set rootX 0
   set rootY 0
@@ -342,7 +342,7 @@ proc tkdnd::_end_drag { source target action type data result
         }
         win32 -
         windows {
-          set action [_DoDragDrop $source $actions $types $data]
+          set action [_DoDragDrop $source $actions $types $data $button]
         }
         aqua {
           macdnd::dodragdrop $source $actions $types $data
@@ -353,7 +353,7 @@ proc tkdnd::_end_drag { source target action type data result
       }
       ## Call _end_drag to notify the widget of the result of the drag
       ## operation...
-      _end_drag $source {} $action {} $data {} $state $rootX $rootY
+      _end_drag $button $source {} $action {} $data {} $state $rootX $rootY
     }
   }
 };# tkdnd::_end_drag
