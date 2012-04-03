@@ -1,8 +1,8 @@
 /*
  * OleDND.h --
  * 
- *    This file implements the windows portion of the drag&drop mechanish
- *    for the tk toolkit. The protocol in use under windows is the
+ *    This file implements the windows portion of the drag&drop mechanism
+ *    for the Tk toolkit. The protocol in use under windows is the
  *    OLE protocol. Based on code wrote by Gordon Chafee.
  *
  * This software is copyrighted by:
@@ -1176,6 +1176,8 @@ private:
  ****************************************************************************/
 class TkDND_DropSource : public IDropSource {
 public:
+    int button;
+
     // IUnknown members
     HRESULT __stdcall QueryInterface(REFIID iid, void ** ppvObject) {
       // check to see what interface has been requested
@@ -1209,8 +1211,23 @@ public:
       // cancel the drop
       if(fEscapePressed == TRUE) return DRAGDROP_S_CANCEL;        
 
-      // if the <LeftMouse> button has been released, then do the drop!
-      if((grfKeyState & MK_LBUTTON) == 0) return DRAGDROP_S_DROP;
+      switch (button) {
+        case 1: {
+          // if the <LeftMouse> button has been released, then do the drop!
+          if((grfKeyState & MK_LBUTTON) == 0) return DRAGDROP_S_DROP;
+          break;
+        }
+        case 2: {
+          // if the <MiddleMouse> button has been released, then do the drop!
+          if((grfKeyState & MK_MBUTTON) == 0) return DRAGDROP_S_DROP;
+          break;
+        }
+        case 3: {
+          // if the <RightMouse> button has been released, then do the drop!
+          if((grfKeyState & MK_RBUTTON) == 0) return DRAGDROP_S_DROP;
+          break;
+        }
+      }
 
       // continue with the drag-drop
       return S_OK;
@@ -1225,6 +1242,12 @@ public:
     // Constructor / Destructor
     TkDND_DropSource() {
       m_lRefCount = 1;
+      button = 1;
+    }; /* TkDND_DropSource */
+
+    TkDND_DropSource(int b) {
+      m_lRefCount = 1;
+      button = b;
     }; /* TkDND_DropSource */
     
     ~TkDND_DropSource() {};
