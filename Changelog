@@ -1,3 +1,9 @@
+2012-04-12  Petasis George  <petasis@iit.demokritos.gr>
+        TkDND 2.4 released.
+        * library/tkdnd_unix.tcl: Removed braces from a comment in
+        xdnd::_GetDroppedData, left from testing with TIP 370 preliminary
+        implementation. SF Bug ID: 3516862
+
 2012-03-03  Petasis George  <petasis@iit.demokritos.gr>
         TkDND 2.3 released.
         * library/tkdnd_windows.tcl:
