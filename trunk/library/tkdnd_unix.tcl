@@ -88,7 +88,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
   variable _drag_source
   variable _drop_target
   # debug "xdnd::_HandleXdndPosition: drop_target=$drop_target,\
-               _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
+  #            _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
 
   if {![info exists _drag_source] && ![string length $_drag_source]} {
     # debug "xdnd::_HandleXdndPosition: no or empty _drag_source:\
@@ -313,11 +313,14 @@ proc xdnd::_GetDroppedData { time } {
   foreach type $_common_drag_source_types {
     # puts "TYPE: $type ($_drop_target)"
     # _get_selection $_drop_target $time $type
+    #  selection get -displayof $_drop_target -selection XdndSelection \
+    #                -type $type
+    # _selection_get -displayof $_drop_target -selection XdndSelection \
+    #                -type $type -time $time
     if {![catch {
-      # selection get -displayof $_drop_target -selection XdndSelection \
-      #               -type $type -time $time
       selection get -displayof $_drop_target -selection XdndSelection \
-                    -type $type} result options]} {
+                    -type $type
+                                             } result options]} {
       return [_normalise_data $type $result]
     }
   }
@@ -377,12 +380,13 @@ proc xdnd::_normalise_data { type data } {
     STRING - UTF8_STRING - TEXT - COMPOUND_TEXT {return $data}
     text/html     -
     text/plain    {
-      return [encoding convertfrom utf-8 [tkdnd::bytes_to_string $data]]
+      return [string map {\r\n \n} \
+        [encoding convertfrom utf-8 [tkdnd::bytes_to_string $data]]]
     }
     text/uri-list {
       set string [tkdnd::bytes_to_string $data]
       ## Get rid of \r\n
-      set string [string map {\r\n \n} $string]
+      set string [string trim [string map {\r\n \n} $string]]
       set files {}
       foreach quoted_file [split $string] {
         set file [encoding convertfrom utf-8 [tkdnd::urn_unquote $quoted_file]]

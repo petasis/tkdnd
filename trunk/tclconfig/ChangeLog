@@ -1,3 +1,20 @@
+2012-04-03  Jan Nijtmans  <nijtmans@users.sf.net>
+
+	* tcl.m4: [Bug 3511806] Compiler checks too early
+	This change allows to build the cygwin and mingw32 ports of
+	Tcl/Tk extensions to build out-of-the-box using a native or
+	cross-compiler.
+
+2011-04-02  Jan Nijtmans  <nijtmans@users.sf.net>
+
+	* install-sh: Fix issue with library stripping in install-sh
+	 (backported from kevin_walzer's patch from Tcl 8.6 trunk)
+
+2011-04-05  Andreas Kupries  <andreask@activestate.com>
+
+	* tcl.m4: Applied patch by Jeff Lawson. Nicer error message when
+	  tclConfig.sh was not found.
+
 2010-12-15  Stuart Cassoff  <stwo@users.sourceforge.net>
 
 	* install-sh: Upgrade to newer install-sh and use it.
