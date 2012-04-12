@@ -27,7 +27,7 @@ AC_INIT([tkdnd], [2.4])
 # as well as PKG_LIB_FILE and PKG_STUB_LIB_FILE.
 #--------------------------------------------------------------------
 
-TEA_INIT([3.7])
+TEA_INIT([3.9])
 
 AC_CONFIG_AUX_DIR(tclconfig)
 
@@ -109,7 +109,7 @@ else
 fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
-    TEA_ADD_SOURCES([unix/TkDND_XDND.c])
+    TEA_ADD_SOURCES([unix/TkDND_XDND.c unix/tkUnixSelect.c])
 fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then
