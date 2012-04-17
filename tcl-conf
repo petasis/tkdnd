@@ -11,3 +11,4 @@ catch {exec ./configure \
             --with-tcl=$libpath --with-tk=$libpath \
             --with-tclinclude=$includepath \
             --with-tkinclude=$includepath >@stdout 2>@stderr}
+exit 0

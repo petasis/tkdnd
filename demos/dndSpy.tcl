@@ -14,11 +14,15 @@ if {$::tcl_version == "8.3" && ![package vsatisfies $::tcl_patchLevel 8.3.3]} {
     exit 1
 }
 
-set DIR [file dirname [file normalize [info script]]]
 ## Make sure that we can find the tkdnd package even if the user has not yet
 ## installed the package.
-lappend auto_path [file dirname $DIR] [file dirname $DIR]/lib
-package require tkdnd
+if {[catch {package require tkdnd}]} {
+  set DIR [file dirname [file dirname [file normalize [info script]]]]
+  source $DIR/library/tkdnd.tcl
+  foreach dll [glob -type f $DIR/*tkdnd*[info sharedlibextension]] {
+    tkdnd::initialise $DIR/library ../[file tail $dll] tkdnd
+  }
+}
 
 ## Place a listbox. This will be our drop target, which will also display the
 ## types supported by the drag source...
