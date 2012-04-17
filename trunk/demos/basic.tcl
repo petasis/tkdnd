@@ -1,5 +1,13 @@
 # Load the tkdnd package
-package require tkdnd
+## Make sure that we can find the tkdnd package even if the user has not yet
+## installed the package.
+if {[catch {package require tkdnd}]} {
+  set DIR [file dirname [file dirname [file normalize [info script]]]]
+  source $DIR/library/tkdnd.tcl
+  foreach dll [glob -type f $DIR/*tkdnd*[info sharedlibextension]] {
+    tkdnd::initialise $DIR/library ../[file tail $dll] tkdnd
+  }
+}
 
 # Create a widget that will be a drag source.
 set text_data "hello from Tk! (\u20ac)"
