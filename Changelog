@@ -1,3 +1,7 @@
+2012-04-19  Petasis George  <petasis@iit.demokritos.gr>
+	* win/Makefile: Updated the Windows Makefile, after a patch from
+        Dave Bodenstab.
+
 2012-04-12  Petasis George  <petasis@iit.demokritos.gr>
 	TkDND 2.4 released.
 	* library/tkdnd_unix.tcl:
