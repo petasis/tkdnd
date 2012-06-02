@@ -13,15 +13,123 @@
 #include "tkInt.h"
 #include "tkSelect.h"
 
-static TkSelRetrievalInfo *pendingRetrievals = NULL;
-				/* List of all retrievals currently being
-				 * waited for. */
-
 /*
  * Forward declarations for functions defined in this file:
  */
+typedef struct {
+  Tcl_Interp     *interp;
+  Tk_GetSelProc  *proc;
+  ClientData      clientData;
+  Tcl_TimerToken  timeout;
+  Tk_Window       tkwin;
+  Atom            property;
+  int             result;
+  int             idleTime;
+} TkDND_ProcDetail;
 
-static void		TkDND_SelTimeoutProc(ClientData clientData);
+static void TkDND_SelTimeoutProc(ClientData clientData);
+
+static inline int maxSelectionIncr(Display *dpy) {
+  return XMaxRequestSize(dpy) > 65536 ? 65536*4 :
+                               XMaxRequestSize(dpy)*4 - 100;
+}; /* maxSelectionIncr */
+
+int TkDND_ClipboardReadProperty(Tk_Window tkwin,
+                                Atom property, int deleteProperty,
+                                TkDND_ProcDetail *detail,
+                                int *size, Atom *type, int *format) {
+    Display *display = Tk_Display(tkwin);
+    Window   win     = Tk_WindowId(tkwin);
+    int      maxsize = maxSelectionIncr(display);
+    unsigned long    bytes_left; // bytes_after
+    unsigned long    length;     // nitems
+    unsigned char   *data;
+    Atom     dummy_type;
+    int      dummy_format;
+    int      r;
+    Tcl_DString *buffer = (Tcl_DString *) detail->clientData;
+
+    if (!type)                                // allow null args
+        type = &dummy_type;
+    if (!format)
+        format = &dummy_format;
+
+    // Don't read anything, just get the size of the property data
+    r = XGetWindowProperty(display, win, property, 0, 0, False,
+                            AnyPropertyType, type, format,
+                            &length, &bytes_left, &data);
+    if (r != Success || (type && *type == None)) {
+        return 0;
+    }
+    XFree((char*)data);
+
+    int offset = 0, format_inc = 1;
+
+    switch (*format) {
+    case 8:
+    default:
+        format_inc = sizeof(char) / 1;
+        break;
+
+    case 16:
+        format_inc = sizeof(short) / 2;
+        break;
+
+    case 32:
+        format_inc = sizeof(long) / 4;
+        break;
+    }
+
+    while (bytes_left) {
+      r = XGetWindowProperty(display, win, property, offset, maxsize/4,
+                             False, AnyPropertyType, type, format,
+                             &length, &bytes_left, &data);
+      if (r != Success || (type && *type == None))
+          break;
+
+      offset += length / (32 / *format);
+      length *= format_inc * (*format) / 8;
+      Tcl_DStringAppend(buffer, (char *) data, length);
+
+      XFree((char*)data);
+    }
+
+    if (*format == 8 && *type == Tk_InternAtom(tkwin, "COMPOUND_TEXT")) {
+      // convert COMPOUND_TEXT to a multibyte string
+      XTextProperty textprop;
+      textprop.encoding = *type;
+      textprop.format = *format;
+      textprop.nitems = Tcl_DStringLength(buffer);
+      textprop.value = (unsigned char *) Tcl_DStringValue(buffer);
+
+      char **list_ret = 0;
+      int count;
+      if (XmbTextPropertyToTextList(display, &textprop, &list_ret,
+                   &count) == Success && count && list_ret) {
+        Tcl_DStringFree(buffer);
+        Tcl_DStringInit(buffer);
+        Tcl_DStringAppend(buffer, list_ret[0], -1);
+      }
+      if (list_ret) XFreeStringList(list_ret);
+    }
+
+    // correct size, not 0-term.
+    if (size) *size = Tcl_DStringLength(buffer);
+    if (deleteProperty) XDeleteProperty(display, win, property);
+    XFlush(display);
+    return 1;
+}; /* TkDND_ClipboardReadProperty */
+
+void TkDND_EventProc(ClientData clientData, XEvent *eventPtr) {
+  TkDND_ProcDetail *detail = (TkDND_ProcDetail *) clientData;
+  int status, size, format;
+  Atom type;
+
+  status = TkDND_ClipboardReadProperty(detail->tkwin, detail->property, 1,
+                                       detail, &size, &type, &format);
+  if (status) detail->result = TCL_OK;
+}; /* TkDND_EventProc */
+
 
 /*
  *----------------------------------------------------------------------
@@ -55,39 +163,21 @@ TkDNDSelGetSelection(
 				 * once it has been retrieved. */
     ClientData clientData)	/* Arbitrary value to pass to proc. */
 {
-    TkSelRetrievalInfo retr;
-    TkWindow *winPtr = (TkWindow *) tkwin;
-    TkDisplay *dispPtr = winPtr->dispPtr;
+    TkDND_ProcDetail detail;
+    Tk_Window sel_tkwin = Tk_MainWindow(interp);
+    Display *display    = Tk_Display(tkwin);
+    detail.interp       = interp;
+    detail.tkwin        = sel_tkwin;
+    detail.property     = selection;
+    detail.proc         = proc;
+    detail.clientData   = clientData;
+    detail.result       = -1;
+    detail.idleTime     = 0;
 
-    /*
-     * The selection is owned by some other process. To retrieve it, first
-     * record information about the retrieval in progress. Use an internal
-     * window as the requestor.
-     */
-
-    retr.interp = interp;
-    if (dispPtr->clipWindow == NULL) {
-	int result;
-
-	result = TkClipInit(interp, dispPtr);
-	if (result != TCL_OK) {
-printf("1\n");
-	    return result;
-	}
+    if (XGetSelectionOwner(display, selection) == None) {
+      Tcl_SetResult(interp, "no owner for selection", TCL_STATIC);
+      return TCL_ERROR;
     }
-    retr.winPtr = (TkWindow *) dispPtr->clipWindow;
-    retr.selection = selection;
-    retr.property = selection;
-    retr.target = target;
-    retr.proc = proc;
-    retr.clientData = clientData;
-    retr.result = -1;
-    retr.idleTime = 0;
-    retr.encFlags = TCL_ENCODING_START;
-    retr.nextPtr = pendingRetrievals;
-    Tcl_DStringInit(&retr.buf);
-    pendingRetrievals = &retr;
-
     /*
      * Initiate the request for the selection. Note: can't use TkCurrentTime
      * for the time. If we do, and this application hasn't received any X
@@ -96,8 +186,11 @@ printf("1\n");
      * happens, the request will be rejected.
      */
 
-    XConvertSelection(winPtr->display, retr.selection, retr.target,
-	              retr.property, retr.winPtr->window, time);
+    /* Register an event handler for tkwin... */
+    Tk_CreateEventHandler(sel_tkwin, SelectionNotify, TkDND_EventProc, &detail);
+    XConvertSelection(display, selection, target,
+	              selection, Tk_WindowId(sel_tkwin), time);
+    XFlush(display);
 
     /*
      * Enter a loop processing X events until the selection has been retrieved
@@ -105,32 +198,15 @@ printf("1\n");
      * timeout.
      */
 
-    retr.timeout = Tcl_CreateTimerHandler(1000, TkDND_SelTimeoutProc,
-	    &retr);
-    while (retr.result == -1) {
+    detail.timeout = Tcl_CreateTimerHandler(1000, TkDND_SelTimeoutProc,
+	                                    &detail);
+    while (detail.result == -1) {
 	Tcl_DoOneEvent(0);
     }
-    Tcl_DeleteTimerHandler(retr.timeout);
+    Tk_DeleteEventHandler(sel_tkwin, SelectionNotify, TkDND_EventProc, &detail);
+    Tcl_DeleteTimerHandler(detail.timeout);
 
-    /*
-     * Unregister the information about the selection retrieval in progress.
-     */
-
-    if (pendingRetrievals == &retr) {
-	pendingRetrievals = retr.nextPtr;
-    } else {
-	TkSelRetrievalInfo *retrPtr;
-
-	for (retrPtr = pendingRetrievals; retrPtr != NULL;
-		retrPtr = retrPtr->nextPtr) {
-	    if (retrPtr->nextPtr == &retr) {
-		retrPtr->nextPtr = retr.nextPtr;
-		break;
-	    }
-	}
-    }
-    Tcl_DStringFree(&retr.buf);
-    return retr.result;
+    return detail.result;
 }
 
 /*
@@ -157,7 +233,7 @@ static void
 TkDND_SelTimeoutProc(
     ClientData clientData)	/* Information about retrieval in progress. */
 {
-    register TkSelRetrievalInfo *retrPtr = (TkSelRetrievalInfo *) clientData;
+    register TkDND_ProcDetail *retrPtr = (TkDND_ProcDetail *) clientData;
 
     /*
      * Make sure that the retrieval is still in progress. Then see how long
@@ -184,191 +260,14 @@ TkDND_SelTimeoutProc(
     }
 }
 
-/*
- * The structure below is used to keep each thread's pending list separate.
- */
-
-typedef struct ThreadSpecificData {
-    TkSelInProgress *pendingPtr;
-				/* Topmost search in progress, or NULL if
-				 * none. */
-} ThreadSpecificData;
-static Tcl_ThreadDataKey dataKey;
-
-int
-TkSelDefaultSelection(
-    TkSelectionInfo *infoPtr,	/* Info about selection being retrieved. */
-    Atom target,		/* Desired form of selection. */
-    char *buffer,		/* Place to put selection characters. */
-    int maxBytes,		/* Maximum # of bytes to store at buffer. */
-    Atom *typePtr)		/* Store here the type of the selection, for
-				 * use in converting to proper X format. */
-{
-    register TkWindow *winPtr = (TkWindow *) infoPtr->owner;
-    TkDisplay *dispPtr = winPtr->dispPtr;
-
-    if (target == dispPtr->timestampAtom) {
-	if (maxBytes < 20) {
-	    return -1;
-	}
-	sprintf(buffer, "0x%x", (unsigned int) infoPtr->time);
-	*typePtr = XA_INTEGER;
-	return strlen(buffer);
-    }
-
-    if (target == dispPtr->targetsAtom) {
-	register TkSelHandler *selPtr;
-	int length;
-	Tcl_DString ds;
-
-	if (maxBytes < 50) {
-	    return -1;
-	}
-	Tcl_DStringInit(&ds);
-	Tcl_DStringAppend(&ds,
-		"MULTIPLE TARGETS TIMESTAMP TK_APPLICATION TK_WINDOW", -1);
-	for (selPtr = winPtr->selHandlerList; selPtr != NULL;
-		selPtr = selPtr->nextPtr) {
-	    if ((selPtr->selection == infoPtr->selection)
-		    && (selPtr->target != dispPtr->applicationAtom)
-		    && (selPtr->target != dispPtr->windowAtom)) {
-		const char *atomString = Tk_GetAtomName((Tk_Window) winPtr,
-			selPtr->target);
-		Tcl_DStringAppendElement(&ds, atomString);
-	    }
-	}
-	length = Tcl_DStringLength(&ds);
-	if (length >= maxBytes) {
-	    Tcl_DStringFree(&ds);
-	    return -1;
-	}
-	memcpy(buffer, Tcl_DStringValue(&ds), (unsigned) (1+length));
-	Tcl_DStringFree(&ds);
-	*typePtr = XA_ATOM;
-	return length;
-    }
-
-    if (target == dispPtr->applicationAtom) {
-	int length;
-	Tk_Uid name = winPtr->mainPtr->winPtr->nameUid;
-
-	length = strlen(name);
-	if (maxBytes <= length) {
-	    return -1;
-	}
-	strcpy(buffer, name);
-	*typePtr = XA_STRING;
-	return length;
-    }
-
-    if (target == dispPtr->windowAtom) {
-	int length;
-	char *name = winPtr->pathName;
-
-	length = strlen(name);
-	if (maxBytes <= length) {
-	    return -1;
-	}
-	strcpy(buffer, name);
-	*typePtr = XA_STRING;
-	return length;
-    }
-
-    return -1;
-}
-
 int TkDND_GetSelection(Tcl_Interp *interp, Tk_Window tkwin, Atom selection,
                        Atom target, Time time,
                        Tk_GetSelProc *proc, ClientData clientData) {
-    TkWindow *winPtr = (TkWindow *) tkwin;
-    TkDisplay *dispPtr = winPtr->dispPtr;
-    TkSelectionInfo *infoPtr;
-    ThreadSpecificData *tsdPtr =
-	    Tcl_GetThreadData(&dataKey, sizeof(ThreadSpecificData));
-
-    if (dispPtr->multipleAtom == None) {
-	TkSelInit(tkwin);
-    }
-
-    /*
-     * If the selection is owned by a window managed by this process, then
-     * call the retrieval function directly, rather than going through the X
-     * server (it's dangerous to go through the X server in this case because
-     * it could result in deadlock if an INCR-style selection results).
-     */
-
-    for (infoPtr = dispPtr->selectionInfoPtr; infoPtr != NULL;
-	    infoPtr = infoPtr->nextPtr) {
-	if (infoPtr->selection == selection) {
-	    break;
-	}
-    }
-    if (infoPtr != NULL) {
-	register TkSelHandler *selPtr;
-	int offset, result, count;
-	char buffer[TK_SEL_BYTES_AT_ONCE+1];
-	TkSelInProgress ip;
-
-	for (selPtr = ((TkWindow *) infoPtr->owner)->selHandlerList;
-		selPtr != NULL; selPtr = selPtr->nextPtr) {
-	    if (selPtr->target==target && selPtr->selection==selection) {
-		break;
-	    }
-	}
-	if (selPtr == NULL) {
-	    Atom type;
-
-	    count = TkSelDefaultSelection(infoPtr, target, buffer,
-		    TK_SEL_BYTES_AT_ONCE, &type);
-	    if (count > TK_SEL_BYTES_AT_ONCE) {
-		Tcl_Panic("selection handler returned too many bytes");
-	    }
-	    if (count < 0) {
-		goto cantget;
-	    }
-	    buffer[count] = 0;
-	    result = proc(clientData, interp, buffer);
-	} else {
-	    offset = 0;
-	    result = TCL_OK;
-	    ip.selPtr = selPtr;
-	    ip.nextPtr = tsdPtr->pendingPtr;
-	    tsdPtr->pendingPtr = &ip;
-	    while (1) {
-		count = selPtr->proc(selPtr->clientData, offset, buffer,
-			TK_SEL_BYTES_AT_ONCE);
-		if ((count < 0) || (ip.selPtr == NULL)) {
-		    tsdPtr->pendingPtr = ip.nextPtr;
-		    goto cantget;
-		}
-		if (count > TK_SEL_BYTES_AT_ONCE) {
-		    Tcl_Panic("selection handler returned too many bytes");
-		}
-		buffer[count] = '\0';
-		result = proc(clientData, interp, buffer);
-		if ((result != TCL_OK) || (count < TK_SEL_BYTES_AT_ONCE)
-			|| (ip.selPtr == NULL)) {
-		    break;
-		}
-		offset += count;
-	    }
-	    tsdPtr->pendingPtr = ip.nextPtr;
-	}
-	return result;
-    }
-
-    /*
-     * The selection is owned by some other process.
-     */
-
-    return TkDNDSelGetSelection(interp, tkwin, selection, target, time,
-                                proc, clientData);
-
-  cantget:
-    Tcl_AppendResult(interp, Tk_GetAtomName(tkwin, selection),
-	    " selection doesn't exist or form \"",
-	    Tk_GetAtomName(tkwin, target), "\" not defined", NULL);
-    return TCL_ERROR;
+  /*
+   * The selection is owned by some other process.
+   */
+  return TkDNDSelGetSelection(interp, tkwin, selection, target, time,
+                              proc, clientData);
 }
 
 /*

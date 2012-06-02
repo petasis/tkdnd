@@ -1,3 +1,11 @@
+2012-06-02  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_unix.tcl:
+	* unix/TkDND_XDND.c:
+	* unix/tkUnixSelect.c:
+	* unix/tkSelect.h: Modifications to support Linux drops. Drops from
+	GTK seem to always work, and drops from Qt seem to work most of the
+	times.
+
 2012-04-19  Petasis George  <petasis@iit.demokritos.gr>
 	* win/Makefile: Updated the Windows Makefile, after a patch from
         Dave Bodenstab.

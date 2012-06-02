@@ -108,8 +108,8 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 
 /* XdndPosition */
 #define XDND_POSITION_SOURCE_WIN(e)     ((e)->xclient.data.l[0])
-#define XDND_POSITION_ROOT_X(e)         ((e)->xclient.data.l[2] >> 16)
-#define XDND_POSITION_ROOT_Y(e)         ((e)->xclient.data.l[2] & 0xFFFFUL)
+#define XDND_POSITION_ROOT_X(e)         (((e)->xclient.data.l[2] & 0xffff0000) >> 16)
+#define XDND_POSITION_ROOT_Y(e)         ((e)->xclient.data.l[2] & 0x0000ffff)
 #define XDND_POSITION_ROOT_SET(e,x,y)   (e)->xclient.data.l[2]  = ((x) << 16) | ((y) & 0xFFFFUL)
 #define XDND_POSITION_TIME(e)           ((e)->xclient.data.l[3])
 #define XDND_POSITION_ACTION(e)         ((e)->xclient.data.l[4])
@@ -139,6 +139,10 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #define XDND_FINISHED_ACCEPTED(e)       ((e)->xclient.data.l[1] & 0x1L)
 #define XDND_FINISHED_ACCEPTED_SET(e,b)  (e)->xclient.data.l[1] = ((e)->xclient.data.l[1] & ~0x1UL) | (((b) == 0) ? 0 : 0x1UL)
 #define XDND_FINISHED_ACTION(e)           ((e)->xclient.data.l[2])
+
+extern int TkDND_GetSelection(Tcl_Interp *interp, Tk_Window tkwin, Atom selection,
+                              Atom target, Time time,
+                              Tk_GetSelProc *proc, ClientData clientData);
 
 
 /*
@@ -204,8 +208,77 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 } /* TkDND_RegisterTypesObjCmd */
 
+Tk_Window TkDND_GetToplevelFromWrapper(Tk_Window tkwin) {
+  Window root_return, parent, *children_return = 0;
+  unsigned int nchildren_return;
+  Tk_Window toplevel = NULL;
+  if (tkwin == NULL || Tk_IsTopLevel(tkwin)) return tkwin;
+  XQueryTree(Tk_Display(tkwin), Tk_WindowId(tkwin),
+           &root_return, &parent,
+           &children_return, &nchildren_return);
+  if (nchildren_return == 1) {
+    toplevel = Tk_IdToWindow(Tk_Display(tkwin), children_return[0]);
+  }
+  if (children_return) XFree(children_return);
+  return toplevel;
+}; /* TkDND_GetToplevelFromWrapper */
+
+Window TkDND_GetVirtualRootWindowOfScreen(Tk_Window tkwin) {
+  static Screen *screen, *save_screen = (Screen *)0;
+  static Window root = (Window)0;
+  
+  screen = Tk_Screen(tkwin);
+  if (screen != save_screen) {
+    Display *dpy = DisplayOfScreen(screen);
+    int i;
+    Window rootReturn, parentReturn, *children;
+    unsigned int numChildren;
+    Atom __SWM_VROOT = Tk_InternAtom(tkwin, "__SWM_VROOT"),
+         __SWM_ROOT  = Tk_InternAtom(tkwin, "__SWM_ROOT"),
+         __WM_ROOT   = Tk_InternAtom(tkwin, "__WM_ROOT");
+    
+    root = RootWindowOfScreen(screen);
+    
+    /* go look for a virtual root */
+    if (XQueryTree(dpy, root, &rootReturn, &parentReturn,
+                   &children, &numChildren)) {
+      for (i = 0; i < numChildren; i++) {
+        Atom actual_type;
+        int actual_format;
+        unsigned long nitems, bytesafter;
+        Window *newRoot = (Window *)0;
+    
+        if (
+             (XGetWindowProperty(dpy, children[i],
+                __WM_ROOT, 0, (long) 1, False, XA_WINDOW,
+                &actual_type, &actual_format, &nitems, &bytesafter,
+                (unsigned char **) &newRoot) == Success
+                && newRoot && (actual_type == XA_WINDOW)) ||
+             (XGetWindowProperty(dpy, children[i],
+                __SWM_ROOT, 0, (long) 1, False, XA_WINDOW,
+                &actual_type, &actual_format, &nitems, &bytesafter,
+                (unsigned char **) &newRoot) == Success
+                && newRoot && (actual_type == XA_WINDOW)) ||
+             (XGetWindowProperty(dpy, children[i],
+                __SWM_VROOT, 0, (long) 1, False, XA_WINDOW,
+                &actual_type, &actual_format, &nitems, &bytesafter,
+                (unsigned char **) &newRoot) == Success
+                && newRoot && (actual_type == XA_WINDOW))
+           ) {
+          root = *newRoot;
+          break;
+        }
+      }
+      if (children) XFree((char *)children);
+    }
+    save_screen = screen;
+  }
+  return root;
+}; /* TkDND_GetVirtualRootWindowOfScreen */
+
 int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
+  Tk_Window toplevel;
   Atom *typelist = NULL;
   int i, version = (int) XDND_ENTER_VERSION(xevent);
   Window drag_source;
@@ -229,6 +302,8 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
 //  drop_window   = xevent->xany.window;
 //#endif
   drag_source = XDND_ENTER_SOURCE_WIN(xevent);
+  toplevel    = TkDND_GetToplevelFromWrapper(tkwin);
+  if (toplevel == NULL) toplevel = tkwin;
 
   if (XDND_ENTER_THREE_TYPES(xevent)) {
     typelist = (Atom *) Tcl_Alloc(sizeof(Atom)*4);
@@ -256,7 +331,7 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
   /* We have all the information we need. Its time to pass it at the Tcl
    * level.*/
   objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndEnter", -1);
-  objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+  objv[1] = Tcl_NewStringObj(Tk_PathName(toplevel), -1);
   objv[2] = Tcl_NewLongObj(drag_source);
   objv[3] = Tcl_NewListObj(0, NULL);
   for (i=0; typelist[i] != None; ++i) {
@@ -270,10 +345,11 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
 
 int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
-  Tk_Window mouse_tkwin;
+  Tk_Window mouse_tkwin = NULL, toplevel;
+  Window drag_source, root, virtual_root, dummyChild;
   Tcl_Obj* result;
-  Tcl_Obj* objv[4];
-  int rootX, rootY, dx, dy, i, index, status;
+  Tcl_Obj* objv[5];
+  int rootX, rootY, dx, dy, i, index, status, w, h;
   XEvent response;
   int width = 1, height = 1;
   static char *DropActions[] = {
@@ -287,8 +363,9 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   Time time;
   Atom action;
 
-  if (interp == NULL) return False;
+  if (interp == NULL || tkwin == NULL) return False;
 
+  drag_source = XDND_POSITION_SOURCE_WIN(xevent);
   /* Get the coordinates from the event... */
   rootX  = XDND_POSITION_ROOT_X(xevent);
   rootY  = XDND_POSITION_ROOT_Y(xevent);
@@ -297,12 +374,24 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   /* Get the user action from the event... */
   action = XDND_POSITION_ACTION(xevent);
 
-  /* Find the Tk widget under the mouse... */
-  Tk_GetRootCoords(tkwin, &dx, &dy);
-  mouse_tkwin = Tk_CoordsToWindow(rootX, rootY, tkwin);
-  if (mouse_tkwin == NULL) {
-    mouse_tkwin = Tk_CoordsToWindow(rootX + dx, rootY + dy, tkwin);
+  /* The event may have been delivered to the toplevel wrapper.
+   * Try to find the toplevel window... */
+  toplevel = TkDND_GetToplevelFromWrapper(tkwin);
+  if (toplevel == NULL) toplevel = tkwin;
+  /* Get the virtual root window... */
+  virtual_root = TkDND_GetVirtualRootWindowOfScreen(tkwin);
+  if (virtual_root != None) {
+    //XTranslateCoordinates(Tk_Display(tkwin), DefaultRootWindow(Tk_Display(tkwin)),
+    //                      virtual_root, rootX, rootY, &dx, &dy, &dummyChild);
+    XTranslateCoordinates(Tk_Display(tkwin), virtual_root,
+                          Tk_WindowId(toplevel), rootX, rootY, &dx, &dy, &dummyChild);
+    mouse_tkwin = Tk_IdToWindow(Tk_Display(tkwin), dummyChild);
   }
+  if (!mouse_tkwin) {
+    Tk_GetVRootGeometry(toplevel, &dx, &dy, &w, &h);
+    mouse_tkwin = Tk_CoordsToWindow(rootX, rootY, toplevel);
+  }
+  if (!mouse_tkwin) mouse_tkwin = Tk_CoordsToWindow(rootX + dx, rootY + dy, tkwin);
 #if 0
   printf("mouse_win: %p (%s) (%d, %d %p %s) i=%p\n", mouse_tkwin,
           mouse_tkwin?Tk_PathName(mouse_tkwin):"",
@@ -315,7 +404,8 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     objv[1] = Tcl_NewStringObj(Tk_PathName(mouse_tkwin), -1);
     objv[2] = Tcl_NewIntObj(rootX);
     objv[3] = Tcl_NewIntObj(rootY);
-    TkDND_Status_Eval(4);
+    objv[4] = Tcl_NewLongObj(drag_source);
+    TkDND_Status_Eval(5);
     if (status == TCL_OK) {
       /* Get the returned action... */
       result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
@@ -327,11 +417,11 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   }
   /* Sent a XdndStatus event, to notify the drag source */
   memset (&response, 0, sizeof(xevent));
-  response.xany.type    = ClientMessage;
-  response.xany.display = xevent->xclient.display;
-  response.xclient.window = XDND_POSITION_SOURCE_WIN(xevent);
+  response.xany.type            = ClientMessage;
+  response.xany.display         = xevent->xclient.display;
+  response.xclient.window       = drag_source;
   response.xclient.message_type = Tk_InternAtom(tkwin, "XdndStatus");
-  response.xclient.format = 32;
+  response.xclient.format       = 32;
   XDND_STATUS_WILL_ACCEPT_SET(&response, 1);
   XDND_STATUS_WANT_POSITION_SET(&response, 1);
   XDND_STATUS_RECT_SET(&response, rootX, rootY, width, height);
@@ -381,7 +471,7 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XEvent *xevent) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
   Tcl_Obj* objv[2], *result;
   int status, i, index;
-  Time time = XDND_DROP_TIME(xevent);
+  Time time = CurrentTime;
   static char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
     (char *) NULL
@@ -392,6 +482,11 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XEvent *xevent) {
   };
     
   if (interp == NULL) return False;
+  if (XDND_DROP_TIME(xevent) != 0) {
+    time = ((sizeof(Time) == 8 && XDND_DROP_TIME(xevent) < 0)
+             ? (unsigned int) (XDND_DROP_TIME(xevent))
+             :  XDND_DROP_TIME(xevent));
+  }
 
   memset(&finished, 0, sizeof(XEvent));
   finished.xany.type            = ClientMessage;
@@ -585,7 +680,7 @@ int TkDND_GetSelectionObjCmd(ClientData clientData, Tcl_Interp *interp,
   Tcl_DStringInit(&selBytes);
   result = TkDND_GetSelection(interp, tkwin, selection, target, time,
                               TkDND_SelGetProc, &selBytes);
-  if (1 ||result == TCL_OK) {
+  if (result == TCL_OK) {
       Tcl_DStringResult(interp, &selBytes);
   }
   Tcl_DStringFree(&selBytes);
