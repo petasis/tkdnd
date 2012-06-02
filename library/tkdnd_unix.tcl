@@ -77,7 +77,7 @@ proc xdnd::_HandleXdndEnter { path drag_source typelist } {
 # ----------------------------------------------------------------------------
 #  Command xdnd::_HandleXdndPosition
 # ----------------------------------------------------------------------------
-proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
+proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
   variable _types
   variable _typelist
   variable _actionlist
@@ -95,6 +95,13 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY } {
     #               return refuse_drop"
     return refuse_drop
   }
+
+  if {$drag_source ne "" && $drag_source ne $_drag_source} {
+    debug "XDND position event from unexpected source: $_drag_source\
+           != $drag_source"
+    return refuse_drop
+  }
+
   ## Does the new drop target support any of our new types? 
   set _types [bind $drop_target <<DropTargetTypes>>]
   # debug ">> Accepted types: $drop_target $_types"
@@ -305,23 +312,38 @@ proc xdnd::_HandleXdndDrop { time } {
 #  Command xdnd::_GetDroppedData
 # ----------------------------------------------------------------------------
 proc xdnd::_GetDroppedData { time } {
+  variable _drag_source
   variable _drop_target
   variable _common_drag_source_types
+  variable _use_tk_selection
   if {![llength $_common_drag_source_types]} {
     error "no common data types between the drag source and drop target widgets"
+  }
+  ## Is drag source in this application?
+  if {[catch {winfo pathname -displayof $_drop_target $_drag_source} p]} {
+    set _use_tk_selection 0
+  } else {
+    set _use_tk_selection 1
   }
   foreach type $_common_drag_source_types {
     # puts "TYPE: $type ($_drop_target)"
     # _get_selection $_drop_target $time $type
-    #  selection get -displayof $_drop_target -selection XdndSelection \
-    #                -type $type
-    # _selection_get -displayof $_drop_target -selection XdndSelection \
-    #                -type $type -time $time
-    if {![catch {
-      selection get -displayof $_drop_target -selection XdndSelection \
-                    -type $type
-                                             } result options]} {
-      return [_normalise_data $type $result]
+    if {$_use_tk_selection} {
+      if {![catch {
+        selection get -displayof $_drop_target -selection XdndSelection \
+                      -type $type
+                                              } result options]} {
+        return [_normalise_data $type $result]
+      }
+    } else {
+      # puts "_selection_get -displayof $_drop_target -selection XdndSelection \
+      #                 -type $type -time $time"
+      if {![catch {
+        _selection_get -displayof $_drop_target -selection XdndSelection \
+                      -type $type -time $time
+                                              } result options]} {
+        return [_normalise_data $type $result]
+      }
     }
   }
   return -options $options $result
@@ -384,7 +406,9 @@ proc xdnd::_normalise_data { type data } {
         [encoding convertfrom utf-8 [tkdnd::bytes_to_string $data]]]
     }
     text/uri-list {
-      set string [tkdnd::bytes_to_string $data]
+      if {[catch {tkdnd::bytes_to_string $data} string]} {
+        set string $data
+      }
       ## Get rid of \r\n
       set string [string trim [string map {\r\n \n} $string]]
       set files {}

@@ -16,12 +16,18 @@ if {$::tcl_version == "8.3" && ![package vsatisfies $::tcl_patchLevel 8.3.3]} {
 
 ## Make sure that we can find the tkdnd package even if the user has not yet
 ## installed the package.
-if {[catch {package require tkdnd}]} {
+if {[catch {package require tkdnd} version]} {
   set DIR [file dirname [file dirname [file normalize [info script]]]]
   source $DIR/library/tkdnd.tcl
   foreach dll [glob -type f $DIR/*tkdnd*[info sharedlibextension]] {
     tkdnd::initialise $DIR/library ../[file tail $dll] tkdnd
   }
+  set package_info "Found tkdnd package version (unknown)\n\
+                  \nPackage loading info:\n\n$dll"
+} else {
+  set package_info "Found tkdnd package version $version\n\
+                  \nPackage loading info:\n\n[package ifneeded tkdnd $version]"
+
 }
 
 ## Place a listbox. This will be our drop target, which will also display the
@@ -31,6 +37,7 @@ pack [listbox .typeList -height 25 -width 50] -side left -padx 2 -pady 2 \
 ## A text widget to display the dropped data...
 pack [text .data -height 25 -width 80] -side left -padx 2 -pady 2 -fill both \
         -expand 1
+.data insert end $package_info
 pack [button .exit -text {  Exit  } -command exit] -side bottom -pady 5 -padx 5
 
 proc FillTypeListbox {listbox types type codes code actions action mods} {
@@ -103,3 +110,10 @@ dnd bindtarget .typeList $type <Drop> \
 dnd bindtarget .typeList $type <DragLeave> \
         ".typeList configure -bg $bg"
 raise .
+
+proc show_widget_under_cursor {} {
+  puts "Mouse coordinates: [winfo pointerxy .]"
+  puts "Widget under cursor: [winfo containing 200 200]"
+  after 200 show_widget_under_cursor
+};# show_widget_under_cursor
+#show_widget_under_cursor
