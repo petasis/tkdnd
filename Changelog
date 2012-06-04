@@ -1,3 +1,10 @@
+2012-06-05  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd.tcl:
+	* library/tkdnd_unix.tcl:
+	* unix/tkUnixSelect.c:
+	* unix/TkDND_XDND.c: Added support for initiating drags from Tk under
+	unix. Despite incomplete, seems to work with GTK.
+
 2012-06-02  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd_unix.tcl:
 	* unix/TkDND_XDND.c:

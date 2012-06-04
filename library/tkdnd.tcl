@@ -299,7 +299,7 @@ proc tkdnd::_init_drag { button source state rootX rootY } {
       set action refuse_drop
       switch $_windowingsystem {
         x11 {
-          error "dragging from Tk widgets not yet supported"
+          set action [xdnd::_dodragdrop $source $actions $types $data $button]
         }
         win32 -
         windows {
