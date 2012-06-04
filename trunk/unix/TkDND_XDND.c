@@ -77,6 +77,30 @@
   if (status != TCL_OK) Tk_BackgroundError(interp); \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
+#define TkDND_Dict_Put(dict, k, v) \
+  key   = Tcl_NewStringObj(k, -1); Tcl_IncrRefCount(key); \
+  value = Tcl_NewStringObj(v, -1); Tcl_IncrRefCount(value); \
+  Tcl_DictObjPut(interp, dict, key, value); \
+  Tcl_DecrRefCount(key); Tcl_DecrRefCount(value);
+
+#define TkDND_Dict_PutInt(dict, k, v) \
+  key   = Tcl_NewStringObj(k, -1); Tcl_IncrRefCount(key); \
+  value = Tcl_NewIntObj(v); Tcl_IncrRefCount(value); \
+  Tcl_DictObjPut(interp, dict, key, value); \
+  Tcl_DecrRefCount(key); Tcl_DecrRefCount(value);
+
+#define TkDND_Dict_PutLong(dict, k, v) \
+  key   = Tcl_NewStringObj(k, -1); Tcl_IncrRefCount(key); \
+  value = Tcl_NewLongObj(v); Tcl_IncrRefCount(value); \
+  Tcl_DictObjPut(interp, dict, key, value); \
+  Tcl_DecrRefCount(key); Tcl_DecrRefCount(value);
+
+#define TkDND_Dict_PutObj(dict, k, value) \
+  key   = Tcl_NewStringObj(k, -1); Tcl_IncrRefCount(key); \
+  Tcl_IncrRefCount(value); \
+  Tcl_DictObjPut(interp, dict, key, value); \
+  Tcl_DecrRefCount(key); Tcl_DecrRefCount(value);
+
 #ifndef Tk_Interp
 /*
  * Tk 8.5 has a new function to return the interpreter that is associated with a
@@ -136,9 +160,14 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 
 /* XdndFinished */
 #define XDND_FINISHED_TARGET_WIN(e)     ((e)->xclient.data.l[0])
+/*
 #define XDND_FINISHED_ACCEPTED(e)       ((e)->xclient.data.l[1] & 0x1L)
 #define XDND_FINISHED_ACCEPTED_SET(e,b)  (e)->xclient.data.l[1] = ((e)->xclient.data.l[1] & ~0x1UL) | (((b) == 0) ? 0 : 0x1UL)
-#define XDND_FINISHED_ACTION(e)           ((e)->xclient.data.l[2])
+*/
+#define XDND_FINISHED_ACCEPTED(e)       ((e)->xclient.data.l[1] &   (1 << 1))
+#define XDND_FINISHED_ACCEPTED_NO(e)    ((e)->xclient.data.l[1] &= ~(1 << 1))
+#define XDND_FINISHED_ACCEPTED_YES(e)   ((e)->xclient.data.l[1] |=  (1 << 1))
+#define XDND_FINISHED_ACTION(e)         ((e)->xclient.data.l[2])
 
 extern int TkDND_GetSelection(Tcl_Interp *interp, Tk_Window tkwin, Atom selection,
                               Atom target, Time time,
@@ -162,6 +191,7 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   path     = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
   Tk_MakeWindowExist(path);
 
 #if defined(TKDND_SET_XDND_PROPERTY_ON_WRAPPER) || \
@@ -346,7 +376,7 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
 int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
   Tk_Window mouse_tkwin = NULL, toplevel;
-  Window drag_source, root, virtual_root, dummyChild;
+  Window drag_source, virtual_root, dummyChild;
   Tcl_Obj* result;
   Tcl_Obj* objv[5];
   int rootX, rootY, dx, dy, i, index, status, w, h;
@@ -489,17 +519,17 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XEvent *xevent) {
   }
 
   memset(&finished, 0, sizeof(XEvent));
-  finished.xany.type            = ClientMessage;
-  finished.xany.display         = xevent->xclient.display;
+  finished.xclient.type         = ClientMessage;
   finished.xclient.window       = XDND_DROP_SOURCE_WIN(xevent);
   finished.xclient.message_type = Tk_InternAtom(tkwin, "XdndFinished");
-  finished.xclient.format = 32;
+  finished.xclient.format       = 32;
 #if XDND_VERSION >= 3
   XDND_FINISHED_TARGET_WIN(&finished) = Tk_WindowId(tkwin);
 #else
   XDND_FINISHED_TARGET_WIN(&finished) = xevent->xany.window;
 #endif
-  XDND_FINISHED_ACCEPTED_SET(&finished, 1);
+  XDND_FINISHED_ACCEPTED_YES(&finished);
+  //XFlush(Tk_Display(tkwin));
 
   /* Call out Tcl callback. */
   objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndDrop", -1);
@@ -516,7 +546,7 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XEvent *xevent) {
       case ActionDefault:
       case ActionCopy:
         XDND_FINISHED_ACTION(&finished) =
-             Tk_InternAtom(tkwin, "XdndActionCopy");    break;
+            Tk_InternAtom(tkwin, "XdndActionCopy");    break;
       case ActionMove:
         XDND_FINISHED_ACTION(&finished) =
             Tk_InternAtom(tkwin, "XdndActionMove");    break;
@@ -530,24 +560,90 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XEvent *xevent) {
         XDND_FINISHED_ACTION(&finished) =
             Tk_InternAtom(tkwin, "XdndActionPrivate"); break;
       case refuse_drop: {
-        XDND_FINISHED_ACCEPTED_SET(&finished, 0); /* Drop canceled. */
+        XDND_FINISHED_ACCEPTED_NO(&finished); /* Drop canceled. */
+        XDND_FINISHED_ACTION(&finished) = None;
       }
     }
   } else {
-    XDND_FINISHED_ACCEPTED_SET(&finished, 0);
+    XDND_FINISHED_ACCEPTED_NO(&finished);
+    XDND_FINISHED_ACTION(&finished) = None;
   }
   /* Send XdndFinished. */
-  XSendEvent(finished.xany.display, finished.xclient.window,
+  XSendEvent(Tk_Display(tkwin), finished.xclient.window,
              False, NoEventMask, (XEvent*)&finished);
   return True;
 } /* TkDND_HandleXdndDrop */
 
 int TkDND_HandleXdndStatus(Tk_Window tkwin, XEvent *xevent) {
-  return False;
+  Tcl_Interp *interp = Tk_Interp(tkwin);
+  Tcl_Obj *objv[2], *key, *value;
+  int i;
+  Atom action;
+  if (interp == NULL) return False; 
+  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndStatus", -1);
+  objv[1] = Tcl_NewDictObj();
+  /* data.l[0] contains the XID of the target window */
+  TkDND_Dict_PutLong(objv[1], "target", xevent->xclient.data.l[0]);
+  /* data.l[1] bit 0 is set if the current target will accept the drop */
+  TkDND_Dict_PutInt(objv[1], "accept", XDND_STATUS_WILL_ACCEPT(xevent) ? 1:0);
+  /* data.l[1] bit 1 is set if the target wants XdndPosition messages while
+   * the mouse moves inside the rectangle in data.l[2,3] */
+  TkDND_Dict_PutInt(objv[1], "want_position",
+    XDND_STATUS_WANT_POSITION(xevent) ? 1 : 0);
+  /* data.l[4] contains the action accepted by the target */
+  action = XDND_STATUS_ACTION(xevent);
+  if (action == Tk_InternAtom(tkwin, "XdndActionCopy")) {
+    TkDND_Dict_Put(objv[1], "action", "copy");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionMove")) {
+    TkDND_Dict_Put(objv[1], "action", "move");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionLink")) {
+    TkDND_Dict_Put(objv[1], "action", "link");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionAsk")) {
+    TkDND_Dict_Put(objv[1], "action", "ask");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionPrivate")) {
+    TkDND_Dict_Put(objv[1], "action", "private");
+  } else {
+    TkDND_Dict_Put(objv[1], "action", "refuse_drop");
+  }
+  TkDND_Dict_PutInt(objv[1], "x", XDND_STATUS_RECT_X(xevent));
+  TkDND_Dict_PutInt(objv[1], "y", XDND_STATUS_RECT_Y(xevent));
+  TkDND_Dict_PutInt(objv[1], "w", XDND_STATUS_RECT_WIDTH(xevent));
+  TkDND_Dict_PutInt(objv[1], "h", XDND_STATUS_RECT_HEIGHT(xevent));
+  
+  TkDND_Eval(2);
+  return True;
 } /* TkDND_HandleXdndStatus */
 
 int TkDND_HandleXdndFinished(Tk_Window tkwin, XEvent *xevent) {
-  return False;
+   Tcl_Interp *interp = Tk_Interp(tkwin);
+  Tcl_Obj *objv[2], *key, *value;
+  int i;
+  Atom action;
+  if (interp == NULL) return False; 
+  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndFinished", -1);
+  objv[1] = Tcl_NewDictObj();
+  /* data.l[0] contains the XID of the target window */
+  TkDND_Dict_PutLong(objv[1], "target", xevent->xclient.data.l[0]);
+  /* data.l[1] bit 0 is set if the current target accepted the drop and
+   *  successfully performed the accepted drop action */
+  TkDND_Dict_PutInt(objv[1], "accept", (xevent->xclient.data.l[1] & 0x1L)?1:0);
+  /* data.l[2] contains the action performed by the target */
+  action = xevent->xclient.data.l[2];
+  if (action == Tk_InternAtom(tkwin, "XdndActionCopy")) {
+    TkDND_Dict_Put(objv[1], "action", "copy");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionMove")) {
+    TkDND_Dict_Put(objv[1], "action", "move");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionLink")) {
+    TkDND_Dict_Put(objv[1], "action", "link");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionAsk")) {
+    TkDND_Dict_Put(objv[1], "action", "ask");
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionPrivate")) {
+    TkDND_Dict_Put(objv[1], "action", "private");
+  } else {
+    TkDND_Dict_Put(objv[1], "action", "refuse_drop");
+  }
+  TkDND_Eval(2);
+  return True;
 } /* TkDND_HandleXdndFinished */
 
 static int TkDND_XDNDHandler(Tk_Window tkwin, XEvent *xevent) {
@@ -687,6 +783,539 @@ int TkDND_GetSelectionObjCmd(ClientData clientData, Tcl_Interp *interp,
   return result;
 } /* TkDND_GetSelectionObjCmd */
 
+int TkDND_AnnounceTypeListObjCmd(ClientData clientData, Tcl_Interp *interp,
+                            int objc, Tcl_Obj *CONST objv[]) {
+  Tk_Window path;
+  Tcl_Obj **type;
+  int status, i, types;
+  Atom *typelist;
+
+  if (objc != 3) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path types-list");
+    return TCL_ERROR;
+  }
+  path     = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
+  status = Tcl_ListObjGetElements(interp, objv[2], &types, &type);
+  if (status != TCL_OK) return status;
+  typelist = (Atom *) Tcl_Alloc(types * sizeof(Atom));
+  if (typelist == NULL) return TCL_ERROR;
+  for (i = 0; i < types; ++i) {
+    typelist[i] = Tk_InternAtom(path, Tcl_GetString(type[i]));
+  }
+  XChangeProperty(Tk_Display(path), Tk_WindowId(path),
+                  Tk_InternAtom(path, "XdndTypeList"),
+                  XA_ATOM, 32, PropModeReplace,
+                  (unsigned char*) typelist, types);
+  Tcl_Free((char *) typelist);
+  return TCL_OK;
+}; /* TkDND_AnnounceTypeListObjCmd */
+
+int TkDND_AnnounceActionListObjCmd(ClientData clientData, Tcl_Interp *interp,
+                            int objc, Tcl_Obj *CONST objv[]) {
+  Tk_Window path;
+  Tcl_Obj **action, **description;
+  int status, i, actions, descriptions;
+  Atom actionlist[10], descriptionlist[10];
+
+  if (objc != 4) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path actions-list descriptions-list");
+    return TCL_ERROR;
+  }
+  path     = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
+  status = Tcl_ListObjGetElements(interp, objv[2], &actions, &action);
+  if (status != TCL_OK) return status;
+  status = Tcl_ListObjGetElements(interp, objv[3], &descriptions, &description);
+  if (status != TCL_OK) return status;
+
+  if (actions != descriptions) {
+    Tcl_SetResult(interp, "number of actions != number of descriptions",
+                                                              TCL_STATIC);
+    return TCL_ERROR;
+  }
+  if (actions > 10) {
+    Tcl_SetResult(interp, "too many actions/descriptions", TCL_STATIC);
+    return TCL_ERROR;
+  }
+
+  for (i = 0; i < actions; ++i) {
+    actionlist[i]      = Tk_InternAtom(path, Tcl_GetString(action[i]));
+    descriptionlist[i] = Tk_InternAtom(path, Tcl_GetString(description[i]));
+  }
+  XChangeProperty(Tk_Display(path), Tk_WindowId(path),
+                  Tk_InternAtom(path, "XdndActionList"),
+                  XA_ATOM, 32, PropModeReplace,
+                  (unsigned char*) actionlist, actions);
+  XChangeProperty(Tk_Display(path), Tk_WindowId(path),
+                  Tk_InternAtom(path, "XdndActionDescription"),
+                  XA_ATOM, 32, PropModeReplace,
+                  (unsigned char*) descriptionlist, descriptions);
+  return TCL_OK;
+}; /* TkDND_AnnounceActionListObjCmd */
+
+int TkDND_GrabPointerObjCmd(ClientData clientData, Tcl_Interp *interp,
+                            int objc, Tcl_Obj *CONST objv[]) {
+  Tk_Window path;
+  Tk_Cursor cursor;
+
+  if (objc != 3) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path cursor");
+    return TCL_ERROR;
+  }
+
+  path     = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
+  Tk_MakeWindowExist(path);
+
+  cursor = Tk_AllocCursorFromObj(interp, path, objv[2]);
+  if (cursor == None) {
+    Tcl_SetResult(interp, "invalid cursor", TCL_STATIC);
+    return TCL_ERROR;
+  }
+
+  if (XGrabPointer(Tk_Display(path), Tk_WindowId(path), False,
+       ButtonPressMask   | ButtonReleaseMask |
+       PointerMotionMask | EnterWindowMask   | LeaveWindowMask,
+       GrabModeAsync, GrabModeAsync,
+       None, (Cursor) cursor, CurrentTime) != GrabSuccess) {
+    Tcl_SetResult(interp, "unable to grab mouse pointer", TCL_STATIC);
+    return TCL_ERROR;
+  }
+  return TCL_OK;
+}; /* TkDND_GrabPointerObjCmd */
+
+int TkDND_UnrabPointerObjCmd(ClientData clientData, Tcl_Interp *interp,
+                            int objc, Tcl_Obj *CONST objv[]) {
+  Tk_Window path;
+  if (objc != 2) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path");
+    return TCL_ERROR;
+  }
+  path     = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
+  XUngrabPointer(Tk_Display(path), CurrentTime);
+  return TCL_OK;
+}; /* TkDND_GrabPointerObjCmd */
+
+void TkDND_AddStateInformation(Tcl_Interp *interp, Tcl_Obj *dict,
+                               unsigned int state) {
+  Tcl_Obj *key, *value;
+  TkDND_Dict_PutInt(dict, "state",   state);
+  /* Masks... */
+  TkDND_Dict_PutInt(dict, "1",       state & Button1Mask ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "2",       state & Button2Mask ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "3",       state & Button3Mask ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "4",       state & Button4Mask ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "5",       state & Button5Mask ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Mod1",    state & Mod1Mask    ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Mod2",    state & Mod2Mask    ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Mod3",    state & Mod3Mask    ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Mod4",    state & Mod4Mask    ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Mod5",    state & Mod5Mask    ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Alt",     state & Mod1Mask    ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Shift",   state & ShiftMask   ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Lock",    state & LockMask    ? 1 : 0);
+  TkDND_Dict_PutInt(dict, "Control", state & ControlMask ? 1 : 0);
+}; /* TkDND_AddStateInformation */
+
+int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
+  Tcl_Interp *interp = (Tcl_Interp *) clientData;
+  Tcl_Obj *dict, *key, *value;
+  Tcl_Obj *objv[2], *result;
+  int status, i;
+
+  if (interp == NULL) return 0;
+  dict = Tcl_NewDictObj();
+
+  switch (eventPtr->type) {
+    case MotionNotify:
+      TkDND_Dict_Put(dict,     "type",   "MotionNotify");
+      TkDND_Dict_PutInt(dict,  "x",       eventPtr->xmotion.x);
+      TkDND_Dict_PutInt(dict,  "y",       eventPtr->xmotion.y);
+      TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xmotion.x_root);
+      TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xmotion.y_root);
+      TkDND_Dict_PutLong(dict, "time",    eventPtr->xmotion.time);
+      TkDND_AddStateInformation(interp,   dict,     eventPtr->xmotion.state);
+      break;
+    case ButtonPress:
+      TkDND_Dict_Put(dict,     "type",   "ButtonPress");
+      TkDND_Dict_PutInt(dict,  "x",       eventPtr->xbutton.x);
+      TkDND_Dict_PutInt(dict,  "y",       eventPtr->xbutton.y);
+      TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xbutton.x_root);
+      TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xbutton.y_root);
+      TkDND_Dict_PutLong(dict, "time",    eventPtr->xbutton.time);
+      TkDND_AddStateInformation(interp,   dict,     eventPtr->xbutton.state);
+      TkDND_Dict_PutInt(dict,  "button",  eventPtr->xbutton.button);
+      break;
+    case ButtonRelease:
+      TkDND_Dict_Put(dict,     "type",   "ButtonRelease");
+      TkDND_Dict_PutInt(dict,  "x",       eventPtr->xbutton.x);
+      TkDND_Dict_PutInt(dict,  "y",       eventPtr->xbutton.y);
+      TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xbutton.x_root);
+      TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xbutton.y_root);
+      TkDND_Dict_PutLong(dict, "time",    eventPtr->xbutton.time);
+      TkDND_AddStateInformation(interp,   dict,     eventPtr->xbutton.state);
+      TkDND_Dict_PutInt(dict,  "button",  eventPtr->xbutton.button);
+      break;
+    case KeyPress:
+      TkDND_Dict_Put(dict,     "type",   "KeyPress");
+      TkDND_Dict_PutInt(dict,  "x",       eventPtr->xkey.x);
+      TkDND_Dict_PutInt(dict,  "y",       eventPtr->xkey.y);
+      TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xkey.x_root);
+      TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xkey.y_root);
+      TkDND_Dict_PutLong(dict, "time",    eventPtr->xkey.time);
+      TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
+      TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
+      break;
+    case KeyRelease:
+      TkDND_Dict_Put(dict,     "type",   "KeyRelease");
+      TkDND_Dict_PutInt(dict,  "x",       eventPtr->xkey.x);
+      TkDND_Dict_PutInt(dict,  "y",       eventPtr->xkey.y);
+      TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xkey.x_root);
+      TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xkey.y_root);
+      TkDND_Dict_PutLong(dict, "time",    eventPtr->xkey.time);
+      TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
+      TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
+      break;
+    case EnterNotify:
+      return 0;
+      TkDND_Dict_Put(dict, "type", "EnterNotify");
+      TkDND_Dict_PutLong(dict, "time",    eventPtr->xcrossing.time);
+      break;
+    case LeaveNotify:
+      return 0;
+      TkDND_Dict_Put(dict, "type", "LeaveNotify");
+      TkDND_Dict_PutLong(dict, "time",    eventPtr->xcrossing.time);
+      break;
+        default:
+      Tcl_DecrRefCount(dict);
+      return 0;
+  }
+  /* Call out Tcl callback. */
+  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_process_drag_events", -1);
+  objv[1] = dict;
+  TkDND_Status_Eval(2);
+  if (status == TCL_OK) {
+    result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+    status = Tcl_GetIntFromObj(interp, result, &i);
+    Tcl_DecrRefCount(result);
+    if (status == TCL_OK) return i;
+  } else {
+    /* An error occured, stop the drag action... */
+    Tcl_SetVar(interp, "::tkdnd::xdnd::_dragging", "0", TCL_GLOBAL_ONLY);
+  }
+  return 0;
+}; /* TkDND_HandleGenericEvent */
+
+int TkDND_RegisterGenericEventHandlerObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  if (objc != 1) {
+    Tcl_WrongNumArgs(interp, 1, objv, "");
+    return TCL_ERROR;
+  }
+  Tk_CreateGenericHandler(TkDND_HandleGenericEvent, interp);
+  return TCL_OK;
+}; /* TkDND_RegisterGenericEventHandlerObjCmd */
+
+int TkDND_UnregisterGenericEventHandlerObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  if (objc != 1) {
+    Tcl_WrongNumArgs(interp, 1, objv, "");
+    return TCL_ERROR;
+  }
+  Tk_DeleteGenericHandler(TkDND_HandleGenericEvent, interp);
+  return TCL_OK;
+}; /* TkDND_UnegisterGenericEventHandlerObjCmd */
+
+int TkDND_FindDropTargetWindowObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  int rootx, rooty;
+  Tk_Window path;
+  Window root, src, t;
+  Window target = 0;
+  int lx = 0, ly = 0, lx2, ly2;
+  Display *display;
+  Atom XdndAware;
+  Atom type = 0;
+  int f;
+  unsigned long n, a;
+  unsigned char *data = 0;
+
+  if (objc != 4) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path rootx rooty");
+    return TCL_ERROR;
+  }
+  path = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
+  if (Tcl_GetIntFromObj(interp, objv[2], &rootx) != TCL_OK) return TCL_ERROR;
+  if (Tcl_GetIntFromObj(interp, objv[3], &rooty) != TCL_OK) return TCL_ERROR;
+  root = RootWindowOfScreen(Tk_Screen(path));
+  display = Tk_Display(path);
+
+  if (!XTranslateCoordinates(display, root, root, rootx, rooty,
+                             &lx, &ly, &target)) return TCL_ERROR;
+  if (target == root) return TCL_ERROR;
+  src = root;
+  XdndAware = Tk_InternAtom(path, "XdndAware");
+  while (target != 0) {
+    if (!XTranslateCoordinates(display, src, target, lx, ly, &lx2, &ly2, &t)) {
+      target = 0; break; /* Error... */
+    }
+    lx = lx2; ly = ly2; src = target; type = 0; data = NULL;
+    /* Check if we can find the XdndAware property... */
+    XGetWindowProperty(display, target, XdndAware, 0, 0, False,
+                       AnyPropertyType, &type, &f,&n,&a,&data);
+    if (data) XFree(data);
+    if (type) break; /* We have found a target! */
+    /* Find child at the coordinates... */
+    if (!XTranslateCoordinates(display, src, src, lx, ly, &lx2, &ly2, &target)){
+      target = 0; break; /* Error */
+    }
+  }
+  if (target) {
+    Tcl_SetObjResult(interp, Tcl_NewLongObj(target));
+  } else {
+    Tcl_ResetResult(interp);
+  }
+
+  return TCL_OK;
+}; /* TkDND_FindDropTargetWindowObjCmd */
+
+int TkDND_FindDropTargetProxyObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  Window target, proxy, *proxy_ptr;
+  Atom type = None;
+  int f;
+  unsigned long n, a;
+  unsigned char *retval = NULL;
+  Display *display;
+  Tk_Window path;
+
+  if (objc != 3) {
+    Tcl_WrongNumArgs(interp, 1, objv, "source target");
+    return TCL_ERROR;
+  }
+
+  path = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
+  if (Tcl_GetLongFromObj(interp, objv[2], (long *) &target) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  display = Tk_Display(path);
+  proxy = target;
+  XGetWindowProperty(display, target, Tk_InternAtom(path, "XdndProxy"), 0, 1,
+                     False, XA_WINDOW, &type, &f,&n,&a,&retval);
+  proxy_ptr = (Window *) retval;
+  if (type == XA_WINDOW && proxy_ptr) {
+    proxy = *proxy_ptr;
+    XFree(proxy_ptr);
+    proxy_ptr = NULL;
+    /* Is the XdndProxy property pointing to the same window? */
+    XGetWindowProperty(display, proxy, Tk_InternAtom(path, "XdndProxy"), 0, 1,
+                       False, XA_WINDOW, &type, &f,&n,&a,&retval);
+    proxy_ptr = (Window *) retval;
+    if (type != XA_WINDOW || !proxy_ptr || *proxy_ptr != proxy) {
+      proxy = target;
+    }
+  }
+  if (proxy_ptr) XFree(proxy_ptr);
+  Tcl_SetObjResult(interp, Tcl_NewLongObj(proxy));
+
+  return TCL_OK;
+}; /* TkDND_FindDropTargetProxyObjCmd */
+
+int TkDND_SendXdndEnterObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XEvent event;
+  Tk_Window source;
+  Window target, proxy;
+  Display *display;
+  int types, r, f, *tv, target_version = XDND_VERSION, flags, status, i;
+  Atom t = None;
+  unsigned long n, a;
+  unsigned char *retval;
+  Tcl_Obj **type;
+
+  if (objc != 5) {
+    Tcl_WrongNumArgs(interp, 1, objv, "source target proxy types_len");
+    return TCL_ERROR;
+  }
+  
+  source = TkDND_TkWin(objv[1]);
+  if (!source) return TCL_ERROR;
+  if (Tcl_GetLongFromObj(interp, objv[2], (long *) &target) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (Tcl_GetLongFromObj(interp, objv[3], (long *) &proxy) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  status = Tcl_ListObjGetElements(interp, objv[4], &types, &type);
+  if (status != TCL_OK) return status;
+  display = Tk_Display(source);
+
+  /* Get the XDND version supported by the target... */
+  r = XGetWindowProperty(display, proxy, Tk_InternAtom(source, "XdndAware"), 0, 1,
+                         False, AnyPropertyType, &t, &f,&n,&a,&retval);
+  if (r != Success) {
+    Tcl_SetResult(interp, "cannot retrieve XDND version from target",
+                  TCL_STATIC);
+    return TCL_ERROR;
+  }
+  tv = (int *)retval;
+  if (tv) {
+    if (*tv < target_version) target_version = *tv;
+    XFree(tv);
+  } 
+
+  memset (&event, 0, sizeof(event));
+  event.type                    = ClientMessage;
+  event.xclient.window          = target;
+  event.xclient.format          = 32;
+  event.xclient.message_type    = Tk_InternAtom(source, "XdndEnter");
+  XDND_ENTER_SOURCE_WIN(&event) = Tk_WindowId(source);
+  flags = target_version << 24;
+  if (types > 3) flags |= 0x0001;
+  event.xclient.data.l[1] = flags;
+  for (i = 0; i < types && i < 3; ++i) {
+    event.xclient.data.l[2+i] = Tk_InternAtom(source, Tcl_GetString(type[i]));
+  }
+  XSendEvent(display, proxy, False, NoEventMask, &event);
+
+  return TCL_OK;
+}; /* TkDND_SendXdndEnterObjCmd */
+
+int TkDND_SendXdndPositionObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  static char *DropActions[] = {
+    "copy", "move", "link", "ask",  "private", "default",
+    (char *) NULL
+  };
+  enum dropactions {
+    ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate, ActionDefault
+  };
+
+  XEvent event;
+  Tk_Window source;
+  Window target, proxy;
+  Display *display;
+  int rootx, rooty, status, index;
+
+  if (objc != 7) {
+    Tcl_WrongNumArgs(interp, 1, objv, "source target proxy rootx rooty action");
+    return TCL_ERROR;
+  }
+  
+  source = TkDND_TkWin(objv[1]);
+  if (!source) return TCL_ERROR;
+  if (Tcl_GetLongFromObj(interp, objv[2], (long *) &target) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (Tcl_GetLongFromObj(interp, objv[3], (long *) &proxy) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (Tcl_GetIntFromObj(interp, objv[4], &rootx) != TCL_OK) return TCL_ERROR;
+  if (Tcl_GetIntFromObj(interp, objv[5], &rooty) != TCL_OK) return TCL_ERROR;
+  status = Tcl_GetIndexFromObj(interp, objv[6], (const char **) DropActions,
+                            "dropactions", 0, &index);
+  if (status != TCL_OK) return status;
+  display = Tk_Display(source);
+
+  memset (&event, 0, sizeof(event));
+  event.type                       = ClientMessage;
+  event.xclient.window             = target;
+  event.xclient.format             = 32;
+  event.xclient.message_type       = Tk_InternAtom(source, "XdndPosition");
+  event.xclient.data.l[0]          = Tk_WindowId(source);
+  event.xclient.data.l[1]          = 0; // flags
+  event.xclient.data.l[2]          = (rootx << 16) + rooty;
+  event.xclient.data.l[3]          = CurrentTime;
+  switch ((enum dropactions) index) {
+    case ActionDefault:
+    case ActionCopy:
+      XDND_POSITION_ACTION(&event) =
+          Tk_InternAtom(source, "XdndActionCopy");    break;
+    case ActionMove:
+      XDND_POSITION_ACTION(&event) =
+          Tk_InternAtom(source, "XdndActionMove");    break;
+    case ActionLink:
+      XDND_POSITION_ACTION(&event) =
+          Tk_InternAtom(source, "XdndActionLink");    break;
+    case ActionAsk:
+      XDND_POSITION_ACTION(&event) =
+          Tk_InternAtom(source, "XdndActionAsk");     break;
+    case ActionPrivate: 
+      XDND_POSITION_ACTION(&event) =
+          Tk_InternAtom(source, "XdndActionPrivate"); break;
+  }
+
+  XSendEvent(display, proxy, False, NoEventMask, &event);
+
+  return TCL_OK;
+}; /* TkDND_SendXdndPositionObjCmd */
+
+int TkDND_SendXdndLeaveObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XEvent event;
+  Tk_Window source;
+  Window target, proxy;
+
+  if (objc != 4) {
+    Tcl_WrongNumArgs(interp, 1, objv, "source target proxy");
+    return TCL_ERROR;
+  }
+
+  source = TkDND_TkWin(objv[1]);
+  if (!source) return TCL_ERROR;
+  if (Tcl_GetLongFromObj(interp, objv[2], (long *) &target) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (Tcl_GetLongFromObj(interp, objv[3], (long *) &proxy) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  memset (&event, 0, sizeof(event));
+  event.type                       = ClientMessage;
+  event.xclient.window             = target;
+  event.xclient.format             = 32;
+  event.xclient.message_type       = Tk_InternAtom(source, "XdndLeave");
+  event.xclient.data.l[0]          = Tk_WindowId(source);
+  XSendEvent(Tk_Display(source), proxy, False, NoEventMask, &event);
+  return TCL_OK;
+}; /* TkDND_SendXdndLeaveObjCmd */
+
+int TkDND_SendXdndDropObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XEvent event;
+  Tk_Window source;
+  Window target, proxy;
+
+  if (objc != 4) {
+    Tcl_WrongNumArgs(interp, 1, objv, "source target proxy");
+    return TCL_ERROR;
+  }
+
+  source = TkDND_TkWin(objv[1]);
+  if (!source) return TCL_ERROR;
+  if (Tcl_GetLongFromObj(interp, objv[2], (long *) &target) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (Tcl_GetLongFromObj(interp, objv[3], (long *) &proxy) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  memset (&event, 0, sizeof(event));
+  event.type                       = ClientMessage;
+  event.xclient.window             = target;
+  event.xclient.format             = 32;
+  event.xclient.message_type       = Tk_InternAtom(source, "XdndDrop");
+  event.xclient.data.l[0]          = Tk_WindowId(source);
+  event.xclient.data.l[2]          = CurrentTime;
+  XSendEvent(Tk_Display(source), proxy, False, NoEventMask, &event);
+  Tcl_SetObjResult(interp, Tcl_NewLongObj(event.xclient.data.l[2]));
+  return TCL_OK;
+}; /* TkDND_SendXdndDropObjCmd */
+
 /*
  * For C++ compilers, use extern "C"
  */
@@ -745,6 +1374,78 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
 
   if (Tcl_CreateObjCommand(interp, "_selection_get",
            (Tcl_ObjCmdProc*) TkDND_GetSelectionObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_grab_pointer",
+           (Tcl_ObjCmdProc*) TkDND_GrabPointerObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_ungrab_pointer",
+           (Tcl_ObjCmdProc*) TkDND_UnrabPointerObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+  
+  if (Tcl_CreateObjCommand(interp, "_register_generic_event_handler",
+           (Tcl_ObjCmdProc*) TkDND_RegisterGenericEventHandlerObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_unregister_generic_event_handler",
+           (Tcl_ObjCmdProc*) TkDND_UnregisterGenericEventHandlerObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+  
+  if (Tcl_CreateObjCommand(interp, "_announce_type_list",
+           (Tcl_ObjCmdProc*) TkDND_AnnounceTypeListObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_announce_action_list",
+           (Tcl_ObjCmdProc*) TkDND_AnnounceActionListObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_find_drop_target_window",
+           (Tcl_ObjCmdProc*) TkDND_FindDropTargetWindowObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_find_drop_target_proxy",
+           (Tcl_ObjCmdProc*) TkDND_FindDropTargetProxyObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_send_XdndEnter",
+           (Tcl_ObjCmdProc*) TkDND_SendXdndEnterObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_send_XdndPosition",
+           (Tcl_ObjCmdProc*) TkDND_SendXdndPositionObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_send_XdndLeave",
+           (Tcl_ObjCmdProc*) TkDND_SendXdndLeaveObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_send_XdndDrop",
+           (Tcl_ObjCmdProc*) TkDND_SendXdndDropObjCmd,
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
     return TCL_ERROR;
   }
