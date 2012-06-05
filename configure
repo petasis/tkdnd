@@ -5656,7 +5656,7 @@ fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
 
-    vars="unix/TkDND_XDND.c unix/tkUnixSelect.c"
+    vars="unix/TkDND_XDND.c unix/tkUnixSelect.c unix/Cursors.c"
     for i in $vars; do
 	case $i in
 	    \$*)

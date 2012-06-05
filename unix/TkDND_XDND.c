@@ -169,10 +169,12 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #define XDND_FINISHED_ACCEPTED_YES(e)   ((e)->xclient.data.l[1] |=  (1 << 1))
 #define XDND_FINISHED_ACTION(e)         ((e)->xclient.data.l[2])
 
-extern int TkDND_GetSelection(Tcl_Interp *interp, Tk_Window tkwin, Atom selection,
+extern int TkDND_GetSelection(Tcl_Interp *interp, Tk_Window tkwin,
+                              Atom selection,
                               Atom target, Time time,
                               Tk_GetSelProc *proc, ClientData clientData);
-
+extern void TkDND_InitialiseCursors(Tcl_Interp *interp);
+extern Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name);
 
 /*
  * Support for getting the wrapper window for our top-level...
@@ -868,9 +870,10 @@ int TkDND_GrabPointerObjCmd(ClientData clientData, Tcl_Interp *interp,
   if (!path) return TCL_ERROR;
   Tk_MakeWindowExist(path);
 
-  cursor = Tk_AllocCursorFromObj(interp, path, objv[2]);
+  cursor = TkDND_GetCursor(interp, objv[2]);
   if (cursor == None) {
-    Tcl_SetResult(interp, "invalid cursor", TCL_STATIC);
+    Tcl_SetResult(interp, "invalid cursor name: ", TCL_STATIC);
+    Tcl_AppendResult(interp, Tcl_GetString(objv[2]));
     return TCL_ERROR;
   }
 
@@ -897,6 +900,37 @@ int TkDND_UnrabPointerObjCmd(ClientData clientData, Tcl_Interp *interp,
   XUngrabPointer(Tk_Display(path), CurrentTime);
   return TCL_OK;
 }; /* TkDND_GrabPointerObjCmd */
+
+int TkDND_SetPointerCursorObjCmd(ClientData clientData, Tcl_Interp *interp,
+                            int objc, Tcl_Obj *CONST objv[]) {
+  Tk_Window path;
+  Tk_Cursor cursor;
+
+  if (objc != 3) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path cursor");
+    return TCL_ERROR;
+  }
+
+  path     = TkDND_TkWin(objv[1]);
+  if (!path) return TCL_ERROR;
+  Tk_MakeWindowExist(path);
+
+  cursor = TkDND_GetCursor(interp, objv[2]);
+  if (cursor == None) {
+    Tcl_SetResult(interp, "invalid cursor name: ", TCL_STATIC);
+    Tcl_AppendResult(interp, Tcl_GetString(objv[2]));
+    return TCL_ERROR;
+  }
+
+  if (XChangeActivePointerGrab(Tk_Display(path),
+       ButtonPressMask   | ButtonReleaseMask |
+       PointerMotionMask | EnterWindowMask   | LeaveWindowMask,
+       (Cursor) cursor, CurrentTime) != GrabSuccess) {
+    /* Tcl_SetResult(interp, "unable to update mouse pointer", TCL_STATIC);
+       return TCL_ERROR; */
+  }
+  return TCL_OK;
+}; /* TkDND_SetPointerCursorObjCmd */
 
 void TkDND_AddStateInformation(Tcl_Interp *interp, Tcl_Obj *dict,
                                unsigned int state) {
@@ -1389,7 +1423,13 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
     return TCL_ERROR;
   }
-  
+
+  if (Tcl_CreateObjCommand(interp, "_set_pointer_cursor",
+           (Tcl_ObjCmdProc*) TkDND_SetPointerCursorObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
   if (Tcl_CreateObjCommand(interp, "_register_generic_event_handler",
            (Tcl_ObjCmdProc*) TkDND_RegisterGenericEventHandlerObjCmd,
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
@@ -1449,6 +1489,9 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
     return TCL_ERROR;
   }
+
+  /* Create the cursors... */
+  TkDND_InitialiseCursors(interp);
 
   /* Finally, register the XDND Handler... */
   Tk_CreateClientMessageHandler(&TkDND_XDNDHandler);
