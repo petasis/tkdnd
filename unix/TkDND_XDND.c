@@ -958,6 +958,8 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
   Tcl_Obj *dict, *key, *value;
   Tcl_Obj *objv[2], *result;
   int status, i;
+  KeySym sym;
+  Tk_Window main_window;
 
   if (interp == NULL) return 0;
   dict = Tcl_NewDictObj();
@@ -1001,6 +1003,10 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutLong(dict, "time",    eventPtr->xkey.time);
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
       TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
+      main_window = Tk_MainWindow(interp);
+      sym = XKeycodeToKeysym(Tk_Display(main_window),
+                             eventPtr->xkey.keycode, 0);
+      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(sym));
       break;
     case KeyRelease:
       TkDND_Dict_Put(dict,     "type",   "KeyRelease");
@@ -1011,6 +1017,10 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutLong(dict, "time",    eventPtr->xkey.time);
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
       TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
+      main_window = Tk_MainWindow(interp);
+      sym = XKeycodeToKeysym(Tk_Display(main_window),
+                             eventPtr->xkey.keycode, 0);
+      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(sym));
       break;
     case EnterNotify:
       return 0;
