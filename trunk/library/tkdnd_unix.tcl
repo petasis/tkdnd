@@ -440,7 +440,8 @@ proc xdnd::_normalise_data { type data } {
 # ----------------------------------------------------------------------------
 proc xdnd::_platform_specific_type { type } {
   switch $type {
-    DND_Text   {return [list text/plain UTF8_STRING STRING]}
+    DND_Text   {return [list text/plain\;charset=utf-8 UTF8_STRING \
+                             text/plain STRING]}
     DND_Files  {return [list text/uri-list]}
     default    {return [list $type]}
   }
@@ -490,8 +491,8 @@ proc xdnd::_selection_ownership_lost {} {
 proc xdnd::_dodragdrop { source actions types data button } {
   variable _dragging
 
-  # puts "xdnd::_dodragdrop: source: $source, actions: $actions, types: $types,\
-  #       data: \"$data\", button: $button"
+  puts "xdnd::_dodragdrop: source: $source, actions: $actions, types: $types,\
+        data: \"$data\", button: $button"
   if {$_dragging} {
     ## We are in the middle of another drag operation...
     error "another drag operation in progress"
@@ -534,8 +535,8 @@ proc xdnd::_dodragdrop { source actions types data button } {
   ## Arrange selection handlers for our drag source, and all the supported types
   ##
   foreach t $types {
-    selection handle -selection XdndSelection -type $t $source \
-      [list ::tkdnd::xdnd::_SendData $t]
+    selection handle -selection XdndSelection -type $t -format UTF8_STRING \
+      $source [list ::tkdnd::xdnd::_SendData $t]
   }
 
   ##
@@ -565,7 +566,10 @@ proc xdnd::_dodragdrop { source actions types data button } {
   _unregister_generic_event_handler
   catch {selection clear -selection XdndSelection}
   foreach t $types {
-    catch {selection handle -selection XdndSelection -type $t $source {}}
+    catch {
+      selection handle -selection XdndSelection -type $t -format UTF8_STRING \
+                        $source {}
+    }
   }
 };# xdnd::_dodragdrop
 
@@ -631,10 +635,13 @@ proc xdnd::_process_drag_events {event} {
     KeyPress {
     }
     KeyRelease {
-    }
-    EnterNotify {
-    }
-    LeaveNotify {
+      set keysym [dict get $event keysym]
+      switch $keysym {
+        Escape {
+          ## The user has pressed escape. Abort...
+          if {$_dragging} {set _dragging 0}
+        }
+      }
     }
     default {
       return 0
@@ -747,7 +754,11 @@ proc xdnd::_SendXdndLeave {} {
 proc xdnd::_SendXdndDrop {} {
   variable _dodragdrop_drag_source
   variable _dodragdrop_drop_target
-  if {$_dodragdrop_drop_target < 1} return
+  if {$_dodragdrop_drop_target < 1} {
+    ## The mouse has been released over a widget that does not accept drops.
+    _HandleXdndFinished {}
+    return
+  }
   variable _dodragdrop_drop_occured
   if {$_dodragdrop_drop_occured} {return}
   variable _dodragdrop_drop_target_proxy
@@ -777,9 +788,9 @@ proc xdnd::_SendXdndDrop {} {
 #  Command xdnd::_SendData
 # ----------------------------------------------------------------------------
 proc xdnd::_SendData {type s e args} {
-  #puts "SendData: $type $args"
   variable _dodragdrop_data
-  return $_dodragdrop_data
+  puts "SendData: $type $s $e $args ($_dodragdrop_data)"
+  return [string range $_dodragdrop_data $s $e]
 };# xdnd::_SendData
 
 # ----------------------------------------------------------------------------
