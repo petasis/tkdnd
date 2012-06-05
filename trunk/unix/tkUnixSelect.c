@@ -127,7 +127,6 @@ int TkDND_ClipboardReadIncrementalProperty(Tk_Window tkwin,
                                            TkDND_ProcDetail *detail) {
   TkDND_ProcDetail detail2;
   Tcl_DString     *buffer  = (Tcl_DString *) detail->clientData;
-  Display         *display = Tk_Display(tkwin);
   detail2.interp           = detail->interp;
   detail2.tkwin            = detail->tkwin;
   detail2.property         = detail->property;

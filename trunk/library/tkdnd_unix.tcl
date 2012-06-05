@@ -508,10 +508,12 @@ proc xdnd::_dodragdrop { source actions types data button } {
   variable _dodragdrop_data                       $data
   variable _dodragdrop_button                     $button
   variable _dodragdrop_time                       0
-  variable _dodragdrop_default_action             default
+  variable _dodragdrop_default_action             refuse_drop
   variable _dodragdrop_waiting_status             0
   variable _dodragdrop_drop_target_accepts_drop   0
   variable _dodragdrop_drop_target_accepts_action refuse_drop
+  variable _dodragdrop_current_cursor             $_dodragdrop_default_action
+  variable _dodragdrop_drop_occured               0
 
   ##
   ## If we have more than 3 types, the property XdndTypeList must be set on
@@ -544,7 +546,7 @@ proc xdnd::_dodragdrop { source actions types data button } {
   set _dragging 1
 
   ## Grab the mouse pointer...
-  _grab_pointer $source star
+  _grab_pointer $source $_dodragdrop_default_action
 
   ## Register our generic event handler...
   #  The generic event callback will report events by modifying variable
@@ -650,7 +652,9 @@ proc xdnd::_SendXdndEnter {window proxy} {
   variable _dodragdrop_drop_target_proxy
   variable _dodragdrop_types
   variable _dodragdrop_waiting_status
+  variable _dodragdrop_drop_occured
   if {$_dodragdrop_drop_target > 0} _SendXdndLeave
+  if {$_dodragdrop_drop_occured} return
   set _dodragdrop_drop_target       $window
   set _dodragdrop_drop_target_proxy $proxy
   set _dodragdrop_waiting_status    0
@@ -667,6 +671,8 @@ proc xdnd::_SendXdndPosition {rootx rooty action} {
   variable _dodragdrop_drag_source
   variable _dodragdrop_drop_target
   if {$_dodragdrop_drop_target < 1} return
+  variable _dodragdrop_drop_occured
+  if {$_dodragdrop_drop_occured} return
   variable _dodragdrop_drop_target_proxy
   variable _dodragdrop_waiting_status
   ## Arrange a new XdndPosition, to be send periodically...
@@ -675,7 +681,7 @@ proc xdnd::_SendXdndPosition {rootx rooty action} {
   set _dodragdrop_xdnd_position_heartbeat [after 200 \
     [list ::tkdnd::xdnd::_SendXdndPosition $rootx $rooty $action]]
   if {$_dodragdrop_waiting_status} {return}
-  # puts "XdndPosition: $_dodragdrop_drop_target"
+  # puts "XdndPosition: $_dodragdrop_drop_target $rootx $rooty $action"
   _send_XdndPosition $_dodragdrop_drag_source $_dodragdrop_drop_target \
                      $_dodragdrop_drop_target_proxy $rootx $rooty $action
   set _dodragdrop_waiting_status 1
@@ -696,6 +702,10 @@ proc xdnd::_HandleXdndStatus {event} {
   }
   set _dodragdrop_drop_target_accepts_drop   $accept
   set _dodragdrop_drop_target_accepts_action $action
+  if {$_dodragdrop_drop_target < 1} return
+  variable _dodragdrop_drop_occured
+  if {$_dodragdrop_drop_occured} return
+  _update_cursor
   # puts "XdndStatus: $event"
 };# xdnd::_HandleXdndStatus
 
@@ -722,6 +732,13 @@ proc xdnd::_SendXdndLeave {} {
   _send_XdndLeave $_dodragdrop_drag_source $_dodragdrop_drop_target \
                   $_dodragdrop_drop_target_proxy
   set _dodragdrop_drop_target 0
+  variable _dodragdrop_drop_target_accepts_drop
+  variable _dodragdrop_drop_target_accepts_action
+  set _dodragdrop_drop_target_accepts_drop   0
+  set _dodragdrop_drop_target_accepts_action refuse_drop
+  variable _dodragdrop_drop_occured
+  if {$_dodragdrop_drop_occured} return
+  _update_cursor
 };# xdnd::_SendXdndLeave
 
 # ----------------------------------------------------------------------------
@@ -731,9 +748,15 @@ proc xdnd::_SendXdndDrop {} {
   variable _dodragdrop_drag_source
   variable _dodragdrop_drop_target
   if {$_dodragdrop_drop_target < 1} return
+  variable _dodragdrop_drop_occured
+  if {$_dodragdrop_drop_occured} {return}
   variable _dodragdrop_drop_target_proxy
   variable _dodragdrop_drop_target_accepts_drop
   variable _dodragdrop_drop_target_accepts_action
+
+  set _dodragdrop_drop_occured 1
+  _update_cursor clock
+
   if {!$_dodragdrop_drop_target_accepts_drop} {
     _SendXdndLeave
     _HandleXdndFinished {}
@@ -745,6 +768,7 @@ proc xdnd::_SendXdndDrop {} {
                  $_dodragdrop_drag_source $_dodragdrop_drop_target \
                  $_dodragdrop_drop_target_proxy]
   set _dodragdrop_drop_target 0
+  # puts "XdndDrop: $_dodragdrop_drop_target"
   ## Arrange a timeout for receiving XdndFinished...
   after 10000 [list ::tkdnd::xdnd::_HandleXdndFinished {}]
 };# xdnd::_SendXdndDrop
@@ -758,6 +782,27 @@ proc xdnd::_SendData {type s e args} {
   return $_dodragdrop_data
 };# xdnd::_SendData
 
+# ----------------------------------------------------------------------------
+#  Command xdnd::_update_cursor
+# ----------------------------------------------------------------------------
+proc xdnd::_update_cursor { {cursor {}}} {
+  # puts "_update_cursor $cursor"
+  variable _dodragdrop_current_cursor
+  variable _dodragdrop_drag_source
+  variable _dodragdrop_drop_target_accepts_drop
+  variable _dodragdrop_drop_target_accepts_action
+
+  if {![string length $cursor]} {
+    set cursor refuse_drop
+    if {$_dodragdrop_drop_target_accepts_drop} {
+      set cursor $_dodragdrop_drop_target_accepts_action
+    }
+  }
+  if {![string equal $cursor $_dodragdrop_current_cursor]} {
+    _set_pointer_cursor $_dodragdrop_drag_source $cursor
+    set _dodragdrop_current_cursor $cursor
+  }
+};# xdnd::_update_cursor
 # ----------------------------------------------------------------------------
 #  Command xdnd::_default_action
 # ----------------------------------------------------------------------------
