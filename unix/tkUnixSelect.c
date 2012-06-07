@@ -65,7 +65,7 @@ int TkDND_ClipboardReadProperty(Tk_Window tkwin,
     }
     XFree((char*)data);
 
-    int offset = 0, format_inc = 1;
+    int offset = 0, format_inc = 1, proplen = bytes_left;
 
     switch (*format) {
     case 8:
@@ -75,10 +75,12 @@ int TkDND_ClipboardReadProperty(Tk_Window tkwin,
 
     case 16:
         format_inc = sizeof(short) / 2;
+        proplen   *= sizeof(short) / 2;
         break;
 
     case 32:
         format_inc = sizeof(long) / 4;
+        proplen   *= sizeof(long) / 4;
         break;
     }
 
@@ -88,13 +90,46 @@ int TkDND_ClipboardReadProperty(Tk_Window tkwin,
                              &length, &bytes_left, &data);
       if (r != Success || (type && *type == None))
           break;
+      switch (*format) {
+        case 8:
+        default:
+          offset += length / (32 / *format);
+          length *= format_inc * (*format) / 8;
+          Tcl_DStringAppend(buffer, (char *) data, length);
+          break;
+        case 16: {
+          register unsigned short *propPtr = (unsigned short *) data;
+          for (; length > 0; propPtr++, length--) {
+            char buf[12];
 
-      offset += length / (32 / *format);
-      length *= format_inc * (*format) / 8;
-      Tcl_DStringAppend(buffer, (char *) data, length);
+	    sprintf(buf, "0x%04x", (unsigned short) *propPtr);
+	    Tcl_DStringAppendElement(buffer, buf);
+          }
+          Tcl_DStringAppend(buffer, " ", 1);
+          break;
+        }
+        case 32: {
+          register unsigned long *propPtr = (unsigned long *) data;
+          for (; length > 0; propPtr++, length--) {
+            char buf[12];
+
+	    sprintf(buf, "0x%x", (unsigned int) *propPtr);
+	    Tcl_DStringAppendElement(buffer, buf);
+          }
+          Tcl_DStringAppend(buffer, " ", 1);
+          break;
+        }
+      }
 
       XFree((char*)data);
     }
+#if 0
+    printf("Selection details:\n");
+    printf("  type: %s\n", XGetAtomName(display, *type));
+    printf("  format: %d %s\n", *format, XGetAtomName(display, *format));
+    printf("  length: %d\n", Tcl_DStringLength(buffer));
+    printf("  data: \"%s\"\n", Tcl_DStringValue(buffer));
+#endif
 
     if (*format == 8 && *type == Tk_InternAtom(tkwin, "COMPOUND_TEXT")) {
       // convert COMPOUND_TEXT to a multibyte string
@@ -166,6 +201,14 @@ void TkDND_SelectionNotifyEventProc(ClientData clientData, XEvent *eventPtr) {
   status = TkDND_ClipboardReadProperty(detail->tkwin, detail->property, 1,
                                        detail, &size, &type, &format);
   if (status) {
+#ifdef TKDND_DebugSelectionRequests
+    printf("SelectionNotify: selection: %s, target: %s, property: %s,\
+            type: %s, format: %d\n",
+            Tk_GetAtomName(detail->tkwin, eventPtr->xselection.selection),
+            Tk_GetAtomName(detail->tkwin, eventPtr->xselection.target),
+            Tk_GetAtomName(detail->tkwin, eventPtr->xselection.property),
+            Tk_GetAtomName(detail->tkwin, type), format);
+#endif /* TKDND_DebugSelectionRequests */
     if (type == Tk_InternAtom(detail->tkwin, "INCR")) {
       status = TkDND_ClipboardReadIncrementalProperty(detail->tkwin,
                                        detail->property, detail);

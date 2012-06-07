@@ -38,6 +38,7 @@
 #include "tcl.h"
 #include "tk.h"
 #include <string.h>
+#include <stdlib.h>
 #include <X11/Xlib.h>
 #include <X11/X.h>
 #include <X11/Xatom.h>
@@ -392,8 +393,8 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
     refuse_drop, ActionDefault
   };
-  Time time;
-  Atom action;
+/*Time time;
+  Atom action;*/
 
   if (interp == NULL || tkwin == NULL) return False;
 
@@ -402,9 +403,9 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   rootX  = XDND_POSITION_ROOT_X(xevent);
   rootY  = XDND_POSITION_ROOT_Y(xevent);
   /* Get the time from the event... */
-  time   = XDND_POSITION_TIME(xevent);
+  /* time   = XDND_POSITION_TIME(xevent); */
   /* Get the user action from the event... */
-  action = XDND_POSITION_ACTION(xevent);
+  /* action = XDND_POSITION_ACTION(xevent); */
 
   /* The event may have been delivered to the toplevel wrapper.
    * Try to find the toplevel window... */
@@ -1032,7 +1033,21 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_Put(dict, "type", "LeaveNotify");
       TkDND_Dict_PutLong(dict, "time",    eventPtr->xcrossing.time);
       break;
-        default:
+    case SelectionRequest:
+      main_window = Tk_MainWindow(interp);
+      TkDND_Dict_Put(dict, "type", "SelectionRequest");
+      TkDND_Dict_PutLong(dict, "time",     eventPtr->xselectionrequest.time);
+      TkDND_Dict_PutLong(dict, "owner",    eventPtr->xselectionrequest.owner);
+      TkDND_Dict_PutLong(dict, "requestor",
+                                eventPtr->xselectionrequest.requestor);
+      TkDND_Dict_Put(dict,     "selection",
+            Tk_GetAtomName(main_window, eventPtr->xselectionrequest.selection));
+      TkDND_Dict_Put(dict,     "target",
+            Tk_GetAtomName(main_window, eventPtr->xselectionrequest.target));
+      TkDND_Dict_Put(dict,     "property",
+            Tk_GetAtomName(main_window, eventPtr->xselectionrequest.property));
+      break;
+    default:
       Tcl_DecrRefCount(dict);
       return 0;
   }
@@ -1360,6 +1375,95 @@ int TkDND_SendXdndDropObjCmd(ClientData clientData,
   return TCL_OK;
 }; /* TkDND_SendXdndDropObjCmd */
 
+int TkDND_XChangePropertyObjCmd(ClientData clientData,
+                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  XEvent event;
+  Window target;
+  Atom property = None, type = None;
+  int format, numItems, numFields, i;
+  Display *display;
+  Tk_Window source;
+  Time time;
+  unsigned char *data = NULL;
+  Tcl_Obj **field;
+
+  if (objc != 9) {
+    Tcl_WrongNumArgs(interp, 1, objv,
+        "source requestor property type format time data data_items");
+    return TCL_ERROR;
+  }
+
+  source = TkDND_TkWin(objv[1]);
+  if (!source) return TCL_ERROR;
+  if (Tcl_GetLongFromObj(interp, objv[2], (long *) &target) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  display  = Tk_Display(source);
+  property = Tk_InternAtom(source, Tcl_GetString(objv[3]));
+  type     = Tk_InternAtom(source, Tcl_GetString(objv[4]));
+  if (Tcl_GetIntFromObj(interp, objv[5], &format) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (format != 8 && format != 16 && format != 32) {
+    Tcl_SetResult(interp, "unsupported format: not 8, 16 or 32", TCL_STATIC);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetIntFromObj(interp, objv[5], &format) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (Tcl_GetLongFromObj(interp, objv[6], (long *) &time) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (Tcl_GetIntFromObj(interp, objv[8], &numItems) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  if (!time) time = CurrentTime;
+  switch (format) {
+    case 8:
+      data = (unsigned char *) Tcl_GetString(objv[7]);
+      break;
+    case 16: {
+      short *propPtr = (short *) Tcl_Alloc(sizeof(short)*numItems);
+      data = (unsigned char *) propPtr;
+      if (Tcl_ListObjGetElements(interp, objv[7], &numFields, &field)
+                                                                   != TCL_OK) {
+        return TCL_ERROR;
+      }
+      for (i = 0; i < numItems; i++) {
+	char *dummy;
+	propPtr[i] = (short) strtol(Tcl_GetString(field[i]), &dummy, 0);
+      }
+      break;
+    }
+    case 32: {
+      long *propPtr  = (long *) Tcl_Alloc(sizeof(long)*numItems);
+      data = (unsigned char *) propPtr;
+      if (Tcl_ListObjGetElements(interp, objv[7], &numFields, &field)
+                                                                   != TCL_OK) {
+        return TCL_ERROR;
+      }
+      for (i = 0; i < numItems; i++) {
+	char *dummy;
+	propPtr[i] = (short) strtol(Tcl_GetString(field[i]), &dummy, 0);
+      }
+      break;
+    }
+  }
+  XChangeProperty(display, target, property, type, format, PropModeReplace,
+         (unsigned char *) data, numItems);
+  if (format > 8 && data) Tcl_Free((char *) data);
+  /* Send selection notify to requestor... */
+  event.xselection.type      = SelectionNotify;
+  event.xselection.display   = display;
+  event.xselection.requestor = target;
+  event.xselection.selection = Tk_InternAtom(source, "XdndSelection");
+  event.xselection.target    = type;
+  event.xselection.property  = property;
+  event.xselection.time      = time;
+  XSendEvent(display, target, False, NoEventMask, &event);
+  return TCL_OK;
+}; /* TkDND_XChangePropertyObjCmd */
+
 /*
  * For C++ compilers, use extern "C"
  */
@@ -1496,6 +1600,12 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
 
   if (Tcl_CreateObjCommand(interp, "_send_XdndDrop",
            (Tcl_ObjCmdProc*) TkDND_SendXdndDropObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "XChangeProperty",
+           (Tcl_ObjCmdProc*) TkDND_XChangePropertyObjCmd,
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
     return TCL_ERROR;
   }
