@@ -39,7 +39,8 @@ foreach colour {red green blue navy} {
   pack [label .colours.$colour -text $colour -fg white -bg $colour] \
     -side left -padx 2
   tkdnd::drag_source register .colours.$colour
-  bind .colours.$colour <<DragInitCmd>> "list copy TK_COLOUR $colour"
+  bind .colours.$colour <<DragInitCmd>> \
+   "list copy DND_Color $colour"
 }
 grid .colours -sticky snew -columnspan 2
 
@@ -50,8 +51,15 @@ grid [label .drop_target -text {Drop Target:} -bg yellow] \
 # Register .drop_target as a drop target of every type!
 tkdnd::drop_target register .drop_target *
 
-# Add the various events...
+# During drag and drop, the drop target receives information through 3
+# virtual events: <<DropEnter>> <<DropPosition>> <<DropLeave>>
+# The fields that can be used in the event callbacks, are given in "cmd",
+# while their "label" is given in "itemList"...
 set cmd {handle_event %e %W %X %Y %ST %TT %a %A %CST %CTT %t %T %b %D}
+set itemList {Event Widget X Y Source_Types Target_Types Source_Actions Action
+              Common_Source_Types Common_Target_Types Types Drop_Type
+              Pressed_Keys Data}
+# Add the various events...
 bind .drop_target <<DropEnter>>      $cmd
 bind .drop_target <<DropPosition>>   $cmd
 bind .drop_target <<DropLeave>>      $cmd
@@ -63,10 +71,10 @@ bind .drop_target <<Drop>>           $cmd
 # Add a specialised <<Drop>> event, when will be called if a file is dropped.
 bind .drop_target <<Drop:DND_Files>> $cmd
 
+# Add a special drop command for DND_Color...
+bind .drop_target <<Drop:DND_Color>> $cmd 
+
 # Create some widgets for showing event info.
-set itemList {Event Widget X Y Source_Types Target_Types Source_Actions Action
-              Common_Source_Types Common_Target_Types Types Drop_Type
-              Pressed_Keys Data}
 foreach item $itemList {
   grid [label .[string tolower $item] -text [string map {_ \ } $item]:\
           -anchor w] [label .[string tolower $item]_val -width 30 -anchor w \
@@ -81,11 +89,26 @@ proc handle_event $itemList {
     .[string tolower $item]_val configure -text [set $item]
   }
   switch -glob $Event {
-    <<DropEnter>> {$Widget configure -bg green}
-    <<DropLeave>> {$Widget configure -bg yellow}
+    <<DropEnter>>      {$Widget configure -bg green}
+    <<DropLeave>>      {$Widget configure -bg yellow}
+    <<Drop:DND_Color>> {
+      $Widget configure -bg yellow
+      .drop_target_value configure -text $Data
+      ## Convert data into a Tk color: the colour data is a list of 4 elements
+      ## (red green blue opacity), expressed as Hex numbers...
+      set color "#"
+      for {set i 0} {$i < 3} {incr i} {
+        ## Just remove the 0x prefix...
+        append color [string range [lindex $Data $i] 2 end]
+      }
+      .drop_target_value configure -background $color -foreground white
+    }
     <<Drop>> -
-    <<Drop:*>>    {$Widget configure -bg yellow
-                   .drop_target_value configure -text $Data}
+    <<Drop:*>>         {
+      $Widget configure -bg yellow
+      .drop_target_value configure -text $Data \
+           -background [. cget -background] -foreground black
+    }
   }
   return copy
 };# handle_event

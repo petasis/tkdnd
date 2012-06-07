@@ -1,3 +1,10 @@
+2012-06-07  Petasis George  <petasis@iit.demokritos.gr>
+	* demos/basic.tcl: Updated demo with support for colours, which only
+	works for XDND right now.
+
+	* unix/TkDND_XDND.c:
+	* unix/tkUnixSelect.c: Implementation of unix (XDND) drags completed.
+
 2012-06-06  Petasis George  <petasis@iit.demokritos.gr>
 	* unix/Cursors.c: Ported cursors from TkDND 1.x to TkDND 2.x
 
