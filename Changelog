@@ -1,3 +1,7 @@
+2012-06-17  Petasis George  <petasis@iit.demokritos.gr>
+	TkDND 2.5 released.
+	* win/TkDND_OleDND.cpp: Fixes for type CF_HDROP.
+
 2012-06-07  Petasis George  <petasis@iit.demokritos.gr>
 	* demos/basic.tcl: Updated demo with support for colours, which only
 	works for XDND right now.
