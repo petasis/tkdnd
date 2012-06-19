@@ -11,7 +11,6 @@
 
 #include "tk.h"
 #include "tkInt.h"
-#include "tkSelect.h"
 
 /*
  * Forward declarations for functions defined in this file:
