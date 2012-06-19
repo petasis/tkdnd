@@ -39,7 +39,9 @@
  */
 
 #include "OleDND.h"
+#if defined(HAVE_STRSAFE_H) || !defined(NO_STRSAFE_H)
 #include "Strsafe.h"
+#endif
 
 int TkDND_RegisterDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                  int objc, Tcl_Obj *CONST objv[]) {
@@ -129,14 +131,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   Tcl_UniChar      *unicode, *ptr_u;
   FORMATETC        *m_pfmtetc;
   STGMEDIUM        *m_pstgmed;
-  static char *DropTypes[] = {
+  static const char *DropTypes[] = {
     "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
     (char *) NULL
   };
   enum droptypes {
     TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP
   };
-  static char *DropActions[] = {
+  static const char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop",
     "default",
     (char *) NULL
@@ -208,7 +210,11 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           m_pstgmed[i].hGlobal = GlobalAlloc(GHND, buffer_size);
           if (m_pstgmed[i].hGlobal) {
             ptr_u = (Tcl_UniChar *) GlobalLock(m_pstgmed[i].hGlobal);
+#ifdef HAVE_STRSAFE_H
             StringCchCopyW((LPWSTR) ptr_u, buffer_size, (LPWSTR) unicode);
+#else
+            lstrcpyW((LPWSTR) ptr_u, (LPWSTR) unicode);
+#endif
             GlobalUnlock(m_pstgmed[i].hGlobal);
           }
           break;
@@ -273,8 +279,11 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
               TCHAR *pszFileName = (TCHAR *)
                                    Tcl_GetUnicodeFromObj(File[j], &len);
               // Copy the file name into global memory.
+#ifdef HAVE_STRSAFE_H
               StringCchCopyW(CurPosition, buffer_size, pszFileName);
-              // lstrcpy(CurPosition, pszFileName);
+#else
+              lstrcpyW(CurPosition, pszFileName);
+#endif
               /*
                * Move the current position beyond the file name copied, and
                * don't forget the NULL terminator (+1)
