@@ -696,7 +696,7 @@ static int TkDND_XDNDHandler(Tk_Window tkwin, XEvent *xevent) {
  * If TIP 370 gets implemented, they will not be required.
  */
 static int TkDND_SelGetProc(ClientData clientData,
-                            Tcl_Interp *interp, const char *portion) {
+                            Tcl_Interp *interp, char *portion) {
   Tcl_DStringAppend(clientData, portion, -1);
   return TCL_OK;
 }; /* TkDND_SelGetProc */
@@ -733,7 +733,7 @@ int TkDND_GetSelectionObjCmd(ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     }
     
-    if (Tcl_GetIndexFromObj(interp, objs[0], getOptionStrings,
+    if (Tcl_GetIndexFromObj(interp, objs[0], (const char **) getOptionStrings,
             "option", 0, &getIndex) != TCL_OK) {
         return TCL_ERROR;
     }
