@@ -94,6 +94,11 @@ TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_un
 #--------------------------------------------------------------------
 
 if test "${TEA_PLATFORM}" = "windows" ; then
+    AC_PROG_CXX
+    CC=$CXX
+    AC_CHECK_HEADER(Strsafe.h,
+        [AC_DEFINE(HAVE_STRSAFE_H, 1, [Do we have <Strsafe.h>?])],
+	[AC_DEFINE(NO_STRSAFE_H,   1, [Do we have <Strsafe.h>?])])
     TEA_ADD_CFLAGS([-DUNICODE -D_UNICODE])
     TEA_ADD_SOURCES([win/TkDND_OleDND.cpp])
     TEA_ADD_LIBS(kernel32.lib user32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib)

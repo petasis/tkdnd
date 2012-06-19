@@ -42,7 +42,7 @@
 #ifndef _OLE_DND_H
 #define _OLE_DND_H
 
-#ifdef    __MINGW32__
+#if defined(__MINGW32__) || defined(__MINGW64__)
 #ifndef WINVER
 #define WINVER 0x0500 /* version 5.0 */
 #endif /* !WINVER */
@@ -112,7 +112,7 @@ extern "C" {
 #define STRING_(s) {s,TEXT(#s)}
 typedef struct {
   UINT   cfFormat;
-  TCHAR *name;
+  const TCHAR *name;
 } CLIP_FORMAT_STRING_TABLE;
 
 static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
@@ -406,7 +406,7 @@ public:
       return currentFormat;
     }; /* GetCurrentFormat */
 
-    TCHAR *GetCurrentFormatName(void) {
+    const TCHAR *GetCurrentFormatName(void) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
         if (ClipboardFormatBook[i].cfFormat == currentFormat)
                      return ClipboardFormatBook[i].name;
@@ -534,7 +534,7 @@ class TkDND_DropTarget: public IDropTarget {
               *pressedkeys = Tcl_NewListObj(0, NULL), *result,
               *codelist    = Tcl_NewListObj(0, NULL);
       int i, status, index;
-      static char *DropActions[] = {
+      static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
         "default", 
         (char *) NULL
@@ -618,7 +618,7 @@ class TkDND_DropTarget: public IDropTarget {
     STDMETHODIMP DragOver(DWORD grfKeyState, POINTL pt, DWORD *pdwEffect) {
       Tcl_Obj *objv[5], *pressedkeys = Tcl_NewListObj(0, NULL), *result;
       int i, status, index;
-      static char *DropActions[] = {
+      static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
         "default",
         (char *) NULL
@@ -686,7 +686,7 @@ class TkDND_DropTarget: public IDropTarget {
       Tcl_Obj *objv[7], *result, **typeObj, *data = NULL, *type,
               *pressedkeys = NULL;
       int i, type_index, status, index, typeObjc;
-      static char *DropTypes[] = {
+      static const char *DropTypes[] = {
         "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
         "FileGroupDescriptorW", "FileGroupDescriptor",
         (char *) NULL
@@ -695,7 +695,7 @@ class TkDND_DropTarget: public IDropTarget {
         TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP,
         TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR
       };
-      static char *DropActions[] = {
+      static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
         "default",
         (char *) NULL
