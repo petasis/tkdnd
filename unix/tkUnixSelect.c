@@ -10,7 +10,7 @@
  */
 
 #include "tk.h"
-#include "tkInt.h"
+#include "X11/Xutil.h"
 
 /*
  * Forward declarations for functions defined in this file:
