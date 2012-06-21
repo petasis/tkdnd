@@ -5958,6 +5958,36 @@ fi
 
 
 
+    ## Check if the compiler accepts -static-libstdc++...
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking if the compiler understands -static-libstdc++" >&5
+$as_echo_n "checking if the compiler understands -static-libstdc++... " >&6; }
+if ${tcl_cv_cc_staticlib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+        hold_cflags=$CFLAGS; CFLAGS="$CFLAGS -static-libstdc++"
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  tcl_cv_cc_staticlib=yes
+else
+  tcl_cv_cc_staticlib=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+        CFLAGS=$hold_cflags
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $tcl_cv_cc_staticlib" >&5
+$as_echo "$tcl_cv_cc_staticlib" >&6; }
+
 
 $as_echo "#define BUILD_tkdnd 1" >>confdefs.h
 
@@ -9751,6 +9781,15 @@ $as_echo_n "checking for wish... " >&6; }
 $as_echo "${WISH_PROG}" >&6; }
 
 
+
+if test "${TEA_PLATFORM}" = "windows" ; then
+  ## If the compiler accepts -static-libstdc++, modify the compiler
+  ## and linker options...
+  if test $tcl_cv_cc_staticlib = yes; then
+      CFLAGS="$CFLAGS -static-libgcc -static-libstdc++"
+      SHLIB_LD="$SHLIB_LD -static-libgcc -static-libstdc++"
+  fi
+fi
 
 #--------------------------------------------------------------------
 # Finally, substitute all of the various values into the Makefile.
