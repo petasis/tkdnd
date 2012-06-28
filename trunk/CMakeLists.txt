@@ -61,6 +61,25 @@ ELSE  ( WIN32 )
   ENDIF ( APPLE )
 ENDIF ( WIN32 )
 
+##
+## If we are building with MINGW, link statically to its libs...
+##
+IF ( MINGW )
+  INCLUDE ( CheckCCompilerFlag )
+  CHECK_C_COMPILER_FLAG ( -static-libgcc    FLAG_static_libgcc    )
+  CHECK_C_COMPILER_FLAG ( -static-libstdc++ FLAG_static_libstdcpp )
+  IF ( FLAG_static_libgcc )
+    MESSAGE ( STATUS " -> MINGW detected: adding -static-libgcc!" )
+    SET ( CMAKE_SHARED_LINKER_FLAGS
+       "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc" )
+  ENDIF ( FLAG_static_libgcc )
+  IF ( FLAG_static_libstdcpp )
+    MESSAGE ( STATUS " -> MINGW detected: adding -static-libstdc++!" )
+    SET ( CMAKE_SHARED_LINKER_FLAGS
+       "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++" )
+  ENDIF (FLAG_static_libstdcpp )
+ENDIF ( MINGW )
+
 ## Arange project version information...
 SET ( PKG_VERSION
      "${PKG_MAJOR_VERSION}.${PKG_MINOR_VERSION}.${PKG_BUILD_VERSION}" )
