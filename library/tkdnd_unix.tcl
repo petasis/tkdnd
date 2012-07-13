@@ -341,6 +341,8 @@ proc xdnd::_GetDroppedData { time } {
     } else {
       # puts "_selection_get -displayof $_drop_target -selection XdndSelection \
       #                 -type $type -time $time"
+      #after 100 [list focus -force $_drop_target]
+      #after 50 [list raise [winfo toplevel $_drop_target]]
       if {![catch {
         _selection_get -displayof $_drop_target -selection XdndSelection \
                       -type $type -time $time
@@ -410,7 +412,7 @@ proc xdnd::_normalise_data { type data } {
            } string]} {
         set string $data
       }
-      return [string map {\r\n \n} $string
+      return [string map {\r\n \n} $string]
     }
     text/uri-list* {
       if {[catch {

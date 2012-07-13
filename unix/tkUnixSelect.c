@@ -188,7 +188,7 @@ int TkDND_ClipboardReadIncrementalProperty(Tk_Window tkwin,
   }
   Tk_DeleteEventHandler(tkwin, PropertyNotify,
                         TkDND_PropertyNotifyEventProc, &detail2);
-  Tcl_DeleteTimerHandler(detail2.timeout);
+  if (detail2.timeout) Tcl_DeleteTimerHandler(detail2.timeout);
   return detail2.result;
 }; /* TkDND_ClipboardReadIncrementalProperty */
 
@@ -289,6 +289,7 @@ TkDNDSelGetSelection(
     detail.result       = -1;
     detail.idleTime     = 0;
 
+    XFlush(display);
     if (XGetSelectionOwner(display, selection) == None) {
       Tcl_SetResult(interp, "no owner for selection", TCL_STATIC);
       return TCL_ERROR;
@@ -300,27 +301,28 @@ TkDNDSelGetSelection(
      * could even predate the time when the selection was made; if this
      * happens, the request will be rejected.
      */
-
-    //XFlush(display);
+    Tcl_ThreadAlert(Tcl_GetCurrentThread());
     /* Register an event handler for tkwin... */
     Tk_CreateEventHandler(sel_tkwin, SelectionNotify,
                           TkDND_SelectionNotifyEventProc, &detail);
+    XFlush(display);
     XConvertSelection(display, selection, target,
 	              selection, Tk_WindowId(sel_tkwin), time);
+    // Tcl_QueueEvent(NULL, TCL_QUEUE_TAIL);
     /*
      * Enter a loop processing X events until the selection has been retrieved
      * and processed. If no response is received within a few seconds, then
      * timeout.
      */
-    detail.timeout = Tcl_CreateTimerHandler(1000, TkDND_SelTimeoutProc,
+    detail.timeout = Tcl_CreateTimerHandler(70, TkDND_SelTimeoutProc,
 	                                    &detail);
     while (detail.result == -1) {
-      //XFlush(display);
       Tcl_DoOneEvent(0);
+      XFlush(display);
     }
     Tk_DeleteEventHandler(sel_tkwin, SelectionNotify,
                           TkDND_SelectionNotifyEventProc, &detail);
-    Tcl_DeleteTimerHandler(detail.timeout);
+    if (detail.timeout) Tcl_DeleteTimerHandler(detail.timeout);
 
     return detail.result;
 }
@@ -359,8 +361,13 @@ TkDND_SelTimeoutProc(
     if (retrPtr->result != -1) {
 	return;
     }
+    XFlush(Tk_Display(retrPtr->tkwin));
+    if (retrPtr->idleTime > 3){
+      Tcl_ThreadAlert(Tcl_GetCurrentThread());
+      XFlush(Tk_Display(retrPtr->tkwin));
+    }
     retrPtr->idleTime++;
-    if (retrPtr->idleTime >= 5) {
+    if (retrPtr->idleTime >= 6) {
 	/*
 	 * Use a careful function to store the error message, because the
 	 * result could already be partially filled in with a partial
@@ -370,6 +377,8 @@ TkDND_SelTimeoutProc(
 	Tcl_SetResult(retrPtr->interp, "selection owner didn't respond",
 		TCL_STATIC);
 	retrPtr->result = TCL_ERROR;
+        retrPtr->timeout = NULL;
+
     } else {
 	retrPtr->timeout = Tcl_CreateTimerHandler(1000, TkDND_SelTimeoutProc,
 		(ClientData) retrPtr);
