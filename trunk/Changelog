@@ -1,3 +1,8 @@
+2012-07-14  Petasis George  <petasis@iit.demokritos.gr>
+	* unix/tkUnixSelect.c: Tests with Tcl_ThreadAlert(). It helps
+	somewhat, but is not the solution for the problems when getting the
+	selection.
+
 2012-06-17  Petasis George  <petasis@iit.demokritos.gr>
 	TkDND 2.5 released.
 	* win/TkDND_OleDND.cpp: Fixes for type CF_HDROP.
