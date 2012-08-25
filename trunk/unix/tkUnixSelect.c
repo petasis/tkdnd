@@ -216,7 +216,11 @@ void TkDND_SelectionNotifyEventProc(ClientData clientData, XEvent *eventPtr) {
     }
   }
   if (status) detail->result = TCL_OK;
-  else        detail->result = TCL_ERROR;
+  else {
+    /* Do not report the error if this has not be called by a
+     *  SelectionNotify event... */
+    if (eventPtr != NULL) detail->result = TCL_ERROR;
+  }
 }; /* TkDND_SelectionNotifyEventProc */
 
 void TkDND_PropertyNotifyEventProc(ClientData clientData, XEvent *eventPtr) {
