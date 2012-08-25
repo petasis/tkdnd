@@ -363,6 +363,7 @@ TkDND_SelTimeoutProc(
      * it's been since any sort of response was received from the other side.
      */
 
+    TkDND_SelectionNotifyEventProc(retrPtr, NULL);
     if (retrPtr->result != -1) {
 	return;
     }
