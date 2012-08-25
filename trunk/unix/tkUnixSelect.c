@@ -201,12 +201,14 @@ void TkDND_SelectionNotifyEventProc(ClientData clientData, XEvent *eventPtr) {
                                        detail, &size, &type, &format);
   if (status) {
 #ifdef TKDND_DebugSelectionRequests
+    if (eventPtr != NULL) {
     printf("SelectionNotify: selection: %s, target: %s, property: %s,\
             type: %s, format: %d\n",
             Tk_GetAtomName(detail->tkwin, eventPtr->xselection.selection),
             Tk_GetAtomName(detail->tkwin, eventPtr->xselection.target),
             Tk_GetAtomName(detail->tkwin, eventPtr->xselection.property),
             Tk_GetAtomName(detail->tkwin, type), format);
+    }
 #endif /* TKDND_DebugSelectionRequests */
     if (type == Tk_InternAtom(detail->tkwin, "INCR")) {
       status = TkDND_ClipboardReadIncrementalProperty(detail->tkwin,
@@ -305,10 +307,9 @@ TkDNDSelGetSelection(
     /* Register an event handler for tkwin... */
     Tk_CreateEventHandler(sel_tkwin, SelectionNotify,
                           TkDND_SelectionNotifyEventProc, &detail);
-    XFlush(display);
     XConvertSelection(display, selection, target,
 	              selection, Tk_WindowId(sel_tkwin), time);
-    // Tcl_QueueEvent(NULL, TCL_QUEUE_TAIL);
+    XFlush(display);
     /*
      * Enter a loop processing X events until the selection has been retrieved
      * and processed. If no response is received within a few seconds, then
@@ -317,8 +318,8 @@ TkDNDSelGetSelection(
     detail.timeout = Tcl_CreateTimerHandler(70, TkDND_SelTimeoutProc,
 	                                    &detail);
     while (detail.result == -1) {
+      TkDND_SelectionNotifyEventProc(&detail, NULL);
       Tcl_DoOneEvent(0);
-      XFlush(display);
     }
     Tk_DeleteEventHandler(sel_tkwin, SelectionNotify,
                           TkDND_SelectionNotifyEventProc, &detail);

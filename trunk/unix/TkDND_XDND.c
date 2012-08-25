@@ -696,7 +696,7 @@ static int TkDND_XDNDHandler(Tk_Window tkwin, XEvent *xevent) {
  * If TIP 370 gets implemented, they will not be required.
  */
 static int TkDND_SelGetProc(ClientData clientData,
-                            Tcl_Interp *interp, char *portion) {
+                            Tcl_Interp *interp, CONST86 char *portion) {
   Tcl_DStringAppend(clientData, portion, -1);
   return TCL_OK;
 }; /* TkDND_SelGetProc */
