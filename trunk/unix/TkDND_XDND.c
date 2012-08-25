@@ -170,6 +170,10 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #define XDND_FINISHED_ACCEPTED_YES(e)   ((e)->xclient.data.l[1] |=  (1 << 1))
 #define XDND_FINISHED_ACTION(e)         ((e)->xclient.data.l[2])
 
+#ifndef CONST86
+#define CONST86
+#endif
+
 extern int TkDND_GetSelection(Tcl_Interp *interp, Tk_Window tkwin,
                               Atom selection,
                               Atom target, Time time,
