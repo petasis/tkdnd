@@ -1,3 +1,9 @@
+2012-08-15  Petasis George  <petasis@iit.demokritos.gr>
+	TkDND 2.5 released.
+	* unix/tkUnixSelect.c: Partially solved the problem with getting
+	selection under unix. The solution was to try and get the selection,
+	even if a SelectionNotify event has not been delivered.
+
 2012-07-14  Petasis George  <petasis@iit.demokritos.gr>
 	* unix/tkUnixSelect.c: Tests with Tcl_ThreadAlert(). It helps
 	somewhat, but is not the solution for the problems when getting the
