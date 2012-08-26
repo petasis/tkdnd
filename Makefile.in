@@ -319,7 +319,7 @@ dist-clean:
 
 dist: dist-clean
 	mkdir -p $(DIST_DIR)
-	cp -p $(srcdir)/ChangeLog $(srcdir)/README* $(srcdir)/license* \
+	cp -p $(srcdir)/Changelog $(srcdir)/CMakeLists.txt $(srcdir)/license* \
 		$(srcdir)/aclocal.m4 $(srcdir)/configure $(srcdir)/*.in \
 		$(DIST_DIR)/
 	chmod 664 $(DIST_DIR)/Makefile.in $(DIST_DIR)/aclocal.m4
@@ -337,7 +337,7 @@ dist: dist-clean
 	chmod 664 $(DIST_DIR)/tclconfig/tcl.m4
 	chmod +x $(DIST_DIR)/tclconfig/install-sh
 
-	list='demos doc generic library mac tests unix win'; \
+	list='cmake demos doc generic library macosx tests unix win'; \
 	for p in $$list; do \
 	    if test -d $(srcdir)/$$p ; then \
 		mkdir $(DIST_DIR)/$$p; \
