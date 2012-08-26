@@ -1,5 +1,5 @@
 2012-08-15  Petasis George  <petasis@iit.demokritos.gr>
-	TkDND 2.5 released.
+	TkDND 2.6 released.
 	* unix/tkUnixSelect.c: Partially solved the problem with getting
 	selection under unix. The solution was to try and get the selection,
 	even if a SelectionNotify event has not been delivered.
