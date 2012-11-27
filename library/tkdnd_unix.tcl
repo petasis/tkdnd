@@ -50,6 +50,9 @@ namespace eval xdnd {
 
   variable _dragging 0
 
+  variable _last_mouse_root_x 0
+  variable _last_mouse_root_y 0
+
   proc debug {msg} {
     puts $msg
   };# debug
@@ -69,6 +72,9 @@ proc xdnd::_HandleXdndEnter { path drag_source typelist } {
   variable _drop_target;              set _drop_target {}
   variable _actionlist;               set _actionlist  \
                                            {copy move link ask private}
+
+  variable _last_mouse_root_x;        set _last_mouse_root_x 0
+  variable _last_mouse_root_y;        set _last_mouse_root_y 0
   # debug "\n==============================================================="
   # debug "xdnd::_HandleXdndEnter: path=$path, drag_source=$drag_source,\
   #        typelist=$typelist"
@@ -89,6 +95,10 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
   variable _common_drop_target_types
   variable _drag_source
   variable _drop_target
+
+  variable _last_mouse_root_x;        set _last_mouse_root_x $rootX
+  variable _last_mouse_root_y;        set _last_mouse_root_y $rootY
+
   # debug "xdnd::_HandleXdndPosition: drop_target=$drop_target,\
   #            _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
 
@@ -215,13 +225,16 @@ proc xdnd::_HandleXdndLeave {  } {
   variable _common_drop_target_types
   variable _drag_source
   variable _drop_target
+  variable _last_mouse_root_x
+  variable _last_mouse_root_y
   if {![info exists _drop_target]} {set _drop_target {}}
   # debug "xdnd::_HandleXdndLeave: _drop_target=$_drop_target"
   if {[info exists _drop_target] && [string length $_drop_target]} {
     set cmd [bind $_drop_target <<DropLeave>>]
     if {[string length $cmd]} {
       set _codelist $_typelist
-      set cmd [string map [list %W $_drop_target %X 0 %Y 0 \
+      set cmd [string map [list %W $_drop_target \
+        %X $_last_mouse_root_x %Y $_last_mouse_root_y \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
         %ST  \{$_typelist\}    %TT \{$_types\} \
@@ -255,8 +268,10 @@ proc xdnd::_HandleXdndDrop { time } {
   variable _common_drop_target_types
   variable _drag_source
   variable _drop_target
-  set rootX 0
-  set rootY 0
+  variable _last_mouse_root_x
+  variable _last_mouse_root_y
+  set rootX $_last_mouse_root_x
+  set rootY $_last_mouse_root_y
 
   # puts "xdnd::_HandleXdndDrop: $time"
 
