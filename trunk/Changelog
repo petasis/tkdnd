@@ -1,3 +1,10 @@
+2012-11-27  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_unix.tcl:
+	* library/tkdnd_windows.tcl: Leave and Drop events do not report 0
+        as root x/y (%X %Y). In case the underlying protocol does not support
+        reporting the mouse coordinates for the specific event, the last known
+        possition from the position event is used.
+
 2012-08-26  Petasis George  <petasis@iit.demokritos.gr>
 	TkDND 2.6 released.
 	* unix/tkUnixSelect.c: Added a work-around for getting the selection

@@ -46,6 +46,9 @@ namespace eval olednd {
   variable _common_drag_source_types {}
   variable _common_drop_target_types {}
   variable _unhandled_types {}
+
+  variable _last_mouse_root_x 0
+  variable _last_mouse_root_y 0
 };# namespace olednd
 
 # ----------------------------------------------------------------------------
@@ -60,6 +63,10 @@ proc olednd::_HandleDragEnter { drop_target typelist actionlist pressedkeys
   variable _action;                   set _action      {}
   variable _common_drag_source_types; set _common_drag_source_types {}
   variable _common_drop_target_types; set _common_drop_target_types {}
+
+  variable _last_mouse_root_x;        set _last_mouse_root_x $rootX
+  variable _last_mouse_root_y;        set _last_mouse_root_y $rootY
+
   # puts "olednd::_HandleDragEnter: drop_target=$drop_target,\
   #       typelist=$typelist, actionlist=$actionlist,\
   #       pressedkeys=$pressedkeys, rootX=$rootX, rootY=$rootY"
@@ -119,6 +126,10 @@ proc olednd::_HandleDragOver { drop_target pressedkeys rootX rootY } {
   variable _action
   variable _common_drag_source_types
   variable _common_drop_target_types
+
+  variable _last_mouse_root_x;        set _last_mouse_root_x $rootX
+  variable _last_mouse_root_y;        set _last_mouse_root_y $rootY
+
   # puts "olednd::_HandleDragOver: drop_target=$drop_target,\
   #             pressedkeys=$pressedkeys, rootX=$rootX, rootY=$rootY"
 
@@ -156,6 +167,9 @@ proc olednd::_HandleDragLeave { drop_target } {
   variable _action
   variable _common_drag_source_types
   variable _common_drop_target_types
+  variable _last_mouse_root_x
+  variable _last_mouse_root_y
+
   if {![llength $_common_drag_source_types]} {return}
   foreach var {_types _typelist _actionlist _pressedkeys _action
                _common_drag_source_types _common_drop_target_types} {
@@ -164,7 +178,8 @@ proc olednd::_HandleDragLeave { drop_target } {
 
   set cmd [bind $drop_target <<DropLeave>>]
   if {[string length $cmd]} {
-    set cmd [string map [list %W $drop_target %X 0 %Y 0 \
+    set cmd [string map [list %W $drop_target \
+      %X $_last_mouse_root_x %Y $_last_mouse_root_y \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \
       %ST  \{$_typelist\}    %TT \{$_types\} \
