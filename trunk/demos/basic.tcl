@@ -55,9 +55,10 @@ tkdnd::drop_target register .drop_target *
 # virtual events: <<DropEnter>> <<DropPosition>> <<DropLeave>>
 # The fields that can be used in the event callbacks, are given in "cmd",
 # while their "label" is given in "itemList"...
-set cmd {handle_event %e %W %X %Y %ST %TT %a %A %CST %CTT %t %T %b %D}
+set cmd {handle_event %e %W %X %Y %ST %TT %a %A %CST %CTT %t %T %CPT %b %D}
 set itemList {Event Widget X Y Source_Types Target_Types Source_Actions Action
-              Common_Source_Types Common_Target_Types Types Drop_Type
+              Common_Source_Types Common_Target_Types Types
+	      Drop_Type Cross_Platform_Drop_Type
               Pressed_Keys Data}
 # Add the various events...
 bind .drop_target <<DropEnter>>      $cmd
@@ -77,7 +78,7 @@ bind .drop_target <<Drop:DND_Color>> $cmd
 # Create some widgets for showing event info.
 foreach item $itemList {
   grid [label .[string tolower $item] -text [string map {_ \ } $item]:\
-          -anchor w] [label .[string tolower $item]_val -width 30 -anchor w \
+          -anchor w] [label .[string tolower $item]_val -width 60 -anchor w \
           -background white -foreground navy] -sticky snew -padx 1 -pady 1
 }
 grid columnconfigure . 1 -weight 1

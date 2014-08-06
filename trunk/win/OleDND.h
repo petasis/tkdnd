@@ -309,7 +309,7 @@ public:
     }; /* Release */
         
     // IDataObject members
-    HRESULT __stdcall GetData(FORMATETC *pFormatEtc,  STGMEDIUM *pMedium) {
+    HRESULT __stdcall GetData(FORMATETC *pFormatEtc, STGMEDIUM *pMedium) {
       int idx;
       // try to match the specified FORMATETC with one of our supported formats
       if ((idx = LookupFormatEtc(pFormatEtc)) == -1) return DV_E_FORMATETC;
@@ -329,7 +329,7 @@ public:
       return S_OK;
     }; /* GetData */
     
-    HRESULT __stdcall GetDataHere(FORMATETC *pFormatEtc,  STGMEDIUM *pmedium) {
+    HRESULT __stdcall GetDataHere(FORMATETC *pFormatEtc, STGMEDIUM *pmedium) {
       return DATA_E_FORMATETC;
     }; /* GetDataHere */
             
@@ -411,7 +411,7 @@ public:
         if (ClipboardFormatBook[i].cfFormat == currentFormat)
                      return ClipboardFormatBook[i].name;
       }
-      GetClipboardFormatName((CLIPFORMAT) currentFormat, szTempStr, 78);
+      GetClipboardFormatName((CLIPFORMAT) currentFormat, szTempStr, 250);
       return szTempStr;
     }; /* GetCurrentFormatName */
 
@@ -424,7 +424,7 @@ private:
     LONG       m_nNumFormats;
     UINT       currentFormat;
 
-    TCHAR szTempStr[80];
+    TCHAR szTempStr[255];
 
     int LookupFormatEtc(FORMATETC *pFormatEtc) {
       // check each of our formats in turn to see if one matches
@@ -688,11 +688,15 @@ class TkDND_DropTarget: public IDropTarget {
       int i, type_index, status, index, typeObjc;
       static const char *DropTypes[] = {
         "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
+        "CF_HTML", "HTML Format",
+        "CF_RTF", "CF_RTFTEXT", "Rich Text Format",
         "FileGroupDescriptorW", "FileGroupDescriptor",
         (char *) NULL
       };
       enum droptypes {
         TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP,
+        TYPE_CF_HTML, TYPE_CF_HTMLFORMAT,
+        TYPE_CF_RTF, TYPE_CF_RTFTEXT, TYPE_CF_RICHTEXTFORMAT,
         TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR
       };
       static const char *DropActions[] = {
@@ -720,6 +724,14 @@ class TkDND_DropTarget: public IDropTarget {
           switch ((enum droptypes) index) {
             case TYPE_CF_UNICODETEXT:
               data = GetData_CF_UNICODETEXT(pDataObject); break;
+            case TYPE_CF_HTML:
+            case TYPE_CF_HTMLFORMAT:
+            case TYPE_CF_RTF:
+            case TYPE_CF_RTFTEXT:
+            case TYPE_CF_RICHTEXTFORMAT:
+              type = typeObj[type_index]; Tcl_IncrRefCount(type);
+              data = GetData_Bytearray(pDataObject, type);
+              break;
             case TYPE_CF_TEXT:
               data = GetData_CF_TEXT(pDataObject); break;
             case TYPE_CF_HDROP:

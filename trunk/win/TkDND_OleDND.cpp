@@ -118,25 +118,49 @@ int TkDND_RevokeDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 }; /* TkDND_RevokeDragDropObjCmd */
 
+#define COPY_UTF8_TO_DATA_OBJECT \
+  Tcl_GetStringFromObj(data[i], &nDataLength); \
+  m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength+1); \
+  if (m_pstgmed[i].hGlobal) { \
+    ptr = (char *) GlobalLock(m_pstgmed[i].hGlobal); \
+    memcpy(ptr, Tcl_GetString(data[i]), nDataLength); \
+    ptr[nDataLength] = '\0'; \
+    GlobalUnlock(m_pstgmed[i].hGlobal); \
+  }
+
+#define COPY_BYTEARRAY_TO_DATA_OBJECT(type_str) \
+  m_pfmtetc[i].cfFormat = RegisterClipboardFormat(type_str); \
+  bytes = Tcl_GetByteArrayFromObj(data[i], &nDataLength); \
+  m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength); \
+  if (m_pstgmed[i].hGlobal) { \
+    ptr = (char *) GlobalLock(m_pstgmed[i].hGlobal); \
+    memcpy(ptr, bytes, nDataLength); \
+    GlobalUnlock(m_pstgmed[i].hGlobal); \
+  }
+
 int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                            int objc, Tcl_Obj *CONST objv[]) {
   TkDND_DataObject *pDataObject = NULL;
   TkDND_DropSource *pDropSource = NULL;
-  Tcl_Obj         **elem;
+  Tcl_Obj         **type, **data;
   DWORD             actions = 0;
   DWORD             dwEffect;
   DWORD             dwResult;
-  int               status, elem_nu, i, index, nDataLength, button = 1;
+  int               status, type_nu, data_nu, i, index, nDataLength, button = 1;
   char             *ptr;
   Tcl_UniChar      *unicode, *ptr_u;
   FORMATETC        *m_pfmtetc;
   STGMEDIUM        *m_pstgmed;
   static const char *DropTypes[] = {
     "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
+    "CF_HTML", "HTML Format",
+    "CF_RTF", "CF_RTFTEXT", "Rich Text Format",
     (char *) NULL
   };
   enum droptypes {
-    TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP
+    TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP,
+    TYPE_CF_HTML, TYPE_CF_HTMLFORMAT,
+    TYPE_CF_RTF, TYPE_CF_RTFTEXT, TYPE_CF_RICHTEXTFORMAT
   };
   static const char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -148,6 +172,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     refuse_drop, ActionDefault
   };
   size_t buffer_size;
+  unsigned char *bytes;
 
   if (objc != 5 && objc != 6) {
     Tcl_WrongNumArgs(interp, 1, objv, "path actions types data ?mouse-button?");
@@ -166,10 +191,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /* Process drag actions. */
-  status = Tcl_ListObjGetElements(interp, objv[2], &elem_nu, &elem);
+  status = Tcl_ListObjGetElements(interp, objv[2], &type_nu, &type);
   if (status != TCL_OK) return status;
-  for (i = 0; i < elem_nu; i++) {
-    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **)DropActions,
+  for (i = 0; i < type_nu; i++) {
+    status = Tcl_GetIndexFromObj(interp, type[i], (const char **)DropActions,
                                  "dropactions", 0, &index);
     if (status != TCL_OK) return status;
     switch ((enum dropactions) index) {
@@ -184,28 +209,35 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /* Process drag types. */
-  status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
+  status = Tcl_ListObjGetElements(interp, objv[3], &type_nu, &type);
   if (status != TCL_OK) return status;
-  m_pfmtetc  = new FORMATETC[elem_nu];
+  status = Tcl_ListObjGetElements(interp, objv[4], &data_nu, &data);
+  if (status != TCL_OK) return status;
+  if (type_nu != data_nu) {
+    Tcl_SetResult(interp, "lists type & data must have the same length",
+                  TCL_STATIC);
+    return TCL_ERROR;
+  }
+  m_pfmtetc  = new FORMATETC[type_nu];
   if (m_pfmtetc == NULL) return TCL_ERROR;
-  m_pstgmed  = new STGMEDIUM[elem_nu];
+  m_pstgmed  = new STGMEDIUM[type_nu];
   if (m_pstgmed == NULL) {
     delete[] m_pfmtetc; return TCL_ERROR;
   }
-  for (i = 0; i < elem_nu; i++) {
+  for (i = 0; i < type_nu; i++) {
     m_pfmtetc[i].ptd            = 0;
     m_pfmtetc[i].dwAspect       = DVASPECT_CONTENT;
     m_pfmtetc[i].lindex         = -1;
     m_pfmtetc[i].tymed          = TYMED_HGLOBAL;
     m_pstgmed[i].tymed          = TYMED_HGLOBAL;
     m_pstgmed[i].pUnkForRelease = 0;
-    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
+    status = Tcl_GetIndexFromObj(interp, type[i], (const char **) DropTypes,
                                  "dropactions", 0, &index);
     if (status == TCL_OK) {
       switch ((enum droptypes) index) {
         case TYPE_CF_UNICODETEXT: {
           m_pfmtetc[i].cfFormat = CF_UNICODETEXT;
-          unicode = Tcl_GetUnicodeFromObj(objv[4], &nDataLength);
+          unicode = Tcl_GetUnicodeFromObj(data[i], &nDataLength);
           buffer_size = (nDataLength+1) * sizeof(Tcl_UniChar);
           m_pstgmed[i].hGlobal = GlobalAlloc(GHND, buffer_size);
           if (m_pstgmed[i].hGlobal) {
@@ -219,16 +251,20 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           }
           break;
         }
+        case TYPE_CF_HTMLFORMAT:
+        case TYPE_CF_HTML: {
+          COPY_BYTEARRAY_TO_DATA_OBJECT(TEXT("HTML Format"));
+          break;
+        }
+        case TYPE_CF_RICHTEXTFORMAT:
+        case TYPE_CF_RTF:
+        case TYPE_CF_RTFTEXT: {
+          COPY_BYTEARRAY_TO_DATA_OBJECT(TEXT("Rich Text Format"));
+          break;
+        }
         case TYPE_CF_TEXT: {
           m_pfmtetc[i].cfFormat = CF_TEXT;
-          nDataLength = Tcl_GetCharLength(objv[4]);
-          m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength+1);
-          if (m_pstgmed[i].hGlobal) {
-            ptr = (char *) GlobalLock(m_pstgmed[i].hGlobal);
-            memcpy(ptr, Tcl_GetString(objv[4]), nDataLength);
-            ptr[nDataLength] = '\0';
-            GlobalUnlock(m_pstgmed[i].hGlobal);
-          }
+          COPY_UTF8_TO_DATA_OBJECT;
           break;
         }
         case TYPE_CF_HDROP: {
@@ -238,13 +274,13 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           int file_nu, j, size, len;
           char *native_name;
 
-          status = Tcl_ListObjGetElements(interp, objv[4], &file_nu, &File);
-          if (status != TCL_OK) {elem_nu = i; goto error;}
+          status = Tcl_ListObjGetElements(interp, data[i], &file_nu, &File);
+          if (status != TCL_OK) {type_nu = i; goto error;}
           /* What we expect is a list of filenames. Convert the filenames into
            * the native format, and store the translated filenames into a new
            * list... */
           native_files_obj = Tcl_NewListObj(0, NULL);
-          if (native_files_obj == NULL) {elem_nu = i; goto error;}
+          if (native_files_obj == NULL) {type_nu = i; goto error;}
           size = 0;
           for (j = 0; j < file_nu; ++j) {
             Tcl_DStringInit(&ds);
@@ -282,7 +318,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 #ifdef HAVE_STRSAFE_H
               StringCchCopyW(CurPosition, buffer_size, pszFileName);
 #else
-              lstrcpyW(CurPosition, pszFileName);
+              lstrcpyW((LPWSTR) CurPosition, (LPWSTR) pszFileName);
 #endif
               /*
                * Move the current position beyond the file name copied, and
@@ -302,21 +338,13 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
         }
       }
     } else {
-      unsigned char *bytes;
       /* A user defined type? */
-      m_pfmtetc[i].cfFormat = RegisterClipboardFormat(TCL_GETSTRING(elem[i]));
-      bytes = Tcl_GetByteArrayFromObj(objv[4], &nDataLength);
-      m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength);
-      if (m_pstgmed[i].hGlobal) {
-        ptr = (char *) GlobalLock(m_pstgmed[i].hGlobal);
-        memcpy(ptr, bytes, nDataLength);
-        GlobalUnlock(m_pstgmed[i].hGlobal);
-      }
+      COPY_BYTEARRAY_TO_DATA_OBJECT(TCL_GETSTRING(type[i]));
       break;
     }
-  }; /* for (i = 0; i < elem_nu; i++) */
+  }; /* for (i = 0; i < type_nu; i++) */
   
-  pDataObject = new TkDND_DataObject(m_pfmtetc, m_pstgmed, elem_nu);
+  pDataObject = new TkDND_DataObject(m_pfmtetc, m_pstgmed, type_nu);
   if (pDataObject == NULL) {
     Tcl_SetResult(interp, "unable to create OLE Data object", TCL_STATIC);
     return TCL_ERROR;
@@ -333,7 +361,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   // release the COM interfaces
   pDropSource->Release();
   pDataObject->Release();
-  for (i = 0; i < elem_nu; i++) {
+  for (i = 0; i < type_nu; i++) {
     ReleaseStgMedium(&m_pstgmed[i]);
   }
   delete[] m_pfmtetc;
@@ -352,7 +380,7 @@ error:
   // release the COM interfaces
   if (pDropSource) pDropSource->Release();
   if (pDataObject) pDataObject->Release();
-  for (i = 0; i < elem_nu; i++) {
+  for (i = 0; i < type_nu; i++) {
     ReleaseStgMedium(&m_pstgmed[i]);
   }
   delete[] m_pfmtetc;

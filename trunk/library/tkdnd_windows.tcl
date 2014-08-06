@@ -98,6 +98,7 @@ proc olednd::_HandleDragEnter { drop_target typelist actionlist pressedkeys
       set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
+        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
         %ST  \{$_typelist\}    %TT \{$_types\} \
         %A   $_action          %a  \{$_actionlist\} \
         %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
@@ -140,6 +141,7 @@ proc olednd::_HandleDragOver { drop_target pressedkeys rootX rootY } {
     set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \
+      %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
       %ST  \{$_typelist\}    %TT \{$_types\} \
       %A   $_action          %a  \{$_actionlist\} \
       %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
@@ -182,6 +184,7 @@ proc olednd::_HandleDragLeave { drop_target } {
       %X $_last_mouse_root_x %Y $_last_mouse_root_y \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \
+      %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
       %ST  \{$_typelist\}    %TT \{$_types\} \
       %A   \{$_action\}      %a  \{$_actionlist\} \
       %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
@@ -216,12 +219,13 @@ proc olednd::_HandleDrop { drop_target pressedkeys rootX rootY _type data } {
   set _pressedkeys $pressedkeys
   ## Try to select the most specific <<Drop>> event.
   foreach type [concat $_common_drag_source_types $_common_drop_target_types] {
-    set type [_platform_independent_type $type]
+    set type [lindex [_platform_independent_type $type] 0]
     set cmd [bind $drop_target <<Drop:$type>>]
     if {[string length $cmd]} {
       set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
+        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
         %ST  \{$_typelist\}    %TT \{$_types\} \
         %A   $_action          %a \{$_actionlist\} \
         %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
@@ -238,6 +242,7 @@ proc olednd::_HandleDrop { drop_target pressedkeys rootX rootY _type data } {
     set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \
+      %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
       %ST  \{$_typelist\}    %TT \{$_types\} \
       %A   $_action          %a \{$_actionlist\} \
       %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
@@ -323,10 +328,10 @@ proc olednd::_platform_independent_types { types } {
 #  Command olednd::_normalise_data
 # ----------------------------------------------------------------------------
 proc olednd::_normalise_data { type data } {
-  switch $type {
-    CF_HDROP   {return $data}
-    DND_Text   {return [list CF_UNICODETEXT CF_TEXT]}
-    DND_Files  {return [list CF_HDROP]}
+  switch [lindex [_platform_independent_type $type] 0] {
+    DND_Text   {return $data}
+    DND_Files  {return $data}
+    DND_HTML   {return [encoding convertfrom utf-8 $data]}
     default    {return $data}
   }
 }; # olednd::_normalise_data
@@ -338,6 +343,8 @@ proc olednd::_platform_specific_type { type } {
   switch $type {
     DND_Text   {return [list CF_UNICODETEXT CF_TEXT]}
     DND_Files  {return [list CF_HDROP]}
+    DND_HTML   {return [list "HTML Format"]}
+    DND_RTF    {return [list "Rich Text Format"]}
     default    {
       # variable _unhandled_types
       # if {[lsearch -exact $_unhandled_types $type] == -1} {
@@ -352,9 +359,11 @@ proc olednd::_platform_specific_type { type } {
 # ----------------------------------------------------------------------------
 proc olednd::_platform_independent_type { type } {
   switch $type {
-    CF_UNICODETEXT - CF_TEXT {return DND_Text}
-    CF_HDROP                 {return DND_Files}
-    default    {return [list $type]}
+    CF_UNICODETEXT - CF_TEXT                 {return [list DND_Text]}
+    CF_HDROP                                 {return [list DND_Files]}
+    CF_HTML - "HTML Format"                  {return [list DND_HTML]}
+    CF_RTF - CF_RTFTEXT - "Rich Text Format" {return [list DND_RTF]}
+    default                                  {return [list $type]}
   }
 }; # olednd::_platform_independent_type
 
@@ -366,6 +375,8 @@ proc olednd::_supported_type { type } {
   switch $type {
     CF_UNICODETEXT - CF_TEXT -
     FileGroupDescriptor - FileGroupDescriptorW -
+    CF_HTML - CF_RTF - CF_RTFTEXT -
+    "HTML Format" - "Rich Text Format" -
     CF_HDROP {return 1}
   }
   # Is the type in our known, but unhandled types?

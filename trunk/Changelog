@@ -1,3 +1,29 @@
+2014-08-04  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_unix.tcl: Fixed a bug where successive drags may
+	be canceled, by a delayed XDNDFinished event, which is scheduled by
+	xdnd::_SendXdndDrop to occur after 10 seconds (as a protection against
+	a failed selection transfer by the client).
+	Bug reported by Csaba Nemethi.
+
+2014-01-05  Petasis George  <petasis@iit.demokritos.gr>
+	* doc/tkDND.n: Updated the man page.
+
+	* demos/complex_source.tcl:
+	* demos/simple_source.tcl:
+	* demos/simple_target.tcl: New demos.
+
+	* win/OleDND.h:
+	* win/TkDND_OleDND.cpp:
+	* library/tkdnd.tcl:
+	* library/tkdnd_windows.tcl: Added support for sources with multiple
+	and (incompatible) types, that require different data to be dropped. The
+	changes affect the <<DragInitCmd>>, where there are now to types of
+	return values expected from the event. Changes have been tested only
+	under Windows. Unix/OS X not yet implemented.
+
+	* demos/basic.tcl: Added information about the cross-platform dropped
+	type.
+
 2012-11-27  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd_unix.tcl:
 	* library/tkdnd_windows.tcl: Leave and Drop events do not report 0
