@@ -963,7 +963,12 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
   Tcl_Obj *dict, *key, *value;
   Tcl_Obj *objv[2], *result;
   int status, i;
-  KeySym sym;
+#ifdef TKDND_USE_XKEYCODETOKEYSYM
+  KeySym keysym;
+#else
+  KeySym *keysym;
+  int keysyms_per_keycode_return;
+#endif /* TKDND_USE_XKEYCODETOKEYSYM */
   Tk_Window main_window;
 
   if (interp == NULL) return 0;
@@ -1009,9 +1014,17 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
       TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
       main_window = Tk_MainWindow(interp);
-      sym = XKeycodeToKeysym(Tk_Display(main_window),
-                             eventPtr->xkey.keycode, 0);
-      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(sym));
+#ifdef TKDND_USE_XKEYCODETOKEYSYM
+      keysym = XKeycodeToKeysym(Tk_Display(main_window),
+                                eventPtr->xkey.keycode, 0);
+      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(keysym));
+#else  /* TKDND_USE_XKEYCODETOKEYSYM */
+      keysym = XGetKeyboardMapping(Tk_Display(main_window),
+                                   eventPtr->xkey.keycode, 1,
+                                   &keysyms_per_keycode_return);
+      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(keysym[0]));
+      XFree(keysym);
+#endif /* TKDND_USE_XKEYCODETOKEYSYM */
       break;
     case KeyRelease:
       TkDND_Dict_Put(dict,     "type",   "KeyRelease");
@@ -1023,9 +1036,17 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
       TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
       main_window = Tk_MainWindow(interp);
-      sym = XKeycodeToKeysym(Tk_Display(main_window),
-                             eventPtr->xkey.keycode, 0);
-      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(sym));
+#ifdef TKDND_USE_XKEYCODETOKEYSYM
+      keysym = XKeycodeToKeysym(Tk_Display(main_window),
+                                eventPtr->xkey.keycode, 0);
+      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(keysym));
+#else  /* TKDND_USE_XKEYCODETOKEYSYM */
+      keysym = XGetKeyboardMapping(Tk_Display(main_window),
+                                   eventPtr->xkey.keycode, 1,
+                                   &keysyms_per_keycode_return);
+      TkDND_Dict_Put(dict,     "keysym",   XKeysymToString(keysym[0]));
+      XFree(keysym);
+#endif /* TKDND_USE_XKEYCODETOKEYSYM */
       break;
     case EnterNotify:
       return 0;

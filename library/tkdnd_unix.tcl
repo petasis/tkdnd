@@ -141,6 +141,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
         set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
+          %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
           %ST  \{$_typelist\}    %TT \{$_types\} \
           %A   \{$_action\}      %a \{$_actionlist\} \
           %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
@@ -168,6 +169,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
         set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
+          %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
           %ST  \{$_typelist\}    %TT \{$_types\} \
           %A   $_action          %a  \{$_actionlist\} \
           %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
@@ -196,6 +198,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
       set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
+        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
         %ST  \{$_typelist\}    %TT \{$_types\} \
         %A   $_action          %a  \{$_actionlist\} \
         %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
@@ -237,6 +240,7 @@ proc xdnd::_HandleXdndLeave {  } {
         %X $_last_mouse_root_x %Y $_last_mouse_root_y \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
+        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
         %ST  \{$_typelist\}    %TT \{$_types\} \
         %A   \{$_action\}      %a  \{$_actionlist\} \
         %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
@@ -293,6 +297,7 @@ proc xdnd::_HandleXdndDrop { time } {
       set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
+        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
         %ST  \{$_typelist\}    %TT \{$_types\} \
         %A   $_action          %a \{$_actionlist\} \
         %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
@@ -310,6 +315,7 @@ proc xdnd::_HandleXdndDrop { time } {
     set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \
+      %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
       %ST  \{$_typelist\}    %TT \{$_types\} \
       %A   $_action          %a \{$_actionlist\} \
       %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
@@ -945,21 +951,31 @@ proc xdnd::_convert_to_unsigned {data format} {
 # ----------------------------------------------------------------------------
 proc xdnd::_SendData {type offset bytes args} {
   variable _dodragdrop_drag_source
+  variable _dodragdrop_types
   variable _dodragdrop_data
   variable _dodragdrop_transfer_data
+
+  ## The variable _dodragdrop_data contains a list of data, one for each
+  ## type in the _dodragdrop_types variable. We have to search types, and find
+  ## the corresponding entry in the _dodragdrop_data list.
+  set index [lsearch $_dodragdrop_types $type]
+  if {$index < 0} {
+    error "unable to locate data suitable for type \"$type\""
+  }
+  set typed_data [lindex $_dodragdrop_data $index]
   set format 8
   if {$offset == 0} {
     ## Prepare the data to be transfered...
     switch -glob $type {
       text/plain* - UTF8_STRING - STRING - TEXT - COMPOUND_TEXT {
-        binary scan [encoding convertto utf-8 $_dodragdrop_data] \
+        binary scan [encoding convertto utf-8 $typed_data] \
                     c* _dodragdrop_transfer_data
         set _dodragdrop_transfer_data \
            [_convert_to_unsigned $_dodragdrop_transfer_data $format]
       }
       text/uri-list* {
         set files [list]
-        foreach file $_dodragdrop_data {
+        foreach file $typed_data {
           switch -glob $file {
             *://*     {lappend files $file}
             default   {lappend files file://$file}
@@ -975,12 +991,12 @@ proc xdnd::_SendData {type offset bytes args} {
         ## Try to understand the provided data: we accept a standard Tk colour,
         ## or a list of 3 values (red green blue) or a list of 4 values
         ## (red green blue opacity).
-        switch [llength $_dodragdrop_data] {
-          1 { set color [winfo rgb $_dodragdrop_drag_source $_dodragdrop_data]
+        switch [llength $typed_data] {
+          1 { set color [winfo rgb $_dodragdrop_drag_source $typed_data]
               lappend color 65535 }
-          3 { set color $_dodragdrop_data; lappend color 65535 }
-          4 { set color $_dodragdrop_data }
-          default {error "unknown color data: \"$_dodragdrop_data\""}
+          3 { set color $typed_data; lappend color 65535 }
+          4 { set color $typed_data }
+          default {error "unknown color data: \"$typed_data\""}
         }
         ## Convert the 4 elements into 16 bit values...
         set _dodragdrop_transfer_data [list]
@@ -990,7 +1006,7 @@ proc xdnd::_SendData {type offset bytes args} {
       }
       default {
         set format 32
-        binary scan $_dodragdrop_data c* _dodragdrop_transfer_data
+        binary scan $typed_data c* _dodragdrop_transfer_data
       }
     }
   }
@@ -1029,7 +1045,7 @@ proc xdnd::_SendData {type offset bytes args} {
       error "unsupported format $format"
     }
   }
-  # puts "SendData: $type $offset $bytes $args ($_dodragdrop_data)"
+  # puts "SendData: $type $offset $bytes $args ($typed_data)"
   # puts "          $data"
   return $data
 };# xdnd::_SendData
