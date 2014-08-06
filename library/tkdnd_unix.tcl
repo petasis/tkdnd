@@ -763,6 +763,9 @@ proc xdnd::_HandleXdndStatus {event} {
 #  Command xdnd::_HandleXdndFinished
 # ----------------------------------------------------------------------------
 proc xdnd::_HandleXdndFinished {event} {
+  variable _dodragdrop_xdnd_finished_event_after_id
+  catch {after cancel $_dodragdrop_xdnd_finished_event_after_id}
+  set _dodragdrop_xdnd_finished_event_after_id {}
   variable _dodragdrop_drop_target
   set _dodragdrop_drop_target 0
   variable _dragging
@@ -824,7 +827,9 @@ proc xdnd::_SendXdndDrop {} {
   set _dodragdrop_drop_target 0
   # puts "XdndDrop: $_dodragdrop_drop_target"
   ## Arrange a timeout for receiving XdndFinished...
-  after 10000 [list ::tkdnd::xdnd::_HandleXdndFinished {}]
+  variable _dodragdrop_xdnd_finished_event_after_id
+  set _dodragdrop_xdnd_finished_event_after_id \
+    [after 10000 [list ::tkdnd::xdnd::_HandleXdndFinished {}]]
 };# xdnd::_SendXdndDrop
 
 # ----------------------------------------------------------------------------

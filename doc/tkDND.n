@@ -1,5 +1,5 @@
 '\"
-'\" This software (tkDND) is copyrighted by:
+'\" This software (TkDND) is copyrighted by:
 '\"   George Petasis, National Centre for Scientific Research "Demokritos",
 '\"   Aghia Paraskevi, Athens, Greece.
 '\"   e-mail: petasis@iit.demokritos.gr
@@ -92,7 +92,7 @@
 '\" .UL arg1 arg2
 '\"	Print arg1 underlined, then print arg2 normally.
 '\"
-'\" RCS: @(#) $Id: tkDND.n,v 1.2 2002/04/12 08:42:24 petasis Exp $
+'\" RCS: @(#) $Id: TkDND.n,v 1.2 2002/04/12 08:42:24 petasis Exp $
 '\"
 '\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
 .if t .wh -1.3i ^B
@@ -268,11 +268,11 @@ Database Class:	\\fB\\$3\\fR
 .de UL
 \\$1\l'|0\(ul'\\$2
 ..
-.TH tkdnd n 8.4 Tk "Tk Built-In Commands"
+.TH TkDND n 8.4 Tk "Tk Built-In Commands"
 .BS
 '\" Note:  do not modify the .SH NAME line immediately below!
 .SH NAME
-tkdnd \- Tk Drag and Drop Interface
+TkDND \- Tk Drag and Drop Interface
 .SH SYNOPSIS
 \fBtkdnd::drop_target register\fI window ?type-list?\fR
 .br
@@ -291,22 +291,22 @@ tkdnd \- Tk Drag and Drop Interface
 \fBtkdnd::SetDropFileTempDirectory \fIdirectory\fR
 
 .SH INTRODUCTION
-The \fBtkdnd\fR family commands provide a Tcl interface to native,
+The \fBTkDND\fR family commands provide a Tcl interface to native,
 platform specific drag and drop mechanism.
 Under Unix the drag & drop protocol in use is the XDND protocol version 5
 (also used by the Qt toolkit, and the KDE and GNOME desktops). 
 Under Windows, the OLE2 drag & drop interfaces are used.
 Under Macintosh, the Cocoa drag and drop interfaces are used.
 .PP
-The \fbtkdnd\fR family can be built from source code using the standard configure; make; make install procedure. Cmake is also supported. Some binary package are available from the SourceForge download site, from ActiveState's ActiveTcl distribution, and elsewhere.
+The \fbTkDND\fR family can be built from source code using the standard configure; make; make install procedure. Cmake is also supported. Some binary package are available from the SourceForge download site, from ActiveState's ActiveTcl distribution, and elsewhere.
 .PP
-With the \fBtkdnd\fR family commands the user is able to register existing Tk
+With the \fBTkDND\fR family commands the user is able to register existing Tk
 widgets as drag sources or drop targets, that are able to send or receive data
 during drag and drop operations, encoded in specific types.
 These types can be platform independent types like DND_Text and DND_Files or
 platform specific types, like CF_UNICODETEXT or text/plain.
 .PP
-The legal forms for the \fBtkdnd\fR commands are:
+The legal forms for the \fBTkDND\fR commands are:
 .TP
 \fBtkdnd::drop_target register\fI window ?type-list?\fR
 This command will register \fIwindow\fR as a drop target. A drop target is a
@@ -380,12 +380,12 @@ temporary files to \fIdirectory\fR.
 .SH SUPPORTED TYPES
 In order to declare the format that the data that will transfered during
 a drag and drop operation, all drag and drop protocols use the notion of types.
-Unfortunately, each protocol defines its own, usually platform specific, types. Tkdnd, trying to maintain portability among different platforms, offers some
+Unfortunately, each protocol defines its own, usually platform specific, types. TkDND, trying to maintain portability among different platforms, offers some
 predefined types for some basic kinds of data, like text, and filenames.
-Currently, the following predifined cross-platform values are available:
+Currently, the following predefined cross-platform values are available:
 .IP  \fBDND_Text\fR: 5
-This type can be used for transfering textual data. Internally, it is translated
-to the following platform specific formats:
+This type can be used for transferring textual data. Internally, it is
+translated to the following platform specific formats:
 .br
 Windows: \fBCF_UNICODETEXT\fR, \fBCF_TEXT\fR.
 .br
@@ -393,7 +393,7 @@ Unix: \fBtext/plain;charset=UTF-8\fR, \fBtext/plain\fR.
 .br
 Mac: \fBNSStringPboardType\fR.
 .IP  \fBDND_Files\fR: 5
-This type can be used for transfering a list of file names.
+This type can be used for transferring a list of file names.
 Internally, it is translated to the following platform specific formats:
 .br
 Windows: \fBCF_HDROP\fR.
@@ -402,30 +402,30 @@ Unix: \fBtext/uri-list\fR.
 .br
 Mac: \fBNSFilenamesPboardType\fR.
 .TP
-Additionally to the platform independent types, tkdnd supports the following platform specific types:
+Additionally to the platform independent types, TkDND supports the following platform specific types:
 .IP  \fBWindows\fR: 5
-\fBCF_UNICODETEXT\fR: Text transfer encoded in unicode.
+\fBCF_UNICODETEXT\fR: Text transfer encoded in Unicode.
 .br
 \fBCF_TEXT\fR: Text transfer with application dependent encoding. If an encoding
 locale is specified through CF_LOCALE it is used, else the system encoding is
 used for the conversion.
 .br
 \fBFileGroupDescriptor - FileContents\fR: These two types are used for
-transfering a set of files that do not appear physically on disk, like files
+transferring a set of files that do not appear physically on disk, like files
 from compressed folders or Outlook e-mail messages. File names are transfered as
-in the CF_TEXT type, while file contents are transfered in binary. Tkdnd
+in the CF_TEXT type, while file contents are transfered in binary. TkDND
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
-files in the temporary folder are returned. Note that tkdnd support this type
+files in the temporary folder are returned. Note that TkDND support this type
 pair only as drop targets and not as drag sources.
 .br
 \fBFileGroupDescriptorW - FileContents\fR: These two types are used for
 transfering a set of files that do not appear physically on disk, like files
 from compressed folders or Outlook e-mail messages. File names are transfered as
-in the CF_UNICODETEXT type, while file contents are transfered in binary. Tkdnd
+in the CF_UNICODETEXT type, while file contents are transfered in binary. TkDND
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
-files in the temporary folder are returned. Note that tkdnd support this type
+files in the temporary folder are returned. Note that TkDND support this type
 pair only as drop targets and not as drag sources.
 .br
 \fBCF_HDROP\fR: Files transfer encoded in UTF-8.
@@ -443,17 +443,17 @@ exist), while others are not. However, it is a good practice to define bindings
 for all events, so as the application will behave as expected during drag and
 drop operations.
 
-The tkdnd package defines a set of virtual events, that correspond to various
+The TkDND package defines a set of virtual events, that correspond to various
 phases of a drag and drop operation. All windows that are either a drop target
 or a drag source are expected to have bindings for (all) these events, created
 with the \fBbind\fR Tk command. While these event bindings are regular Tk
 events, they have a small difference from plain Tk events: most of them are
-expected to return a value. Since Tk bindings cannot return a value, tkdnd does
+expected to return a value. Since Tk bindings cannot return a value, TkDND does
 not actually generate these events (i.e. through "event generate"). Instead,
-tkdnd locates the script that has been bound to the virtual event, and directly
+TkDND locates the script that has been bound to the virtual event, and directly
 executes it, as a script. Apart from this small difference in how the events are
-triggered, the events required by tkdnd can be viewed as regular events. In the
-following two sections all virtual events defined by the tkdnd package are
+triggered, the events required by TkDND can be viewed as regular events. In the
+following two sections all virtual events defined by the TkDND package are
 presented.
 .SH DROP TARGET EVENTS
 A window registered as a drop target, is expected to have bindings for the
@@ -483,7 +483,7 @@ is not returned, the drop is refused for this window.
 .TP
 \fB<<DropLeave>>\fR:
 This event is triggered when the mouse leaves outside the
-area covered by window, whithout a drop happening. The binding of such an event
+area covered by window, without a drop happening. The binding of such an event
 is expected to restore the visual state of the window to normal (i.e. the visual
 state the window was in before the <<DropEnter>> event was triggered). The
 binding for such an event is not expected to return a value.
@@ -530,9 +530,9 @@ bind .drag_source <<DragInitCmd>> \\
 .TP
 \fB<<DragEndCmd>>\fR:
 This event is triggered when the drag action has finished (either when the drop
-was succesful or not). Its main purpose is to process the dropped data according
-to the drop action returned by the drop target. Binding for such an event
-is not mandatory, and the binding is not expected to return a value.
+was successful or not). Its main purpose is to process the dropped data
+according to the drop action returned by the drop target. Binding for such an
+event is not mandatory, and the binding is not expected to return a value.
 .SH BINDING SCRIPTS AND SUBSTITUTIONS
 All bindings scripts defined for any of the virtual events above will be
 executed in the same interpreter that was used for creating the window the 
@@ -565,7 +565,7 @@ The list of types from the drag source type list that are common to the drop
 target type list.
 .IP  \fB%D\fR 5
 The data that has been dropped. Under some platforms the data will be 
-available before the drop has occured. The format of the data is the current
+available before the drop has occurred. The format of the data is the current
 type of the drop operation.
 .IP  \fB%e\fR 5
 The name of the current virtual event. One of <<DropEnter>>, <<DropPosition>>,
@@ -577,7 +577,7 @@ The list of modifier keyboard keys that are pressed.
 Modifier keys are some special keys, like Shift, Control or Alt. 
 Valid modifiers are "shift", "ctrl" and "alt". It is useful for
 binding scripts of drop target events to examine this list of modifiers, as it
-is quite usuall to change the action according to the state of some modifier
+is quite usual to change the action according to the state of some modifier
 keys.
 .IP  \fB%ST\fR 5
 The list of types supported by the drag source.
@@ -639,6 +639,17 @@ the actual data to be dropped:
 .CS
 bind .text_drag_source <<DragInitCmd>> \\
      {list {copy move} DND_Text {Hello from Tk!}}
+.CE
+Please note that all specified format types must be compatible to each other, as
+they all characterise the same data.
+.SH SPECIFYING DRAG SOURCES WITH MULTIPLE DATA TYPES
+In the case the drag source wants to send a set of (incompatible) data types,
+the result of the <<DragInitCmd>> event binding must be slightly different, as
+it must return two items (instead of three described in the previous paragraph).
+The first element is again a list of allowable actions. However, the second item
+is a list of "format type" and "data" pairs:
+bind .text_drag_source <<DragInitCmd>> \\
+     {list {copy move} {DND_Text {Hello from Tk!} DND_Files {/tmp}}}
 .CE
 And that was all!
 .SH BUGS
