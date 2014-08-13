@@ -1,3 +1,16 @@
+2014-08-13  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_windows.tcl:
+	* library/tkdnd.tcl:
+	* library/tkdnd_unix.tcl:
+	* library/tkdnd_macosx.tcl:
+	* macosx/macdnd.m: Added support for complex sources under OS X.
+
+	* CMakeLists.txt: A few fixes for OS X.
+
+	* demos/complex_source.tcl:
+	* demos/simple_source.tcl: Ensure returned paths are absolute (to avoid
+	warnings under OS X).
+
 2014-08-06  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd_unix.tcl: Added support for sources with multiple
 	and (incompatible) types under Unix. Completed implementation started

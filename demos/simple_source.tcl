@@ -10,7 +10,7 @@ tkdnd::drag_source register .drag_source_text  DND_Text
 tkdnd::drag_source register .drag_source_files DND_Files
 
 ## Event <<DragInitCmd>>
-set filename [info script]
+set filename [file normalize [info script]]
 bind .drag_source_text <<DragInitCmd>> \
   {list copy DND_Text {Some nice dropped text!}}
 bind .drag_source_files <<DragInitCmd>> \

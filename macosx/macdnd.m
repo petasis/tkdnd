@@ -19,6 +19,8 @@
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
 
+#pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
+#if 0
 // not using clang LLVM compiler, or LLVM version is not 3.x
 #if !defined(__clang__) || __clang_major__ < 3
 
@@ -42,6 +44,8 @@
 #endif
 #ifndef __unsafe_unretained
 #define __unsafe_unretained
+#endif
+
 #endif
 
 #endif // __clang_major__ < 3
@@ -80,16 +84,15 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #define Tk_Interp TkDND_Interp
 #endif /* Tk_Interp */
 
-
 /*
  * Here we need to wrap Cocoa methods in Cocoa class: methods for initiating,
  * tracking, and terminating drag from inside and outside the application.
  */
 
 @interface DNDView : NSView {
-  NSDragOperation sourceDragMask;
-  NSPasteboard   *sourcePasteBoard;
-  NSMutableArray *draggedtypes;
+//  NSDragOperation sourceDragMask;
+//  NSPasteboard   *sourcePasteBoard;
+//  NSMutableArray *draggedtypes;
   NSInteger       tag;
 }
 
@@ -100,7 +103,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal;
 - (void)setTag:(NSInteger) t;
 - (NSInteger)tag;
-TkWindow* TkMacOSXGetTkWindow( NSWindow *w);
+Tk_Window TkMacOSXGetTkWindow(NSWindow *w);
 DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 @end
 
@@ -117,12 +120,11 @@ DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 /*
  * Ripped from Tk-Cocoa source code to map Tk window to Cocoa window
  */
-TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
+Tk_Window TkMacOSXGetTkWindow(NSWindow *w) {
   Window window = TkMacOSXGetXWindow((__bridge void*)w);
   TkDisplay *dispPtr = TkGetDisplayList();
 
-  return (window != None ? (TkWindow *)Tk_IdToWindow(dispPtr->display, window) :
-          NULL);
+  return (window != None ? Tk_IdToWindow(dispPtr->display, window) : NULL);
 }; /* TkMacOSXGetTkWindow */
 
 /*
@@ -185,6 +187,122 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   return NSDragOperationCopy|NSDragOperationMove|NSDragOperationLink;
 }
 
+/*
+ * Convert from strings to OS X type NSString objects...
+ */
+const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
+  int index, status;
+  NSString *str = NULL;
+  static char *OSXTypes[] = {
+    /* OS X v10.6 and later */
+    "NSPasteboardTypeString",
+    "NSPasteboardTypePDF",
+    "NSPasteboardTypeTIFF",
+    "NSPasteboardTypePNG",
+    "NSPasteboardTypeRTF",
+    "NSPasteboardTypeRTFD",
+    "NSPasteboardTypeHTML",
+    "NSPasteboardTypeTabularText",
+    "NSPasteboardTypeFont",
+    "NSPasteboardTypeRuler",
+    "NSPasteboardTypeColor",
+    "NSPasteboardTypeSound",
+    "NSPasteboardTypeMultipleTextSelection",
+    "NSPasteboardTypeFindPanelSearchOptions",
+    /* OS X v10.5 and earlier */
+    "NSStringPboardType",
+    "NSFilenamesPboardType",
+    "NSPostScriptPboardType",
+    "NSTIFFPboardType",
+    "NSRTFPboardType",
+    "NSTabularTextPboardType",
+    "NSFontPboardType",
+    "NSRulerPboardType",
+    "NSFileContentsPboardType",
+    "NSColorPboardType",
+    "NSRTFDPboardType",
+    "NSHTMLPboardType",
+    "NSURLPboardType",
+    "NSPDFPboardType",
+    "NSVCardPboardType",
+    "NSFilesPromisePboardType",
+    "NSMultipleTextSelectionPboardType",
+    (char *) NULL
+  };
+  enum osxtypes {
+    /* OS X v10.6 and later */
+    TYPE_NSPasteboardTypeString,
+    TYPE_NSPasteboardTypePDF,
+    TYPE_NSPasteboardTypeTIFF,
+    TYPE_NSPasteboardTypePNG,
+    TYPE_NSPasteboardTypeRTF,
+    TYPE_NSPasteboardTypeRTFD,
+    TYPE_NSPasteboardTypeHTML,
+    TYPE_NSPasteboardTypeTabularText,
+    TYPE_NSPasteboardTypeFont,
+    TYPE_NSPasteboardTypeRuler,
+    TYPE_NSPasteboardTypeColor,
+    TYPE_NSPasteboardTypeSound,
+    TYPE_NSPasteboardTypeMultipleTextSelection,
+    TYPE_NSPasteboardTypeFindPanelSearchOptions,
+    /* OS X v10.5 and earlier */
+    TYPE_NSStringPboardType,
+    TYPE_NSFilenamesPboardType,
+    TYPE_NSPostScriptPboardType,
+    TYPE_NSTIFFPboardType,
+    TYPE_NSRTFPboardType,
+    TYPE_NSTabularTextPboardType,
+    TYPE_NSFontPboardType,
+    TYPE_NSRulerPboardType,
+    TYPE_NSFileContentsPboardType,
+    TYPE_NSColorPboardType,
+    TYPE_NSRTFDPboardType,
+    TYPE_NSHTMLPboardType,
+    TYPE_NSURLPboardType,
+    TYPE_NSPDFPboardType,
+    TYPE_NSVCardPboardType,
+    TYPE_NSFilesPromisePboardType,
+    TYPE_NSMultipleTextSelectionPboardType,
+  };
+  status = Tcl_GetIndexFromObj(interp, obj, (const char **) OSXTypes,
+                                 "osxtypes", 0, &index);
+  if (status != TCL_OK) return NULL;
+  switch ((enum osxtypes) index) {
+    case TYPE_NSPasteboardTypeString:                 {str = NSPasteboardTypeString                ; break;}
+    case TYPE_NSPasteboardTypePDF:                    {str = NSPasteboardTypePDF                   ; break;}
+    case TYPE_NSPasteboardTypeTIFF:                   {str = NSPasteboardTypeTIFF                  ; break;}
+    case TYPE_NSPasteboardTypePNG:                    {str = NSPasteboardTypePNG                   ; break;}
+    case TYPE_NSPasteboardTypeRTF:                    {str = NSPasteboardTypeRTF                   ; break;}
+    case TYPE_NSPasteboardTypeRTFD:                   {str = NSPasteboardTypeRTFD                  ; break;}
+    case TYPE_NSPasteboardTypeHTML:                   {str = NSPasteboardTypeHTML                  ; break;}
+    case TYPE_NSPasteboardTypeTabularText:            {str = NSPasteboardTypeTabularText           ; break;}
+    case TYPE_NSPasteboardTypeFont:                   {str = NSPasteboardTypeFont                  ; break;}
+    case TYPE_NSPasteboardTypeRuler:                  {str = NSPasteboardTypeRuler                 ; break;}
+    case TYPE_NSPasteboardTypeColor:                  {str = NSPasteboardTypeColor                 ; break;}
+    case TYPE_NSPasteboardTypeSound:                  {str = NSPasteboardTypeSound                 ; break;}
+    case TYPE_NSPasteboardTypeMultipleTextSelection:  {str = NSPasteboardTypeMultipleTextSelection ; break;}
+    case TYPE_NSPasteboardTypeFindPanelSearchOptions: {str = NSPasteboardTypeFindPanelSearchOptions; break;}
+    case TYPE_NSStringPboardType:                     {str = NSStringPboardType                    ; break;}
+    case TYPE_NSFilenamesPboardType:                  {str = NSFilenamesPboardType                 ; break;}
+    case TYPE_NSPostScriptPboardType:                 {str = NSPostScriptPboardType                ; break;}
+    case TYPE_NSTIFFPboardType:                       {str = NSTIFFPboardType                      ; break;}
+    case TYPE_NSRTFPboardType:                        {str = NSRTFPboardType                       ; break;}
+    case TYPE_NSTabularTextPboardType:                {str = NSTabularTextPboardType               ; break;}
+    case TYPE_NSFontPboardType:                       {str = NSFontPboardType                      ; break;}
+    case TYPE_NSRulerPboardType:                      {str = NSRulerPboardType                     ; break;}
+    case TYPE_NSFileContentsPboardType:               {str = NSFileContentsPboardType              ; break;}
+    case TYPE_NSColorPboardType:                      {str = NSColorPboardType                     ; break;}
+    case TYPE_NSRTFDPboardType:                       {str = NSRTFDPboardType                      ; break;}
+    case TYPE_NSHTMLPboardType:                       {str = NSHTMLPboardType                      ; break;}
+    case TYPE_NSURLPboardType:                        {str = NSURLPboardType                       ; break;}
+    case TYPE_NSPDFPboardType:                        {str = NSPDFPboardType                       ; break;}
+    case TYPE_NSVCardPboardType:                      {str = NSVCardPboardType                     ; break;}
+    case TYPE_NSFilesPromisePboardType:               {str = NSFilesPromisePboardType              ; break;}
+    case TYPE_NSMultipleTextSelectionPboardType:      {str = NSMultipleTextSelectionPboardType     ; break;}
+  }
+  return str;
+}; /* TKDND_Obj2NSString */
+
 /*******************************************************************************
  *******************************************************************************
  ***** Drop Target Operations                                              *****
@@ -205,10 +323,9 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
     refuse_drop, ActionDefault
   };
 
-  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin    = (Tk_Window) winPtr;
-  Tcl_Interp *interp = Tk_Interp(tkwin);
-  sourcePasteBoard   = [sender draggingPasteboard];
+  Tk_Window     tkwin            = TkMacOSXGetTkWindow([self window]);
+  Tcl_Interp   *interp           = Tk_Interp(tkwin);
+  NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
 
   Tcl_Obj* objv[4], *element, *result;
   int i, index, status;
@@ -220,8 +337,8 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   /*
    * Search for known types...
    */
-  if ([[sourcePasteBoard types] containsObject:NSStringPboardType]) {
-    element = Tcl_NewStringObj("NSStringPboardType", -1);
+  if ([[sourcePasteBoard types] containsObject:NSPasteboardTypeString]) {
+    element = Tcl_NewStringObj("NSPasteboardTypeString", -1);
     Tcl_ListObjAppendElement(NULL, objv[3], element);
   }
   if ([[sourcePasteBoard types] containsObject:NSFilenamesPboardType]) {
@@ -272,10 +389,9 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   Tk_Window mouse_tkwin;
   NSPoint mouseLoc;
 
-  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin    = (Tk_Window) winPtr;
-  Tcl_Interp *interp = Tk_Interp(tkwin);
-  sourcePasteBoard   = [sender draggingPasteboard];
+  Tk_Window     tkwin            = TkMacOSXGetTkWindow([self window]);
+  Tcl_Interp   *interp           = Tk_Interp(tkwin);
+  NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
   /* Get the coordinates of the cursor... */
   mouseLoc = [NSEvent mouseLocation];
 
@@ -336,7 +452,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
 
 //prepare to perform drag operation
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender {
-  sourcePasteBoard = [sender draggingPasteboard];
+  // sourcePasteBoard = [sender draggingPasteboard];
   return YES;
 }; /* prepareForDragOperation */
 
@@ -353,39 +469,73 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
     refuse_drop, ActionDefault, NoReturnedAction
   };
-  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin    = (Tk_Window) winPtr;
-  Tcl_Interp *interp = Tk_Interp(tkwin);
-  sourcePasteBoard   = [sender draggingPasteboard];
+  Tk_Window     tkwin            = TkMacOSXGetTkWindow([self window]);
+  Tcl_Interp   *interp           = Tk_Interp(tkwin);
+  NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
   Tcl_Obj *data      = NULL;
+  Tcl_Obj* objv[3], **elem, *result;
+  int i, index, status, elem_nu;
+  const NSString *type;
 
-  /* Retrieve string data from clipboard... */
-  NSArray    *types           = [sourcePasteBoard types];
-  NSString   *pasteboardvalue = nil;
-  for (NSString *type in types) {
-    if ([type isEqualToString:NSStringPboardType]) {
-      /* String type... */
-      pasteboardvalue = [sourcePasteBoard stringForType:NSStringPboardType];
-      data = Tcl_NewStringObj([pasteboardvalue UTF8String], -1);
-    } else if ([type isEqualToString:NSFilenamesPboardType]) {
-      Tcl_Obj *element;
-      data = Tcl_NewListObj(0, NULL);
-      /* File array... */
-      NSArray *files =
-        [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
-      for (NSString *filename in files) {
-        element = Tcl_NewStringObj([filename UTF8String], -1);
-        if (element == NULL) continue;
-        Tcl_IncrRefCount(element);
-        Tcl_ListObjAppendElement(interp, data, element);
-        Tcl_DecrRefCount(element);
-      }
+  /* Retrieve the common types, as prefered by the drag source... */
+  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_GetDragSourceCommonTypes", -1);
+  /* Evaluate the command and get the result...*/
+  TkDND_Status_Eval(1);
+  //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
+  if (status != TCL_OK) {
+    /* An error has happened. Cancel the drop! */
+    return NO;
+  }
+  result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+  status = Tcl_ListObjGetElements(interp, result, &elem_nu, &elem);
+  if (status != TCL_OK) {
+    Tcl_DecrRefCount(result);
+    return NO;
+  }
+
+#if 0
+  /* Print what exists in the clipboard... */
+  i = 0;
+  for (NSPasteboardItem *item in [sourcePasteBoard pasteboardItems]) {
+    for (NSString *type in [item types]) {
+      printf("item %d: type: %s\n", i++, [type UTF8String]);
     }
   }
-  if (data == NULL) data = Tcl_NewStringObj(NULL, 0);
+  /* Print what we can accept... */
+  for (int j = 0; j < elem_nu; ++j) {
+    printf("accept: %s\n", Tcl_GetString(elem[j]));
+  }
+#endif
 
-  Tcl_Obj* objv[3], *result;
-  int i, index, status;
+  /* Retrieve data from clipboard, checking all items... */
+  for (int j = 0; j < elem_nu; ++j) {
+    type = TKDND_Obj2NSString(interp, elem[j]);
+    if ([type isEqualToString:NSPasteboardTypeString]) {
+      /* String type... */
+      for (NSPasteboardItem *item in [sourcePasteBoard pasteboardItems]) {
+        NSString *pasteboardvalue = [item stringForType:NSPasteboardTypeString];
+        if (pasteboardvalue) {
+          data = Tcl_NewStringObj([pasteboardvalue UTF8String], -1);
+          break;
+        }
+      }
+    } else if ([type isEqualToString:NSFilenamesPboardType]) {
+      /* Filenames array... */
+      NSArray *files = [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
+      if (files) {
+        Tcl_Obj *element;
+        data = Tcl_NewListObj(0, NULL);
+        for (NSString *filename in files) {
+          element = Tcl_NewStringObj([filename UTF8String], -1);
+          if (element == NULL) continue;
+          Tcl_ListObjAppendElement(interp, data, element);
+        }
+      }
+    }
+    if (data != NULL) break;
+  }
+  Tcl_DecrRefCount(result);
+  if (data == NULL) data = Tcl_NewStringObj(NULL, 0);
 
   objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleDrop", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
@@ -425,10 +575,8 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
  * Calls tkdnd::macdnd::_HandleXdndDrop
  */
 - (void)draggingExited:(id < NSDraggingInfo >)sender {
-  TkWindow *winPtr   = TkMacOSXGetTkWindow([self window]);
-  Tk_Window tkwin    = (Tk_Window) winPtr;
+  Tk_Window tkwin    = TkMacOSXGetTkWindow([self window]);
   Tcl_Interp *interp = Tk_Interp(tkwin);
-  sourcePasteBoard   = [sender draggingPasteboard];
 
   Tcl_Obj* objv[4];
   int i;
@@ -459,20 +607,20 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
  */
 int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                            int objc, Tcl_Obj *CONST objv[]) {
-  Tcl_Obj         **elem;
+  Tcl_Obj         **elem, **data_elem, **files_elem;
   int               actions = 0;
-  int               status, elem_nu, i, index;
+  int               status, elem_nu, data_elem_nu, files_elem_nu, i, j, index;
   Tk_Window         path;
   Drawable          d;
   NSView           *view;
   DNDView          *dragview;
   NSImage          *dragicon = NULL;
   static char *DropTypes[] = {
-    "NSStringPboardType", "NSFilenamesPboardType",
+    "NSPasteboardTypeString", "NSFilenamesPboardType",
     (char *) NULL
   };
   enum droptypes {
-    TYPE_NSStringPboardType, TYPE_NSFilenamesPboardType
+    TYPE_NSPasteboardTypeString, TYPE_NSFilenamesPboardType
   };
   static char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -485,8 +633,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   };
   bool added_string = false, added_filenames = false, perform_drag = false;
 
-  if (objc != 5) {
-    Tcl_WrongNumArgs(interp, 1, objv, "path actions types data");
+  if (objc != 6) {
+    Tcl_WrongNumArgs(interp, 1, objv, "path actions types data button");
     return TCL_ERROR;
   }
   Tcl_ResetResult(interp);
@@ -524,18 +672,25 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   /* Process drag types. */
   status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
   if (status != TCL_OK) return status;
+  /* objv[4] contains a list, one element for each data drag type... */
+  status = Tcl_ListObjGetElements(interp, objv[4], &data_elem_nu, &data_elem);
+  if (status != TCL_OK) return status;
+  if (elem_nu != data_elem_nu) {
+    /* This can never happen... */
+    return TCL_ERROR;
+  }
 
   /* Initialize array of drag types... */
-  NSMutableArray *draggedtypes=[[NSMutableArray alloc] init];
+  NSMutableArray *draggedtypes=[[[NSMutableArray alloc] init] autorelease];
   /* Iterate over all data, to collect the types... */
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
-                                 "dropactions", 0, &index);
+                                 "droptypes", 0, &index);
     if (status != TCL_OK) continue;
     switch ((enum droptypes) index) {
-      case TYPE_NSStringPboardType: {
+      case TYPE_NSPasteboardTypeString: {
         if (!added_string) {
-          [draggedtypes addObject: NSStringPboardType];
+          // [draggedtypes addObject: NSPasteboardTypeString];
           added_string = true;
           perform_drag = true;
         }
@@ -563,7 +718,18 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
    * to drop targets via [sender draggingPasteboard]
    */
   NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
-  [dragpasteboard declareTypes:draggedtypes owner:dragview];
+  NSMutableArray *dataitems =[[[NSMutableArray alloc] init] autorelease];
+  NSMutableArray *filelist  = [[[NSMutableArray alloc] init] autorelease];
+  [dragpasteboard clearContents];
+
+  if (added_filenames) {
+    /* There is a request about deprecated NSFilenamesPboardType. The only way to
+       use it, is through setPropertyList:forType, which operates only on the first
+       item. So, call declareTypes, to create this first item... */
+    //[dragpasteboard declareTypes:draggedtypes owner:dragview];
+    NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+    [dataitems addObject: item];
+  }
 
   /*
    * We need an icon for the drag:
@@ -572,14 +738,18 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
    */
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
-                                 "dropactions", 0, &index);
+                                 "droptypes", 0, &index);
     if (status == TCL_OK) {
       switch ((enum droptypes) index) {
-        case TYPE_NSStringPboardType: {
+        case TYPE_NSPasteboardTypeString: {
           /* Place the string into the clipboard. */
           NSString *datastring =
-             [NSString stringWithUTF8String:Tcl_GetString(objv[4])];
-            [dragpasteboard setString:datastring forType:NSStringPboardType];
+             [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
+          NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+          [item setString:datastring forType:NSPasteboardTypeString];
+          [dataitems addObject: item];
+          //[dragpasteboard writeObjects:[NSArray arrayWithObject:item]];
+          //[dragpasteboard setString:datastring forType:NSPasteboardTypeString];
 
           /* Create a custom icon: draw dragged string into drag icon,
            * make sure icon is large enough to contain several lines of text */
@@ -595,24 +765,24 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           break;
         }
         case TYPE_NSFilenamesPboardType: {
-          NSMutableArray *filelist = [[NSMutableArray alloc] init];
 
           /* Place the filenames into the clipboard. */
-          status = Tcl_ListObjGetElements(interp, objv[4], &elem_nu, &elem);
+          status = Tcl_ListObjGetElements(interp, data_elem[i],
+                                          &files_elem_nu, &files_elem);
           if ( status == TCL_OK) {
-            for (i = 0; i < elem_nu; i++) {
+            for (j = 0; j < files_elem_nu; j++) {
               /* Get string value of file name from list */
-              char* filename = Tcl_GetString(elem[i]);
+              char* filename = Tcl_GetString(files_elem[j]);
               /* Convert file names to NSSString, add to NSMutableArray,
                * and set pasteboard type */
               NSString *filestring = [NSString stringWithUTF8String:filename];
-              [filelist addObject: filestring];
+              [filelist addObject: /*[NSURL fileURLWithPath:*/ filestring] /*]*/;
             }
           }
           /* This successfully writes the file path data to the clipboard,
            * and it is available to other non-Tk applications... */
-          [dragpasteboard setPropertyList:filelist
-                                  forType:NSFilenamesPboardType];
+          // [dragpasteboard writeObjects: filelist];
+          // [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
 
           /* Set the correct icon depending on whether a single file
            * [iconForFileType] or multiple files [NSImageNameMultipleDocuments]
@@ -620,7 +790,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           if (dragicon == NULL) {
             if ([filelist count] == 1) {
               NSString *pathtype = [[filelist objectAtIndex:0] pathExtension];
-              dragicon = [[NSWorkspace sharedWorkspace] 
+              dragicon = [[NSWorkspace sharedWorkspace]
                                        iconForFileType:pathtype];
             } else {
               dragicon = [NSImage imageNamed:NSImageNameMultipleDocuments];
@@ -632,6 +802,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     } else {
       /* An unknown (or user defined) type. Silently skip it... */
     }
+  }
+  [dragpasteboard writeObjects: dataitems];
+  if (added_filenames) {
+    [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
   }
 
   /* Do drag & drop... */
@@ -721,16 +895,16 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
     if (strncmp(str, "*", len) == 0) {
       /* A request for all available types... */
       if (!added_string) {
-        [draggedtypes addObject: NSStringPboardType];
+        [draggedtypes addObject: NSPasteboardTypeString];
         added_string = true;
       }
       if (!added_filenames) {
         [draggedtypes addObject: NSFilenamesPboardType];
         added_filenames = true;
       }
-    } else if (strncmp(str, "NSStringPboardType", len) == 0) {
+    } else if (strncmp(str, "NSPasteboardTypeString", len) == 0) {
       if (!added_string) {
-        [draggedtypes addObject: NSStringPboardType];
+        [draggedtypes addObject: NSPasteboardTypeString];
         added_string = true;
       }
     } else if (strncmp(str, "NSFilenamesPboardType", len) == 0) {
@@ -772,6 +946,20 @@ int TkDND_UnregisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
   return TCL_OK;
 }; /* TkDND_UnregisterDragWidgetObjCmd */
 
+/* Convert OS X types to strings... */
+int TkDND_Type2StringObjCmd(ClientData clientData, Tcl_Interp *interp,
+                             int objc, Tcl_Obj *CONST objv[]) {
+  const NSString *str;
+  if (objc != 2) {
+    Tcl_WrongNumArgs(interp, 1, objv, "type");
+    return TCL_ERROR;
+  }
+  str = TKDND_Obj2NSString(interp, objv[1]);
+  if (str == NULL) return TCL_ERROR;
+  Tcl_SetObjResult(interp, Tcl_NewStringObj([str UTF8String], -1));
+  return TCL_OK;
+}; /* TkDND_Type2StringObjCmd */
+
 /*
  * Initalize the package in the tcl interpreter, create tcl commands...
  */
@@ -793,6 +981,9 @@ int Tkdnd_Init (Tcl_Interp *interp) {
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
   Tcl_CreateObjCommand(interp, "::macdnd::dodragdrop",
                        TkDND_DoDragDropObjCmd,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+  Tcl_CreateObjCommand(interp, "::macdnd::osxtype2string",
+                       TkDND_Type2StringObjCmd,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
 
   if (Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION) != TCL_OK) {

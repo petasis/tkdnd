@@ -1,5 +1,7 @@
 CMAKE_MINIMUM_REQUIRED ( VERSION 2.6 )
-CMAKE_POLICY ( SET CMP0042 NEW )
+IF ( POLICY CMP0042 )
+  CMAKE_POLICY ( SET CMP0042 NEW )
+ENDIF ( POLICY CMP0042 )
 
 ## Ensure that the variable PKG_OS_ARCH exists! If undefined, define it with
 ## the value "x86_32"
@@ -47,11 +49,12 @@ ELSE  ( WIN32 )
     INCLUDE_DIRECTORIES ( /System/Library/Frameworks/Tk.framework/Versions/8.5/Headers/tk-private )
     INCLUDE_DIRECTORIES ( /System/Library/Frameworks/Tk.framework/Versions/8.5/Headers/tk-private )
     ADD_DEFINITIONS     ( -DMAC_TK_COCOA -DMAC_OSX_TK)
+    ADD_DEFINITIONS     ( -DMAC_OSX_TK )
     ADD_DEFINITIONS     ( -std=gnu99 )
     ADD_DEFINITIONS     ( -x objective-c )
-#   ADD_DEFINITIONS     ( -fobjc-gc  )
+    ADD_DEFINITIONS     ( -fobjc-gc  )
+    ADD_DEFINITIONS     ( -fno-objc-arc )
 #   ADD_DEFINITIONS     ( -fobjc-arc )
-#   ADD_DEFINITIONS     ( -fno-objc-arc )
     LINK_LIBRARIES      ( ${COCOA_LIBRARY} )
     SET ( PKG_SOURCES macosx/macdnd.m )
   ELSE ( APPLE )

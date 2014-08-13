@@ -1,5 +1,6 @@
 package require tkdnd
 catch {console show}
+set filename [file normalize [info script]]
 
 ##
 ## Drag source
@@ -16,7 +17,7 @@ proc my_data {} {
   list copy [list \
     DND_HTML        {<html><p>Some nice HTML text!</p></html>} \
     DND_Text        {Some nice dropped text!} \
-    DND_Files [list /tmp/some_nice_dropped_file] \
+    DND_Files [list $::filename $::filename] \
   ]
 };# my_data
 
@@ -36,4 +37,5 @@ foreach type {DND_HTML DND_Text DND_Files} {
   bind $w <<DropEnter>> {%W state  active}
   bind $w <<DropLeave>> {%W state !active}
   bind $w <<Drop>> [list my_drop %W %CPT %D %A]
+  # bind $w <<DropPosition>> {puts "Common types: %CTT"; return copy}
 }
