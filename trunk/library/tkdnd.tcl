@@ -157,6 +157,7 @@ namespace eval tkdnd {
     }
     load $dir/$PKG_LIB_FILE $PACKAGE_NAME
     source $dir/tkdnd_compat.tcl
+    ${_platform_namespace}::initialise
   };# initialise
 
   proc GetDropFileTempDirectory { } {
@@ -325,7 +326,7 @@ proc tkdnd::_init_drag { button source state rootX rootY } {
         set action [_DoDragDrop $source $actions $types $data $button]
       }
       aqua {
-        set action [macdnd::dodragdrop $source $actions $types $data]
+        set action [macdnd::dodragdrop $source $actions $types $data $button]
       }
       default {
         error "unknown Tk windowing system"
@@ -381,7 +382,7 @@ proc tkdnd::_end_drag { button source target action type data result
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_specific_types { types } {
   variable _platform_namespace
-  return [${_platform_namespace}::_platform_specific_types $types]
+  ${_platform_namespace}::_platform_specific_types $types
 }; # tkdnd::platform_specific_types
 
 # ----------------------------------------------------------------------------
@@ -389,7 +390,7 @@ proc tkdnd::platform_specific_types { types } {
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_independent_types { types } {
   variable _platform_namespace
-  return [${_platform_namespace}::_platform_independent_types $types]
+  ${_platform_namespace}::_platform_independent_types $types
 }; # tkdnd::platform_independent_types
 
 # ----------------------------------------------------------------------------
@@ -397,7 +398,7 @@ proc tkdnd::platform_independent_types { types } {
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_specific_type { type } {
   variable _platform_namespace
-  return [${_platform_namespace}::_platform_specific_type $type]
+  ${_platform_namespace}::_platform_specific_type $type
 }; # tkdnd::platform_specific_type
 
 # ----------------------------------------------------------------------------
@@ -405,7 +406,7 @@ proc tkdnd::platform_specific_type { type } {
 # ----------------------------------------------------------------------------
 proc tkdnd::platform_independent_type { type } {
   variable _platform_namespace
-  return [${_platform_namespace}::_platform_independent_type $type]
+  ${_platform_namespace}::_platform_independent_type $type
 }; # tkdnd::platform_independent_type
 
 # ----------------------------------------------------------------------------

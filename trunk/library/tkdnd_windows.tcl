@@ -1,6 +1,6 @@
 #
 # tkdnd_windows.tcl --
-# 
+#
 #    This file implements some utility procedures that are used by the TkDND
 #    package.
 #
@@ -21,13 +21,13 @@
 # and need not follow the licensing terms described here, provided that
 # the new terms are clearly indicated on the first page of each file where
 # they apply.
-# 
+#
 # IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY
 # FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
 # ARISING OUT OF THE USE OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY
 # DERIVATIVES THEREOF, EVEN IF THE AUTHORS HAVE BEEN ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 # THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES,
 # INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE
@@ -49,6 +49,9 @@ namespace eval olednd {
 
   variable _last_mouse_root_x 0
   variable _last_mouse_root_y 0
+
+  proc initialise { } {
+  };# initialise
 };# namespace olednd
 
 # ----------------------------------------------------------------------------
@@ -72,7 +75,7 @@ proc olednd::_HandleDragEnter { drop_target typelist actionlist pressedkeys
   #       pressedkeys=$pressedkeys, rootX=$rootX, rootY=$rootY"
   focus $drop_target
 
-  ## Does the new drop target support any of our new types? 
+  ## Does the new drop target support any of our new types?
   variable _types; set _types [bind $drop_target <<DropTargetTypes>>]
   if {[llength $_types]} {
     ## Examine the drop target types, to find at least one match with the drag

@@ -1,6 +1,6 @@
 #
 # tkdnd_unix.tcl --
-# 
+#
 #    This file implements some utility procedures that are used by the TkDND
 #    package.
 #
@@ -21,13 +21,13 @@
 # and need not follow the licensing terms described here, provided that
 # the new terms are clearly indicated on the first page of each file where
 # they apply.
-# 
+#
 # IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY
 # FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
 # ARISING OUT OF THE USE OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY
 # DERIVATIVES THEREOF, EVEN IF THE AUTHORS HAVE BEEN ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 # THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES,
 # INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE
@@ -56,6 +56,9 @@ namespace eval xdnd {
   proc debug {msg} {
     puts $msg
   };# debug
+
+  proc initialise { } {
+  };# initialise
 };# namespace xdnd
 
 # ----------------------------------------------------------------------------
@@ -114,7 +117,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
     return refuse_drop
   }
 
-  ## Does the new drop target support any of our new types? 
+  ## Does the new drop target support any of our new types?
   set _types [bind $drop_target <<DropTargetTypes>>]
   # debug ">> Accepted types: $drop_target $_types"
   if {[llength $_types]} {
@@ -129,7 +132,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
       }
     }
   }
-  
+
   # debug "\t($_drop_target) -> ($drop_target)"
   if {$drop_target != $_drop_target} {
     if {[string length $_drop_target]} {
@@ -183,7 +186,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
     }
     set _drop_target $drop_target
   }
-  
+
   set _action refuse_drop
   set _drop_target {}
   if {[info exists common_drag_source_types]} {
@@ -380,7 +383,7 @@ proc xdnd::_GetDroppedData { time } {
 # ----------------------------------------------------------------------------
 proc xdnd::_GetDragSource {  } {
   variable _drag_source
-  return $_drag_source
+  return  $_drag_source
 };# xdnd::_GetDragSource
 
 # ----------------------------------------------------------------------------
@@ -393,6 +396,22 @@ proc xdnd::_GetDropTarget {  } {
   }
   return 0
 };# xdnd::_GetDropTarget
+
+# ----------------------------------------------------------------------------
+#  Command xdnd::_GetDragSourceCommonTypes
+# ----------------------------------------------------------------------------
+proc xdnd::_GetDragSourceCommonTypes {  } {
+  variable _common_drag_source_types
+  return  $_common_drag_source_types
+};# xdnd::_GetDragSourceCommonTypes
+
+# ----------------------------------------------------------------------------
+#  Command xdnd::_GetDropTargetCommonTypes
+# ----------------------------------------------------------------------------
+proc xdnd::_GetDropTargetCommonTypes {  } {
+  variable _common_drag_source_types
+  return  $_common_drag_source_types
+};# xdnd::_GetDropTargetCommonTypes
 
 # ----------------------------------------------------------------------------
 #  Command xdnd::_supported_types
@@ -423,7 +442,7 @@ proc xdnd::_normalise_data { type data } {
   # Tk knows how to interpret the following types:
   #    STRING, TEXT, COMPOUND_TEXT
   #    UTF8_STRING
-  # Else, it returns a list of 8 or 32 bit numbers... 
+  # Else, it returns a list of 8 or 32 bit numbers...
   switch -glob $type {
     STRING - UTF8_STRING - TEXT - COMPOUND_TEXT {return $data}
     text/html     -
@@ -459,7 +478,7 @@ proc xdnd::_normalise_data { type data } {
     application/x-color {
       return $data
     }
-    text/x-moz-url - 
+    text/x-moz-url -
     application/q-iconlist -
     default    {return $data}
   }
@@ -636,7 +655,7 @@ proc xdnd::_process_drag_events {event} {
         ## Examine the modifiers to suggest an action...
         set _dodragdrop_default_action [_default_action $event]
         ## Is it a Tk widget?
-        # set path [winfo containing $rootx $rooty] 
+        # set path [winfo containing $rootx $rooty]
         # puts "Window under mouse: $window ($path)"
         if {$_dodragdrop_drop_target != $window} {
           ## Send XdndLeave to $_dodragdrop_drop_target
@@ -867,7 +886,7 @@ proc xdnd::_default_action {event} {
   variable _dodragdrop_actions
   variable _dodragdrop_actions_len
   if {$_dodragdrop_actions_len == 1} {return [lindex $_dodragdrop_actions 0]}
-  
+
   set alt     [dict get $event Alt]
   set shift   [dict get $event Shift]
   set control [dict get $event Control]
