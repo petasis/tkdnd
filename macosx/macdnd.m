@@ -19,6 +19,33 @@
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
 
+// not using clang LLVM compiler, or LLVM version is not 3.x
+#if !defined(__clang__) || __clang_major__ < 3
+
+#ifndef __bridge
+#define __bridge
+#endif
+#ifndef __bridge_retained
+#define __bridge_retained
+#endif
+#ifndef __bridge_transfer
+#define __bridge_transfer
+#endif
+#ifndef __autoreleasing
+#define __autoreleasing
+#endif
+#ifndef __strong
+#define __strong
+#endif
+#ifndef __weak
+#define __weak
+#endif
+#ifndef __unsafe_unretained
+#define __unsafe_unretained
+#endif
+
+#endif // __clang_major__ < 3
+
 #define TKDND_OSX_KEVIN_WORKARROUND
 
 #define TkDND_Tag    1234
@@ -91,7 +118,7 @@ DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
  * Ripped from Tk-Cocoa source code to map Tk window to Cocoa window
  */
 TkWindow* TkMacOSXGetTkWindow(NSWindow *w)  {
-  Window window = TkMacOSXGetXWindow(w);
+  Window window = TkMacOSXGetXWindow((__bridge void*)w);
   TkDisplay *dispPtr = TkGetDisplayList();
 
   return (window != None ? (TkWindow *)Tk_IdToWindow(dispPtr->display, window) :
@@ -488,7 +515,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   d = Tk_WindowId(path);
   if (d == None) return TCL_ERROR;
   /* Get the NSView from Tk window and add subview to serve as drag source */
-  view     = TkMacOSXGetRootControl(d);
+  view     = (__bridge NSView *) TkMacOSXGetRootControl(d);
   if (view == NULL) return TCL_ERROR;
   /* Get the DNDview for this view... */
   dragview = TkDND_GetDNDSubview(view, path);
@@ -679,7 +706,7 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
   Drawable d = Tk_WindowId(path);
 
   /* Get NSView from Tk window and add subview to serve as drop target */
-  NSView  *view = TkMacOSXGetRootControl(d);
+  NSView  *view = (__bridge NSView *) TkMacOSXGetRootControl(d);
   DNDView *dropview  = TkDND_GetDNDSubview(view, path);
   if (dropview == NULL) return TCL_ERROR;
 
@@ -737,7 +764,7 @@ int TkDND_UnregisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
   if (path == NULL) return TCL_ERROR;
 
   Drawable d         = Tk_WindowId(path);
-  NSView  *view      = TkMacOSXGetRootControl(d);
+  NSView  *view      = (__bridge NSView *) TkMacOSXGetRootControl(d);
   DNDView *dropview  = TkDND_GetDNDSubview(view, path);
   if (dropview == NULL) return TCL_ERROR;
   [dropview unregisterDraggedTypes];
