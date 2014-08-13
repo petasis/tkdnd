@@ -453,7 +453,7 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     }
   }
   /* Sent a XdndStatus event, to notify the drag source */
-  memset (&response, 0, sizeof(xevent));
+  memset (&response, 0, sizeof(XEvent));
   response.xany.type            = ClientMessage;
   response.xany.display         = xevent->xclient.display;
   response.xclient.window       = drag_source;
@@ -1252,7 +1252,7 @@ int TkDND_SendXdndEnterObjCmd(ClientData clientData,
     XFree(tv);
   } 
 
-  memset (&event, 0, sizeof(event));
+  memset (&event, 0, sizeof(XEvent));
   event.type                    = ClientMessage;
   event.xclient.window          = target;
   event.xclient.format          = 32;
@@ -1305,7 +1305,7 @@ int TkDND_SendXdndPositionObjCmd(ClientData clientData,
   if (status != TCL_OK) return status;
   display = Tk_Display(source);
 
-  memset (&event, 0, sizeof(event));
+  memset (&event, 0, sizeof(XEvent));
   event.type                       = ClientMessage;
   event.xclient.window             = target;
   event.xclient.format             = 32;
@@ -1358,7 +1358,7 @@ int TkDND_SendXdndLeaveObjCmd(ClientData clientData,
     return TCL_ERROR;
   }
 
-  memset (&event, 0, sizeof(event));
+  memset (&event, 0, sizeof(XEvent));
   event.type                       = ClientMessage;
   event.xclient.window             = target;
   event.xclient.format             = 32;
@@ -1388,7 +1388,7 @@ int TkDND_SendXdndDropObjCmd(ClientData clientData,
     return TCL_ERROR;
   }
 
-  memset (&event, 0, sizeof(event));
+  memset (&event, 0, sizeof(XEvent));
   event.type                       = ClientMessage;
   event.xclient.window             = target;
   event.xclient.format             = 32;
