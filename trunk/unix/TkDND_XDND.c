@@ -1465,8 +1465,8 @@ int TkDND_XChangePropertyObjCmd(ClientData clientData,
         return TCL_ERROR;
       }
       for (i = 0; i < numItems; i++) {
-	char *dummy;
-	propPtr[i] = (short) strtol(Tcl_GetString(field[i]), &dummy, 0);
+        char *dummy;
+        propPtr[i] = (short) strtol(Tcl_GetString(field[i]), &dummy, 0);
       }
       break;
     }
@@ -1478,8 +1478,8 @@ int TkDND_XChangePropertyObjCmd(ClientData clientData,
         return TCL_ERROR;
       }
       for (i = 0; i < numItems; i++) {
-	char *dummy;
-	propPtr[i] = (short) strtol(Tcl_GetString(field[i]), &dummy, 0);
+        char *dummy;
+        propPtr[i] = (short) strtol(Tcl_GetString(field[i]), &dummy, 0);
       }
       break;
     }
