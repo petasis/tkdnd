@@ -215,7 +215,7 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
 #endif
 
   /*
-   * We must make the toplevel that holds this widget XDND aware. This means
+   * We must make the toplevel that holds this widget is XDND aware. This means
    * that we have to set the XdndAware property on our toplevel.
    */
 #ifdef TKDND_SET_XDND_PROPERTY_ON_TARGET
@@ -383,11 +383,12 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
 int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
   Tk_Window mouse_tkwin = NULL, toplevel;
-  Window drag_source, virtual_root, dummyChild;
+  Window drag_source, virtual_root, src_w, dest_w, child;
   Tcl_Obj* result;
   Tcl_Obj* objv[5];
-  int rootX, rootY, dx, dy, i, index, status, w, h;
+  int rootX, rootY, dx = 0, dy = 0, src_x, src_y, dest_x, dest_y, i, index, status, w, h;
   XEvent response;
+  Display *display;
   int width = 1, height = 1;
   static char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
@@ -418,11 +419,20 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   /* Get the virtual root window... */
   virtual_root = TkDND_GetVirtualRootWindowOfScreen(tkwin);
   if (virtual_root != None) {
-    //XTranslateCoordinates(Tk_Display(tkwin), DefaultRootWindow(Tk_Display(tkwin)),
-    //                      virtual_root, rootX, rootY, &dx, &dy, &dummyChild);
-    XTranslateCoordinates(Tk_Display(tkwin), virtual_root,
-                          Tk_WindowId(toplevel), rootX, rootY, &dx, &dy, &dummyChild);
-    mouse_tkwin = Tk_IdToWindow(Tk_Display(tkwin), dummyChild);
+    display = xevent->xany.display;
+    src_w   = virtual_root;
+    dest_w  = Tk_WindowId(toplevel);
+    src_x   = rootX;
+    src_y   = rootY;
+    XTranslateCoordinates(display, src_w, dest_w, src_x, src_y, &dest_x, &dest_y, &child);
+    while (child != None) {
+      src_w  = dest_w;
+      dest_w = child;
+      src_x  = dest_x;
+      src_y  = dest_y;
+      XTranslateCoordinates(display, src_w, dest_w, src_x, src_y, &dest_x, &dest_y, &child);
+    }
+    mouse_tkwin = Tk_IdToWindow(display, dest_w);
   }
   if (!mouse_tkwin) {
     Tk_GetVRootGeometry(toplevel, &dx, &dy, &w, &h);
@@ -658,33 +668,33 @@ static int TkDND_XDNDHandler(Tk_Window tkwin, XEvent *xevent) {
 
   if (xevent->xclient.message_type == Tk_InternAtom(tkwin, "XdndPosition")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndPosition\n");
+    printf("XDND_HandleClientMessage: Received XdndPosition (%s)\n", Tk_PathName(tkwin));
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndPosition(tkwin, xevent);
   } else if (xevent->xclient.message_type== Tk_InternAtom(tkwin, "XdndEnter")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndEnter\n");
+    printf("XDND_HandleClientMessage: Received XdndEnter (%s)\n", Tk_PathName(tkwin));
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndEnter(tkwin, xevent);
   } else if (xevent->xclient.message_type==Tk_InternAtom(tkwin, "XdndStatus")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndStatus\n");
+    printf("XDND_HandleClientMessage: Received XdndStatus (%s)\n", Tk_PathName(tkwin));
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndStatus(tkwin, xevent);
   } else if (xevent->xclient.message_type== Tk_InternAtom(tkwin, "XdndLeave")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndLeave\n");
+    printf("XDND_HandleClientMessage: Received XdndLeave (%s)\n", Tk_PathName(tkwin));
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndLeave(tkwin, xevent);
   } else if (xevent->xclient.message_type == Tk_InternAtom(tkwin, "XdndDrop")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndDrop\n");
+    printf("XDND_HandleClientMessage: Received XdndDrop (%s)\n", Tk_PathName(tkwin));
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndDrop(tkwin, xevent);
   } else if (xevent->xclient.message_type == 
                                          Tk_InternAtom(tkwin, "XdndFinished")) {
 #ifdef DEBUG_CLIENTMESSAGE_HANDLER
-    printf("XDND_HandleClientMessage: Received XdndFinished\n");
+    printf("XDND_HandleClientMessage: Received XdndFinished (%s)\n", Tk_PathName(tkwin));
 #endif /* DEBUG_CLIENTMESSAGE_HANDLER */
     return TkDND_HandleXdndFinished(tkwin, xevent);
   } else {
