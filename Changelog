@@ -1,3 +1,7 @@
+2014-08-19  Petasis George  <petasis@iit.demokritos.gr>
+	* win/OleDND.h: Corrected behaviour when mouse drags over overlapping
+	windows. Bug reported by Csaba Nemethi.
+
 2014-08-13  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd_windows.tcl:
 	* library/tkdnd.tcl:
