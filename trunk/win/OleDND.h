@@ -469,6 +469,9 @@ class TkDND_DropTarget: public IDropTarget {
     Tcl_Interp          *interp;
     Tk_Window            tkwin;
     TCHAR                szTempStr[MAX_PATH+2];
+
+    Tcl_Obj             *typelist, *actionlist, *codelist;
+    bool                 drop_active;
     
     const TCHAR * FormatName(UINT cfFormat) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
@@ -481,7 +484,8 @@ class TkDND_DropTarget: public IDropTarget {
 
   public:
     TkDND_DropTarget(Tcl_Interp *_interp, Tk_Window _tkwin) :
-      interp(_interp), tkwin(_tkwin), m_lRefCount(1) {
+      interp(_interp), tkwin(_tkwin), m_lRefCount(1), drop_active(false),
+      typelist(NULL), actionlist(NULL), codelist(NULL) {
     }; /* TkDND_DropTarget */
    
     ~TkDND_DropTarget(void) {
@@ -515,7 +519,175 @@ class TkDND_DropTarget: public IDropTarget {
       }
     }; /* Release */
 
-    /* IDropTarget interface members */
+    /*
+     * Helper functions...
+     */
+    Tcl_Obj *GetPressedKeys(DWORD grfKeyState) {
+      Tcl_Obj *pressedkeys = Tcl_NewListObj(0, NULL);
+      // MK_CONTROL, MK_SHIFT, MK_ALT, MK_RBUTTON, MK_LBUTTON
+      if (grfKeyState & MK_CONTROL)
+        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("ctrl", -1));
+      if (grfKeyState & MK_SHIFT)
+        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("shift",-1));
+      if (grfKeyState & MK_ALT)
+        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("alt", -1));
+      if (grfKeyState & MK_RBUTTON)
+        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("3", -1));
+      if (grfKeyState & MK_MBUTTON)
+        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("2", -1));
+      if (grfKeyState & MK_LBUTTON)
+        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("1", -1));
+      return pressedkeys;
+    }; /* GetPressedKeys */
+
+    DWORD SendDragEnter(POINTL pt, DWORD grfKeyState) {
+      Tcl_Obj *objv[8], *result;
+      int i, status, index;
+      DWORD effect = DROPEFFECT_NONE;
+      static const char *DropActions[] = {
+        "copy", "move", "link", "ask",  "private", "refuse_drop",
+        "default", 
+        (char *) NULL
+      };
+      enum dropactions {
+        ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
+        refuse_drop, ActionDefault
+      };
+      if (drop_active) {
+        return DROPEFFECT_COPY;
+      }
+
+      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragEnter", -1);
+      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+      objv[2] = typelist;
+      objv[3] = actionlist;
+      objv[4] = GetPressedKeys(grfKeyState);
+      objv[5] = Tcl_NewLongObj(pt.x);
+      objv[6] = Tcl_NewLongObj(pt.y);
+      objv[7] = codelist;
+      TkDND_Status_Eval(8);
+      if (status == TCL_OK) {
+        /* Get the returned action... */
+        result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+        status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
+                                     "dropactions", 0, &index);
+        Tcl_DecrRefCount(result);
+        if (status != TCL_OK) index = ActionDefault;
+      }
+      switch ((enum dropactions) index) {
+        case ActionCopy:    effect = DROPEFFECT_COPY; break;
+        case ActionMove:    effect = DROPEFFECT_MOVE; break;
+        case ActionLink:    effect = DROPEFFECT_LINK; break;
+        case ActionAsk:     effect = DROPEFFECT_NONE; break;
+        case ActionPrivate: effect = DROPEFFECT_NONE; break;
+        case ActionDefault: effect = DROPEFFECT_COPY; break;
+        case refuse_drop:   effect = DROPEFFECT_NONE; /* Refuse drop. */
+      }
+      drop_active = true;
+      return effect;
+    }; /* SendDragEnter */
+
+    DWORD SendDragOver(POINTL pt, DWORD grfKeyState) {
+      Tcl_Obj *objv[8], *result;
+      int i, status, index;
+      DWORD effect = DROPEFFECT_NONE;
+      static const char *DropActions[] = {
+        "copy", "move", "link", "ask",  "private", "refuse_drop",
+        "default", 
+        (char *) NULL
+      };
+      enum dropactions {
+        ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
+        refuse_drop, ActionDefault
+      };
+      if (!drop_active) {
+        return effect;
+      }
+      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragOver", -1);
+      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+      objv[2] = GetPressedKeys(grfKeyState);
+      objv[3] = Tcl_NewLongObj(pt.x);
+      objv[4] = Tcl_NewLongObj(pt.y);
+      TkDND_Status_Eval(5);
+      if (status == TCL_OK) {
+        /* Get the returned action... */
+        result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+        status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
+                                     "dropactions", 0, &index);
+        Tcl_DecrRefCount(result);
+        if (status != TCL_OK) index = ActionDefault;
+      }
+      switch ((enum dropactions) index) {
+        case ActionCopy:    effect = DROPEFFECT_COPY; break;
+        case ActionMove:    effect = DROPEFFECT_MOVE; break;
+        case ActionLink:    effect = DROPEFFECT_LINK; break;
+        case ActionAsk:     effect = DROPEFFECT_NONE; break;
+        case ActionPrivate: effect = DROPEFFECT_NONE; break;
+        case ActionDefault: effect = DROPEFFECT_COPY; break;
+        case refuse_drop:   effect = DROPEFFECT_NONE; /* Refuse drop. */
+      }
+      return effect;
+    }; /* SendDragOver */
+
+    DWORD SendDrop(POINTL pt, DWORD grfKeyState, Tcl_Obj *type, Tcl_Obj *data) {
+      Tcl_Obj *objv[8], *result;
+      int i, status, index;
+      DWORD effect = DROPEFFECT_NONE;
+      static const char *DropActions[] = {
+        "copy", "move", "link", "ask",  "private", "refuse_drop",
+        "default", 
+        (char *) NULL
+      };
+      enum dropactions {
+        ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
+        refuse_drop, ActionDefault
+      };
+      if (!drop_active) {
+        return effect;
+      }
+      drop_active = false;
+      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDrop", -1);
+      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+      objv[2] = GetPressedKeys(grfKeyState);
+      objv[3] = Tcl_NewLongObj(pt.x);
+      objv[4] = Tcl_NewLongObj(pt.y);
+      objv[5] = type;
+      objv[6] = data;
+      TkDND_Status_Eval(7);
+      if (status == TCL_OK) {
+        /* Get the returned action... */
+        result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+        status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
+                                     "dropactions", 0, &index);
+        Tcl_DecrRefCount(result);
+        if (status != TCL_OK) index = ActionDefault;
+      }
+      switch ((enum dropactions) index) {
+        case ActionCopy:    effect = DROPEFFECT_COPY; break;
+        case ActionMove:    effect = DROPEFFECT_MOVE; break;
+        case ActionLink:    effect = DROPEFFECT_LINK; break;
+        case ActionAsk:     effect = DROPEFFECT_NONE; break;
+        case ActionPrivate: effect = DROPEFFECT_NONE; break;
+        case ActionDefault: effect = DROPEFFECT_COPY; break;
+        case refuse_drop:   effect = DROPEFFECT_NONE; /* Refuse drop. */
+      }
+      return effect;
+    }; /* SendDrop */
+
+    void SendDragLeave(void) {
+      Tcl_Obj *objv[2];
+      int i;
+      if (drop_active) {
+        objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragLeave", -1);
+        objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+        TkDND_Eval(2);
+      }
+      drop_active = false;
+    }; /* SendDragLeave */
+
+    /*
+     * IDropTarget interface members.
+     */
 
     STDMETHODIMP DragEnter(IDataObject *pDataObject, DWORD grfKeyState, 
                            POINTL pt, DWORD *pdwEffect) {
@@ -529,22 +701,25 @@ class TkDND_DropTarget: public IDropTarget {
       IEnumFORMATETC *pEF;
       FORMATETC fetc;
       char tmp[64];
-      Tcl_Obj *typelist    = Tcl_NewListObj(0, NULL), *element,
-              *actionlist  = Tcl_NewListObj(0, NULL), *objv[8],
-              *pressedkeys = Tcl_NewListObj(0, NULL), *result,
-              *codelist    = Tcl_NewListObj(0, NULL);
-      int i, status, index;
-      static const char *DropActions[] = {
-        "copy", "move", "link", "ask",  "private", "refuse_drop",
-        "default", 
-        (char *) NULL
-      };
-      enum dropactions {
-        ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
-        refuse_drop, ActionDefault
-      };
+      Tcl_Obj *element;
 
-      // Get the types supported by the drag source.
+      /*
+       * Windows will send DragOver events even for coordinates that are
+       * hidden by other windows. So we have to simulate Enter/Leave events,
+       * thus we must remember the drag source details, like types and
+       * actions...
+       */
+      if (typelist   != NULL) Tcl_DecrRefCount(typelist);
+      if (actionlist != NULL) Tcl_DecrRefCount(actionlist);
+      if (codelist   != NULL) Tcl_DecrRefCount(codelist);
+
+      typelist    = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(typelist);
+      actionlist  = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(actionlist);
+      codelist    = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(codelist);
+
+      /*
+       * Get the types supported by the drag source.
+       */
       if (pDataObject->EnumFormatEtc(DATADIR_GET, &pEF) == S_OK) {
         while (pEF->Next(1, &fetc, NULL) == S_OK) {
           if (pDataObject->QueryGetData(&fetc) == S_OK) {
@@ -559,21 +734,6 @@ class TkDND_DropTarget: public IDropTarget {
         }; // while (pEF->Next(1, &fetc, NULL) == S_OK)
       }; // if (pIDataSource->EnumFormatEtc(DATADIR_GET, &pEF) == S_OK)
 
-      // Get the state of the keyboard modifier keys.
-      // MK_CONTROL, MK_SHIFT, MK_ALT, MK_RBUTTON, MK_LBUTTON
-      if (grfKeyState & MK_CONTROL)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("ctrl", -1));
-      if (grfKeyState & MK_SHIFT)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("shift",-1));
-      if (grfKeyState & MK_ALT)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("alt", -1));
-      if (grfKeyState & MK_RBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("3", -1));
-      if (grfKeyState & MK_MBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("2", -1));
-      if (grfKeyState & MK_LBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("1", -1));
-      
       // Get the actions supported by the drag source.
       // DROPEFFECT_COPY, DROPEFFECT_MOVE, DROPEFFECT_LINK
       if (*pdwEffect & DROPEFFECT_COPY)
@@ -585,106 +745,36 @@ class TkDND_DropTarget: public IDropTarget {
 
       // We are ready to pass the info to the Tcl level, and get the desired
       // action.
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragEnter", -1);
-      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
-      objv[2] = typelist;
-      objv[3] = actionlist;
-      objv[4] = pressedkeys;
-      objv[5] = Tcl_NewLongObj(pt.x);
-      objv[6] = Tcl_NewLongObj(pt.y);
-      objv[7] = codelist;
-      TkDND_Status_Eval(8);
-      *pdwEffect = DROPEFFECT_NONE;
-      if (status == TCL_OK) {
-        /* Get the returned action... */
-        result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
-        status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
-                                     "dropactions", 0, &index);
-        Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = ActionDefault;
-      }
-      switch ((enum dropactions) index) {
-        case ActionCopy:    *pdwEffect = DROPEFFECT_COPY; break;
-        case ActionMove:    *pdwEffect = DROPEFFECT_MOVE; break;
-        case ActionLink:    *pdwEffect = DROPEFFECT_LINK; break;
-        case ActionAsk:     *pdwEffect = DROPEFFECT_NONE; break;
-        case ActionPrivate: *pdwEffect = DROPEFFECT_NONE; break;
-        case ActionDefault: *pdwEffect = DROPEFFECT_COPY; break;
-        case refuse_drop:   *pdwEffect = DROPEFFECT_NONE; /* Refuse drop. */
-      }
+      *pdwEffect = SendDragEnter(pt, grfKeyState);
       return S_OK;
     }; /* DragEnter */
     
     STDMETHODIMP DragOver(DWORD grfKeyState, POINTL pt, DWORD *pdwEffect) {
-      Tcl_Obj *objv[5], *pressedkeys = Tcl_NewListObj(0, NULL), *result;
-      int i, status, index;
-      static const char *DropActions[] = {
-        "copy", "move", "link", "ask",  "private", "refuse_drop",
-        "default",
-        (char *) NULL
-      };
-      enum dropactions {
-        ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
-        refuse_drop, ActionDefault
-      };
-
-      // Get the state of the keyboard modifier keys.
-      // MK_CONTROL, MK_SHIFT, MK_ALT, MK_RBUTTON, MK_LBUTTON
-      if (grfKeyState & MK_CONTROL)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("ctrl", -1));
-      if (grfKeyState & MK_SHIFT)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("shift",-1));
-      if (grfKeyState & MK_ALT)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("alt", -1));
-      if (grfKeyState & MK_RBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("3", -1));
-      if (grfKeyState & MK_MBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("2", -1));
-      if (grfKeyState & MK_LBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("1", -1));
-
-      // We are ready to pass the info to the Tcl level, and get the desired
-      // action.
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragOver", -1);
-      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
-      objv[2] = pressedkeys;
-      objv[3] = Tcl_NewLongObj(pt.x);
-      objv[4] = Tcl_NewLongObj(pt.y);
-      TkDND_Status_Eval(5);
-      *pdwEffect = DROPEFFECT_NONE;
-      if (status == TCL_OK) {
-        /* Get the returned action... */
-        result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
-        status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
-                                     "dropactions", 0, &index);
-        Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = ActionDefault;
-      }
-      switch ((enum dropactions) index) {
-        case ActionCopy:    *pdwEffect = DROPEFFECT_COPY; break;
-        case ActionMove:    *pdwEffect = DROPEFFECT_MOVE; break;
-        case ActionLink:    *pdwEffect = DROPEFFECT_LINK; break;
-        case ActionAsk:     *pdwEffect = DROPEFFECT_NONE; break;
-        case ActionPrivate: *pdwEffect = DROPEFFECT_NONE; break;
-        case ActionDefault: *pdwEffect = DROPEFFECT_COPY; break;
-        case refuse_drop:   *pdwEffect = DROPEFFECT_NONE; /* Refuse drop. */
+      /*
+       * This event will be delivered when the mouse is over tkwin. Ensure that
+       * the part the mouse is in, is not overlapped by another window...
+       */
+      if (Tk_CoordsToWindow(pt.x, pt.y, tkwin) != tkwin) {
+        SendDragLeave();
+        *pdwEffect = DROPEFFECT_NONE;
+      } else {
+        SendDragEnter(pt, grfKeyState);
+        *pdwEffect = SendDragOver(pt, grfKeyState);
       }
       return S_OK;
     }; /* DragOver */
     
     STDMETHODIMP DragLeave(void) {
-      Tcl_Obj *objv[2];
-      int i;
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragLeave", -1);
-      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
-      TkDND_Eval(2);
+      SendDragLeave();
+      if (typelist   != NULL) {Tcl_DecrRefCount(typelist);   typelist   = NULL;}
+      if (actionlist != NULL) {Tcl_DecrRefCount(actionlist); actionlist = NULL;}
+      if (codelist   != NULL) {Tcl_DecrRefCount(codelist);   codelist   = NULL;}
       return S_OK;
     }; /* DragLeave */
     
     STDMETHODIMP Drop(IDataObject *pDataObject, DWORD grfKeyState, 
                       POINTL pt, DWORD *pdwEffect) {
-      Tcl_Obj *objv[7], *result, **typeObj, *data = NULL, *type,
-              *pressedkeys = NULL;
+      Tcl_Obj *objv[7], *result, **typeObj, *data = NULL, *type = NULL;
       int i, type_index, status, index, typeObjc;
       static const char *DropTypes[] = {
         "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
@@ -699,16 +789,9 @@ class TkDND_DropTarget: public IDropTarget {
         TYPE_CF_RTF, TYPE_CF_RTFTEXT, TYPE_CF_RICHTEXTFORMAT,
         TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR
       };
-      static const char *DropActions[] = {
-        "copy", "move", "link", "ask",  "private", "refuse_drop",
-        "default",
-        (char *) NULL
-      };
-      enum dropactions {
-        ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
-        refuse_drop, ActionDefault
-      };
       *pdwEffect = DROPEFFECT_NONE;
+      if (!drop_active) return S_OK;
+      drop_active = false;
       // Get the drop format list.
       objv[0] = Tcl_NewStringObj("tkdnd::olednd::_GetDropTypes", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
@@ -729,7 +812,6 @@ class TkDND_DropTarget: public IDropTarget {
             case TYPE_CF_RTF:
             case TYPE_CF_RTFTEXT:
             case TYPE_CF_RICHTEXTFORMAT:
-              type = typeObj[type_index]; Tcl_IncrRefCount(type);
               data = GetData_Bytearray(pDataObject, type);
               break;
             case TYPE_CF_TEXT:
@@ -769,52 +851,10 @@ class TkDND_DropTarget: public IDropTarget {
       }
       Tcl_DecrRefCount(result);
       
-      // Get the state of the keyboard modifier keys.
-      // MK_CONTROL, MK_SHIFT, MK_ALT, MK_RBUTTON, MK_LBUTTON
-      pressedkeys = Tcl_NewListObj(0, NULL);
-      if (grfKeyState & MK_CONTROL)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("ctrl", -1));
-      if (grfKeyState & MK_SHIFT)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("shift",-1));
-      if (grfKeyState & MK_ALT)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("alt", -1));
-      if (grfKeyState & MK_RBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("3", -1));
-      if (grfKeyState & MK_MBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("2", -1));
-      if (grfKeyState & MK_LBUTTON)
-        Tcl_ListObjAppendElement(NULL,pressedkeys,Tcl_NewStringObj("1", -1));
-
       // We are ready to pass the info to the Tcl level, and get the desired
       // action.
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDrop", -1);
-      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
-      objv[2] = pressedkeys;
-      objv[3] = Tcl_NewLongObj(pt.x);
-      objv[4] = Tcl_NewLongObj(pt.y);
-      objv[5] = type;
-      objv[6] = data;
-      TkDND_Status_Eval(7);
+      *pdwEffect = SendDrop(pt, grfKeyState, type, data);
       Tcl_DecrRefCount(type);
-      *pdwEffect = DROPEFFECT_NONE;
-      if (status == TCL_OK) {
-        /* Get the returned action... */
-        result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
-        status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
-                                     "dropactions", 0, &index);
-        Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = ActionDefault;
-      }
-      switch ((enum dropactions) index) {
-        case ActionCopy:    *pdwEffect = DROPEFFECT_COPY; break;
-        case ActionMove:    *pdwEffect = DROPEFFECT_MOVE; break;
-        case ActionLink:    *pdwEffect = DROPEFFECT_LINK; break;
-        case ActionAsk:     *pdwEffect = DROPEFFECT_NONE; break;
-        case ActionPrivate: *pdwEffect = DROPEFFECT_NONE; break;
-        case ActionDefault: *pdwEffect = DROPEFFECT_COPY; break;
-        case refuse_drop:   *pdwEffect = DROPEFFECT_NONE; /* Refuse drop. */
-      }
-      
       return S_OK;
     }; /* Drop */
 
