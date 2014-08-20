@@ -415,7 +415,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandlePosition", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(mouse_tkwin), -1);
   objv[2] = Tcl_NewIntObj(rootX);
-  objv[3] = Tcl_NewIntObj(rootY);
+  objv[3] = Tcl_NewIntObj(tk_Y);
 
   /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(4);
