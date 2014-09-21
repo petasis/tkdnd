@@ -311,7 +311,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
 
 /*
  * Standard Cocoa method for entering drop target;
- * Calls tkdnd::macdnd::_HandleEnter
+ * Calls ::tkdnd::macdnd::HandleEnter
  */
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender {
   static char *DropActions[] = {
@@ -330,7 +330,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   Tcl_Obj* objv[4], *element, *result;
   int i, index, status;
 
-  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleEnter", -1);
+  objv[0] = Tcl_NewStringObj("::tkdnd::macdnd::HandleEnter", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
   objv[2] = Tcl_NewLongObj(0);
   objv[3] = Tcl_NewListObj(0, NULL);
@@ -412,7 +412,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   mouse_tkwin = Tk_CoordsToWindow(rootX, tk_Y, tkwin);
   if (mouse_tkwin == NULL) return NSDragOperationNone;
 
-  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandlePosition", -1);
+  objv[0] = Tcl_NewStringObj("::tkdnd::macdnd::HandlePosition", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(mouse_tkwin), -1);
   objv[2] = Tcl_NewIntObj(rootX);
   objv[3] = Tcl_NewIntObj(tk_Y);
@@ -458,7 +458,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
 
 /*
  * Standard Cocoa method for handling drop operation
- * Calls tkdnd::macdnd::_HandleDrop
+ * Calls ::tkdnd::macdnd::HandleDrop
  */
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
   static char *DropActions[] = {
@@ -478,7 +478,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   const NSString *type;
 
   /* Retrieve the common types, as prefered by the drag source... */
-  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_GetDragSourceCommonTypes", -1);
+  objv[0] = Tcl_NewStringObj("::tkdnd::macdnd::GetDragSourceCommonTypes", -1);
   /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(1);
   //  printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
@@ -537,7 +537,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   Tcl_DecrRefCount(result);
   if (data == NULL) data = Tcl_NewStringObj(NULL, 0);
 
-  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleDrop", -1);
+  objv[0] = Tcl_NewStringObj("::tkdnd::macdnd::HandleDrop", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
   objv[2] = data;
 
@@ -572,7 +572,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
 
 /*
  * Standard Cocoa method for handling drop operation
- * Calls tkdnd::macdnd::_HandleXdndDrop
+ * Calls ::tkdnd::macdnd::HandleXdndDrop
  */
 - (void)draggingExited:(id < NSDraggingInfo >)sender {
   Tk_Window tkwin    = TkMacOSXGetTkWindow([self window]);
@@ -581,7 +581,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   Tcl_Obj* objv[4];
   int i;
 
-  objv[0] = Tcl_NewStringObj("tkdnd::macdnd::_HandleLeave", -1);
+  objv[0] = Tcl_NewStringObj("::tkdnd::macdnd::HandleLeave", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
   objv[2] = Tcl_NewLongObj(0);
   objv[3] = Tcl_NewListObj(0, NULL);

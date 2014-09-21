@@ -823,7 +823,7 @@ class TkDND_DropTarget: public IDropTarget {
       drop_active = false;
 #endif
       // Get the drop format list.
-      objv[0] = Tcl_NewStringObj("::tkdnd::olednd::GetDropTypes", -1);
+      objv[0] = Tcl_NewStringObj("::tkdnd::olednd::GetDragSourceCommonTypes", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
       TkDND_Status_Eval(2); if (status != TCL_OK) return S_OK;
       result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);

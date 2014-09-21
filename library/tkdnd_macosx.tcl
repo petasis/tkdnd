@@ -52,153 +52,91 @@ if {[tk windowingsystem] eq "aqua" && "AppKit" ni [winfo server .]} {
 }
 
 namespace eval macdnd {
-  variable _dropped_data
 
   proc initialise { } {
-    variable _tkdnd2platform
-    variable _platform2tkdnd
-
-    ## Initialize the tkdnd 2 platform & platform 2 tkdnd arrays for
-    ## type conversion...
-    array set _platform2tkdnd [list \
+     ## Mapping from platform types to TkDND types...
+    ::tkdnd::generic::initialise_platform_to_tkdnd_types [list \
        NSPasteboardTypeString  DND_Text  \
        NSFilenamesPboardType   DND_Files \
     ]
-    foreach type [array names _platform2tkdnd] {
-      lappend _tkdnd2platform($_platform2tkdnd($type)) $type
-    }
   };# initialise
 
 };# namespace macdnd
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_HandleEnter
+#  Command macdnd::HandleEnter
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleEnter { path drag_source typelist } {
-  ::tkdnd::xdnd::_HandleXdndEnter $path $drag_source $typelist
-};# macdnd::_HandleEnter
+proc macdnd::HandleEnter { path drag_source typelist } {
+  variable _pressedkeys
+  variable _actionlist
+  set _pressedkeys 1
+  set _actionlist  { copy move link ask private }
+  ::tkdnd::generic::HandleEnter $path $drag_source $typelist $typelist \
+           $_actionlist $_pressedkeys
+};# macdnd::HandleEnter
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_HandlePosition
+#  Command macdnd::HandlePosition
 # ----------------------------------------------------------------------------
-proc macdnd::_HandlePosition { drop_target rootX rootY } {
-  ::tkdnd::xdnd::_HandleXdndPosition $drop_target $rootX $rootY
-};# macdnd::_HandlePosition
+proc macdnd::HandlePosition { drop_target rootX rootY {drag_source {}} } {
+  variable _pressedkeys
+  variable _last_mouse_root_x; set _last_mouse_root_x $rootX
+  variable _last_mouse_root_y; set _last_mouse_root_y $rootY
+  ::tkdnd::generic::HandlePosition $drop_target $drag_source \
+                                   $_pressedkeys $rootX $rootY
+};# macdnd::HandlePosition
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_HandleLeave
+#  Command macdnd::HandleLeave
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleLeave { args } {
-  ::tkdnd::xdnd::_HandleXdndLeave
-};# macdnd::_HandleLeave
+proc macdnd::HandleLeave { args } {
+  ::tkdnd::generic::HandleLeave
+};# macdnd::HandleLeave
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_HandleDrop
+#  Command macdnd::HandleDrop
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleDrop { drop_target data args } {
-  variable _dropped_data
-  set _dropped_data $data
-  ::tkdnd::xdnd::_HandleXdndDrop 0
-};# macdnd::_HandleDrop
+proc macdnd::HandleDrop { drop_target data args } {
+  variable _pressedkeys
+  variable _last_mouse_root_x
+  variable _last_mouse_root_y
+  ## Get the dropped data...
+  ::tkdnd::generic::SetDroppedData $data
+  ::tkdnd::generic::HandleDrop {} {} $_pressedkeys \
+                               $_last_mouse_root_x $_last_mouse_root_y 0
+};# macdnd::HandleDrop
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_GetDroppedData
+#  Command macdnd::GetDragSourceCommonTypes
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDroppedData { time } {
-  variable _dropped_data
-  return  $_dropped_data
-};# macdnd::_GetDroppedData
-proc xdnd::_GetDroppedData { time } {
-  ::tkdnd::macdnd::_GetDroppedData $time
-};# xdnd::_GetDroppedData
+proc macdnd::GetDragSourceCommonTypes { } {
+  ::tkdnd::generic::GetDragSourceCommonTypes
+};# macdnd::GetDragSourceCommonTypes
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_GetDragSource
+#  Command macdnd::platform_specific_types
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDragSource { } {
-  ::tkdnd::xdnd::_GetDragSource
-};# macdnd::_GetDragSource
+proc macdnd::platform_specific_types { types } {
+  ::tkdnd::generic::platform_specific_types $types
+}; # macdnd::platform_specific_types
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_GetDropTarget
+#  Command macdnd::platform_specific_type
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDropTarget { } {
-  ::tkdnd::xdnd::_GetDropTarget
-};# macdnd::_GetDropTarget
+proc macdnd::platform_specific_type { type } {
+  ::tkdnd::generic::platform_specific_type $type
+}; # macdnd::platform_specific_type
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_GetDragSourceCommonTypes
+#  Command tkdnd::platform_independent_types
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDragSourceCommonTypes { } {
-  ::tkdnd::xdnd::_GetDragSourceCommonTypes
-};# macdnd::_GetDragSourceCommonTypes
+proc ::tkdnd::platform_independent_types { types } {
+  ::tkdnd::generic::platform_independent_types $types
+}; # tkdnd::platform_independent_types
 
 # ----------------------------------------------------------------------------
-#  Command macdnd::_GetDropTargetCommonTypes
+#  Command macdnd::platform_independent_type
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDropTargetCommonTypes { } {
-  ::tkdnd::xdnd::_GetDropTargetCommonTypes
-};# macdnd::_GetDropTargetCommonTypes
-
-# ----------------------------------------------------------------------------
-#  Command macdnd::_supported_types
-# ----------------------------------------------------------------------------
-proc macdnd::_supported_types { types } {
-  ::tkdnd::xdnd::_supported_types $types
-}; # macdnd::_supported_types
-
-# ----------------------------------------------------------------------------
-#  Command macdnd::_platform_specific_types
-# ----------------------------------------------------------------------------
-proc macdnd::_platform_specific_types { types } {
-  ::tkdnd::xdnd::_platform_specific_types $types
-}; # macdnd::_platform_specific_types
-
-# ----------------------------------------------------------------------------
-#  Command macdnd::_normalise_data
-# ----------------------------------------------------------------------------
-proc macdnd::_normalise_data { type data } {
-  ::tkdnd::xdnd::_normalise_data $type $data
-}; # macdnd::_normalise_data
-
-# ----------------------------------------------------------------------------
-#  Command macdnd::_platform_specific_type
-# ----------------------------------------------------------------------------
-proc macdnd::_platform_specific_type { type } {
-  variable _tkdnd2platform
-  if {[info exists _tkdnd2platform($type)]} {
-    return $_tkdnd2platform($type)
-  }
-  list $type
-}; # macdnd::_platform_specific_type
-proc xdnd::_platform_specific_type { type } {
-  ::tkdnd::macdnd::_platform_specific_type $type
-}; # xdnd::_platform_specific_type
-
-# ----------------------------------------------------------------------------
-#  Command macdnd::_platform_independent_type
-# ----------------------------------------------------------------------------
-proc macdnd::_platform_independent_type { type } {
-  variable _platform2tkdnd
-  if {[info exists _platform2tkdnd($type)]} {
-    return $_platform2tkdnd($type)
-  }
-  return $type
-}; # macdnd::_platform_independent_type
-proc xdnd::_platform_independent_type { type } {
-  ::tkdnd::macdnd::_platform_independent_type $type
-}; # xdnd::_platform_independent_type
-
-# ----------------------------------------------------------------------------
-#  Command macdnd::_supported_type
-# ----------------------------------------------------------------------------
-proc macdnd::_supported_type { type } {
-  variable _platform2tkdnd
-  if {[info exists _platform2tkdnd($type)]} {
-    return 1
-  }
-  return 0
-}; # macdnd::_supported_type
-proc xdnd::_supported_type { type } {
-  ::tkdnd::macdnd::_supported_type $type
-}; # xdnd::_supported_type
+proc macdnd::platform_independent_type { type } {
+  ::tkdnd::generic::platform_independent_type $type
+}; # macdnd::platform_independent_type

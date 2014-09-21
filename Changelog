@@ -1,4 +1,5 @@
 2014-09-21  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_macosx.tcl:
 	* library/tkdnd_unix.tcl: Changed implementation to re-use the
 	generic implementation.
 

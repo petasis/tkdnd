@@ -108,11 +108,11 @@ proc olednd::HandleDrop { drop_target pressedkeys rootX rootY type data } {
 };# olednd::HandleXdndDrop
 
 # ----------------------------------------------------------------------------
-#  Command olednd::_GetDropTypes
+#  Command olednd::GetDragSourceCommonTypes
 # ----------------------------------------------------------------------------
-proc olednd::GetDropTypes { drop_target } {
+proc olednd::GetDragSourceCommonTypes { drop_target } {
   ::tkdnd::generic::GetDragSourceCommonTypes
-};# olednd::GetDropTypes
+};# olednd::GetDragSourceCommonTypes
 
 # ----------------------------------------------------------------------------
 #  Command olednd::platform_specific_types
