@@ -54,7 +54,7 @@ if {[tk windowingsystem] eq "aqua" && "AppKit" ni [winfo server .]} {
 namespace eval macdnd {
   variable _dropped_data
 
-  proc initialise {} {
+  proc initialise { } {
     variable _tkdnd2platform
     variable _platform2tkdnd
 
@@ -68,6 +68,7 @@ namespace eval macdnd {
       lappend _tkdnd2platform($_platform2tkdnd($type)) $type
     }
   };# initialise
+
 };# namespace macdnd
 
 # ----------------------------------------------------------------------------
@@ -87,7 +88,7 @@ proc macdnd::_HandlePosition { drop_target rootX rootY } {
 # ----------------------------------------------------------------------------
 #  Command macdnd::_HandleLeave
 # ----------------------------------------------------------------------------
-proc macdnd::_HandleLeave { args  } {
+proc macdnd::_HandleLeave { args } {
   ::tkdnd::xdnd::_HandleXdndLeave
 };# macdnd::_HandleLeave
 
@@ -114,28 +115,28 @@ proc xdnd::_GetDroppedData { time } {
 # ----------------------------------------------------------------------------
 #  Command macdnd::_GetDragSource
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDragSource {  } {
+proc macdnd::_GetDragSource { } {
   ::tkdnd::xdnd::_GetDragSource
 };# macdnd::_GetDragSource
 
 # ----------------------------------------------------------------------------
 #  Command macdnd::_GetDropTarget
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDropTarget {  } {
+proc macdnd::_GetDropTarget { } {
   ::tkdnd::xdnd::_GetDropTarget
 };# macdnd::_GetDropTarget
 
 # ----------------------------------------------------------------------------
 #  Command macdnd::_GetDragSourceCommonTypes
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDragSourceCommonTypes {  } {
+proc macdnd::_GetDragSourceCommonTypes { } {
   ::tkdnd::xdnd::_GetDragSourceCommonTypes
 };# macdnd::_GetDragSourceCommonTypes
 
 # ----------------------------------------------------------------------------
 #  Command macdnd::_GetDropTargetCommonTypes
 # ----------------------------------------------------------------------------
-proc macdnd::_GetDropTargetCommonTypes {  } {
+proc macdnd::_GetDropTargetCommonTypes { } {
   ::tkdnd::xdnd::_GetDropTargetCommonTypes
 };# macdnd::_GetDropTargetCommonTypes
 
