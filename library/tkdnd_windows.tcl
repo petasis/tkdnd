@@ -63,16 +63,16 @@ proc olednd::_HandleDragEnter { drop_target typelist actionlist pressedkeys
   variable _codelist;                 set _codelist    $codelist
   variable _actionlist;               set _actionlist  $actionlist
   variable _pressedkeys;              set _pressedkeys $pressedkeys
-  variable _action;                   set _action      {}
+  variable _action;                   set _action      refuse_drop
   variable _common_drag_source_types; set _common_drag_source_types {}
   variable _common_drop_target_types; set _common_drop_target_types {}
 
   variable _last_mouse_root_x;        set _last_mouse_root_x $rootX
   variable _last_mouse_root_y;        set _last_mouse_root_y $rootY
 
-  # puts "olednd::_HandleDragEnter: drop_target=$drop_target,\
-  #       typelist=$typelist, actionlist=$actionlist,\
-  #       pressedkeys=$pressedkeys, rootX=$rootX, rootY=$rootY"
+  #  puts "olednd::_HandleDragEnter: drop_target=$drop_target,\
+  #        typelist=$typelist, actionlist=$actionlist,\
+  #        pressedkeys=$pressedkeys, rootX=$rootX, rootY=$rootY"
   focus $drop_target
 
   ## Does the new drop target support any of our new types?
@@ -90,9 +90,7 @@ proc olednd::_HandleDragEnter { drop_target typelist actionlist pressedkeys
     }
   }
 
-  set _action refuse_drop
   if {[info exists common_drag_source_types]} {
-    set _action copy
     set _common_drag_source_types $common_drag_source_types
     set _common_drop_target_types $common_drop_target_types
     ## Drop target supports at least one type. Send a <<DropEnter>>.
@@ -115,6 +113,10 @@ proc olednd::_HandleDragEnter { drop_target typelist actionlist pressedkeys
   }
   if {$::tkdnd::_auto_update} {update}
   # Return values: copy, move, link, ask, private, refuse_drop, default
+  switch -exact -- $_action {
+    copy - move - link - ask - private - refuse_drop - default {}
+    default {set _action copy}
+  }
   return $_action
 };# olednd::_HandleDragEnter
 
@@ -157,6 +159,10 @@ proc olednd::_HandleDragOver { drop_target pressedkeys rootX rootY } {
   }
   if {$::tkdnd::_auto_update} {update}
   # Return values: copy, move, link, ask, private, refuse_drop, default
+  switch -exact -- $_action {
+    copy - move - link - ask - private - refuse_drop - default {}
+    default {set _action copy}
+  }
   return $_action
 };# olednd::_HandleDragOver
 
@@ -176,10 +182,6 @@ proc olednd::_HandleDragLeave { drop_target } {
   variable _last_mouse_root_y
 
   if {![llength $_common_drag_source_types]} {return}
-  foreach var {_types _typelist _actionlist _pressedkeys _action
-               _common_drag_source_types _common_drop_target_types} {
-    set $var {}
-  }
 
   set cmd [bind $drop_target <<DropLeave>>]
   if {[string length $cmd]} {
@@ -196,9 +198,13 @@ proc olednd::_HandleDragLeave { drop_target } {
       %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
       %u   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
       ] $cmd]
-    set _action [uplevel \#0 $cmd]
+    uplevel \#0 $cmd
   }
   if {$::tkdnd::_auto_update} {update}
+  foreach var {_types _typelist _actionlist _pressedkeys _action
+               _common_drag_source_types _common_drop_target_types} {
+    set $var {}
+  }
 };# olednd::_HandleDragLeave
 
 # ----------------------------------------------------------------------------
@@ -237,7 +243,14 @@ proc olednd::_HandleDrop { drop_target pressedkeys rootX rootY _type data } {
         %t   \{$_typelist\}    %T \{[lindex $_common_drag_source_types 0]\} \
         %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
         ] $cmd]
-      return [uplevel \#0 $cmd]
+      set _action [uplevel \#0 $cmd]
+      # Return values: copy, move, link, ask, private, refuse_drop
+      switch -exact -- $_action {
+        copy - move - link - ask - private - refuse_drop - default {}
+        default {set _action copy}
+      }
+      if {$::tkdnd::_auto_update} {update}
+      return $_action
     }
   }
   set cmd [bind $drop_target <<Drop>>]
@@ -258,6 +271,10 @@ proc olednd::_HandleDrop { drop_target pressedkeys rootX rootY _type data } {
   }
   if {$::tkdnd::_auto_update} {update}
   # Return values: copy, move, link, ask, private, refuse_drop
+  switch -exact -- $_action {
+    copy - move - link - ask - private - refuse_drop - default {}
+    default {set _action copy}
+  }
   return $_action
 };# olednd::_HandleXdndDrop
 

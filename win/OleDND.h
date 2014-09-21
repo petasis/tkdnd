@@ -572,7 +572,7 @@ class TkDND_DropTarget: public IDropTarget {
         status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = ActionDefault;
+        if (status != TCL_OK) index = (enum dropactions) ActionDefault;
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    effect = DROPEFFECT_COPY; break;
@@ -615,7 +615,7 @@ class TkDND_DropTarget: public IDropTarget {
         status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = ActionDefault;
+        if (status != TCL_OK) index = (enum dropactions) ActionDefault;
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    effect = DROPEFFECT_COPY; break;
@@ -660,7 +660,7 @@ class TkDND_DropTarget: public IDropTarget {
         status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = ActionDefault;
+        if (status != TCL_OK) index = (enum dropactions) ActionDefault;
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    effect = DROPEFFECT_COPY; break;
@@ -716,6 +716,7 @@ class TkDND_DropTarget: public IDropTarget {
       typelist    = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(typelist);
       actionlist  = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(actionlist);
       codelist    = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(codelist);
+      drop_active = false;
 
       /*
        * Get the types supported by the drag source.
@@ -754,6 +755,7 @@ class TkDND_DropTarget: public IDropTarget {
        * This event will be delivered when the mouse is over tkwin. Ensure that
        * the part the mouse is in, is not overlapped by another window...
        */
+#if 0
       if (Tk_CoordsToWindow(pt.x, pt.y, tkwin) != tkwin) {
         SendDragLeave();
         *pdwEffect = DROPEFFECT_NONE;
@@ -761,6 +763,9 @@ class TkDND_DropTarget: public IDropTarget {
         SendDragEnter(pt, grfKeyState);
         *pdwEffect = SendDragOver(pt, grfKeyState);
       }
+#else
+      *pdwEffect = SendDragOver(pt, grfKeyState);
+#endif
       return S_OK;
     }; /* DragOver */
     

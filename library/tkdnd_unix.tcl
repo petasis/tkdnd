@@ -67,7 +67,7 @@ namespace eval xdnd {
 proc xdnd::_HandleXdndEnter { path drag_source typelist } {
   variable _typelist;                 set _typelist    $typelist
   variable _pressedkeys;              set _pressedkeys 1
-  variable _action;                   set _action      {}
+  variable _action;                   set _action      refuse_drop
   variable _common_drag_source_types; set _common_drag_source_types {}
   variable _common_drop_target_types; set _common_drop_target_types {}
   variable _actionlist
@@ -159,7 +159,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
     set _drop_target {}
 
     if {[info exists common_drag_source_types]} {
-      set _action copy
+      set _action refuse_drop
       set _common_drag_source_types $common_drag_source_types
       set _common_drop_target_types $common_drop_target_types
       set _drop_target $drop_target
@@ -182,15 +182,17 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
           %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
           ] $cmd]
         set _action [uplevel \#0 $cmd]
+	switch -exact -- $_action {
+          copy - move - link - ask - private - refuse_drop - default {}
+          default {set _action copy}
+        }
       }
     }
     set _drop_target $drop_target
   }
 
-  set _action refuse_drop
   set _drop_target {}
   if {[info exists common_drag_source_types]} {
-    set _action copy
     set _common_drag_source_types $common_drag_source_types
     set _common_drop_target_types $common_drop_target_types
     set _drop_target $drop_target
@@ -215,6 +217,10 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
   }
   # Return values: copy, move, link, ask, private, refuse_drop, default
   # debug "xdnd::_HandleXdndPosition: ACTION: $_action"
+  switch -exact -- $_action {
+    copy - move - link - ask - private - refuse_drop - default {}
+    default {set _action copy}
+  }
   return $_action
 };# xdnd::_HandleXdndPosition
 
@@ -309,7 +315,13 @@ proc xdnd::_HandleXdndDrop { time } {
         %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
         %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
         ] $cmd]
-      return [uplevel \#0 $cmd]
+      set _action [uplevel \#0 $cmd]
+      # Return values: copy, move, link, ask, private, refuse_drop
+      switch -exact -- $_action {
+        copy - move - link - ask - private - refuse_drop - default {}
+        default {set _action copy}
+      }
+      return $_action
     }
   }
   set cmd [bind $_drop_target <<Drop>>]
@@ -329,8 +341,11 @@ proc xdnd::_HandleXdndDrop { time } {
       ] $cmd]
     set _action [uplevel \#0 $cmd]
   }
-  # Return values: XdndActionCopy, XdndActionMove,    XdndActionLink,
-  #                XdndActionAsk,  XdndActionPrivate, refuse_drop
+  # Return values: copy, move, link, ask, private, refuse_drop
+  switch -exact -- $_action {
+    copy - move - link - ask - private - refuse_drop - default {}
+    default {set _action copy}
+  }
   return $_action
 };# xdnd::_HandleXdndDrop
 

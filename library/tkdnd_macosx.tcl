@@ -54,12 +54,12 @@ if {[tk windowingsystem] eq "aqua" && "AppKit" ni [winfo server .]} {
 namespace eval macdnd {
   variable _dropped_data
 
-
   proc initialise {} {
     variable _tkdnd2platform
     variable _platform2tkdnd
 
-    ## Initialize the tkdnd 2 platform & platform 2 tkdnd arrays for type conversion...
+    ## Initialize the tkdnd 2 platform & platform 2 tkdnd arrays for
+    ## type conversion...
     array set _platform2tkdnd [list \
        NSPasteboardTypeString  DND_Text  \
        NSFilenamesPboardType   DND_Files \
