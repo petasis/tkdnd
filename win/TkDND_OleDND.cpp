@@ -1,6 +1,6 @@
 /*
  * TkDND_OleDND.h -- Tk OleDND Drag'n'Drop Protocol Implementation
- * 
+ *
  *    This file implements the unix portion of the drag&drop mechanism
  *    for the Tk toolkit. The protocol in use under windows is the
  *    OleDND protocol.
@@ -23,13 +23,13 @@
  * and need not follow the licensing terms described here, provided that
  * the new terms are clearly indicated on the first page of each file where
  * they apply.
- * 
+ *
  * IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY
  * FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
  * ARISING OUT OF THE USE OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY
  * DERIVATIVES THEREOF, EVEN IF THE AUTHORS HAVE BEEN ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE
@@ -48,7 +48,7 @@ int TkDND_RegisterDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   TkDND_DropTarget *pDropTarget;
   Tk_Window tkwin;
   HRESULT hret;
-  
+
   if (objc != 2) {
     Tcl_WrongNumArgs(interp, 1, objv, "path");
     return TCL_ERROR;
@@ -94,7 +94,7 @@ int TkDND_RevokeDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                  int objc, Tcl_Obj *CONST objv[]) {
   Tk_Window tkwin;
   HRESULT hret;
-  
+
   if (objc != 2) {
     Tcl_WrongNumArgs(interp, 1, objv, "path");
     return TCL_ERROR;
@@ -114,7 +114,7 @@ int TkDND_RevokeDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
               "\" has never been registered as a drop target", (char *) NULL);
     return TCL_ERROR;
   }
-              
+
   return TCL_OK;
 }; /* TkDND_RevokeDragDropObjCmd */
 
@@ -284,7 +284,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           size = 0;
           for (j = 0; j < file_nu; ++j) {
             Tcl_DStringInit(&ds);
-            native_name = Tcl_TranslateFileName(NULL, 
+            native_name = Tcl_TranslateFileName(NULL,
                                                 Tcl_GetString(File[j]), &ds);
             if (native_name == NULL) {
               Tcl_DStringFree(&ds);
@@ -300,7 +300,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 
           buffer_size = sizeof(wchar_t) * (size+1);
           m_pfmtetc[i].cfFormat = CF_HDROP;
-          m_pstgmed[i].hGlobal = GlobalAlloc(GHND, 
+          m_pstgmed[i].hGlobal = GlobalAlloc(GHND,
                    (DWORD) (sizeof(DROPFILES) + buffer_size));
           if (m_pstgmed[i].hGlobal) {
             TCHAR *CurPosition;
@@ -309,7 +309,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
             pDropFiles->pFiles = sizeof(DROPFILES);
             // File contains wide characters?
             pDropFiles->fWide = TRUE;
-            CurPosition = (TCHAR *) (LPBYTE(pDropFiles) + sizeof(DROPFILES)); 
+            CurPosition = (TCHAR *) (LPBYTE(pDropFiles) + sizeof(DROPFILES));
             Tcl_ListObjGetElements(NULL, native_files_obj, &file_nu, &File);
             for (j = 0; j < file_nu; j++) {
               TCHAR *pszFileName = (TCHAR *)
@@ -343,13 +343,13 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       break;
     }
   }; /* for (i = 0; i < type_nu; i++) */
-  
+
   pDataObject = new TkDND_DataObject(m_pfmtetc, m_pstgmed, type_nu);
   if (pDataObject == NULL) {
     Tcl_SetResult(interp, "unable to create OLE Data object", TCL_STATIC);
     return TCL_ERROR;
   }
-  
+
   pDropSource = new TkDND_DropSource(button);
   if (pDropSource == NULL) {
     pDataObject->Release();
@@ -405,7 +405,7 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
   HRESULT hret;
 
   if (
-#ifdef USE_TCL_STUBS 
+#ifdef USE_TCL_STUBS
       Tcl_InitStubs(interp, "8.3", 0)
 #else
       Tcl_PkgRequire(interp, "Tcl", "8.3", 0)
@@ -436,7 +436,7 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
    * Initialise OLE.
    */
   hret = OleInitialize(NULL);
-  
+
   /*
    * If OleInitialize returns S_FALSE, OLE has already been initialized
    */

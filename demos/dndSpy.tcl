@@ -74,12 +74,12 @@ proc FillData {text Data type code} {
       FileGroupDescriptor* {
         foreach item $Data {
           $text insert end "   *  \"$item\"\n"
-	  if {[file exists $item]} {
-	    $text insert end "      ->   File exists. Deleting...\n"
-	    file delete -force $item
-	  } else {
-	    $text insert end "      ->   File missing...\n"
-	  }
+          if {[file exists $item]} {
+            $text insert end "      ->   File exists. Deleting...\n"
+            file delete -force $item
+          } else {
+            $text insert end "      ->   File missing...\n"
+          }
         }
       }
       DND_Files {
@@ -102,7 +102,7 @@ set abg #8fbc8f
 set type *
 dnd bindtarget .typeList $type <DragEnter> ".typeList configure -bg $abg
 FillTypeListbox .typeList %t %T %c %C %a %A %m
-return \[lindex %A 0\]"
+return \[lindex %a 0\]"
 dnd bindtarget .typeList $type <Drag> \
         [dnd bindtarget .typeList $type <DragEnter>]
 dnd bindtarget .typeList $type <Drop> \

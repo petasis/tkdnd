@@ -64,17 +64,21 @@ namespace eval xdnd {
 # ----------------------------------------------------------------------------
 #  Command xdnd::_HandleXdndEnter
 # ----------------------------------------------------------------------------
-proc xdnd::_HandleXdndEnter { path drag_source typelist } {
+proc xdnd::_HandleXdndEnter { path drag_source typelist
+                              { actionlist { copy move link ask private } } 
+			      { pressedkeys 1 }
+			      { codelist {} }
+			    } {
   variable _typelist;                 set _typelist    $typelist
-  variable _pressedkeys;              set _pressedkeys 1
+  variable _pressedkeys;              set _pressedkeys $pressedkeys
   variable _action;                   set _action      refuse_drop
   variable _common_drag_source_types; set _common_drag_source_types {}
   variable _common_drop_target_types; set _common_drop_target_types {}
   variable _actionlist
   variable _drag_source;              set _drag_source $drag_source
   variable _drop_target;              set _drop_target {}
-  variable _actionlist;               set _actionlist  \
-                                           {copy move link ask private}
+  variable _actionlist;               set _actionlist  $actionlist
+  variable _codelist                  set _codelist    $codelist
 
   variable _last_mouse_root_x;        set _last_mouse_root_x 0
   variable _last_mouse_root_y;        set _last_mouse_root_y 0
@@ -140,7 +144,6 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
       # debug "\t<<DropLeave>> on $_drop_target"
       set cmd [bind $_drop_target <<DropLeave>>]
       if {[string length $cmd]} {
-        set _codelist $_typelist
         set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
@@ -168,7 +171,6 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
       set cmd [bind $drop_target <<DropEnter>>]
       if {[string length $cmd]} {
         focus $drop_target
-        set _codelist $_typelist
         set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
@@ -199,7 +201,6 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
     ## Drop target supports at least one type. Send a <<DropPosition>>.
     set cmd [bind $drop_target <<DropPosition>>]
     if {[string length $cmd]} {
-      set _codelist $_typelist
       set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
@@ -227,7 +228,7 @@ proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
 # ----------------------------------------------------------------------------
 #  Command xdnd::_HandleXdndLeave
 # ----------------------------------------------------------------------------
-proc xdnd::_HandleXdndLeave {  } {
+proc xdnd::_HandleXdndLeave { } {
   variable _types
   variable _typelist
   variable _actionlist
@@ -244,7 +245,6 @@ proc xdnd::_HandleXdndLeave {  } {
   if {[info exists _drop_target] && [string length $_drop_target]} {
     set cmd [bind $_drop_target <<DropLeave>>]
     if {[string length $cmd]} {
-      set _codelist $_typelist
       set cmd [string map [list %W $_drop_target \
         %X $_last_mouse_root_x %Y $_last_mouse_root_y \
         %CST \{$_common_drag_source_types\} \
@@ -302,7 +302,6 @@ proc xdnd::_HandleXdndDrop { time } {
     set type [_platform_independent_type $type]
     set cmd [bind $_drop_target <<Drop:$type>>]
     if {[string length $cmd]} {
-      set _codelist $_typelist
       set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
@@ -326,7 +325,6 @@ proc xdnd::_HandleXdndDrop { time } {
   }
   set cmd [bind $_drop_target <<Drop>>]
   if {[string length $cmd]} {
-    set _codelist $_typelist
     set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \

@@ -1,3 +1,24 @@
+
+2014-09-21  Petasis George  <petasis@iit.demokritos.gr>
+	* CMakeLists.txt:
+	* configure.in: Updated installed files.
+
+	* demos/basic.tcl:
+	* demos/dndSpy.tcl:
+	* demos/simple_target.tcl: Bug fixes.
+
+	* library/tkdnd.tcl:
+	* library/tkdnd_macosx.tcl:
+	* library/tkdnd_unix.tcl: Various bug fixes.
+
+	* win/OleDND.h:
+	* win/TkDND_OleDND.cpp:
+	* library/tkdnd_windows.tcl: Changed implementation to re-use the
+	generic implementation.
+
+	* library/tkdnd_generic.tcl: Added a new "generic" implementation, with
+	the aim to be re-used by all supported platforms.
+
 2014-08-19  Petasis George  <petasis@iit.demokritos.gr>
 	* unix/TkDND_XDND.c:
 	* win/OleDND.h: Corrected behaviour when mouse drags over overlapping

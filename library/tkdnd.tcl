@@ -1,6 +1,6 @@
 #
 # tkdnd.tcl --
-# 
+#
 #    This file implements some utility procedures that are used by the TkDND
 #    package.
 #
@@ -21,13 +21,13 @@
 # and need not follow the licensing terms described here, provided that
 # the new terms are clearly indicated on the first page of each file where
 # they apply.
-# 
+#
 # IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY
 # FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
 # ARISING OUT OF THE USE OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY
 # DERIVATIVES THEREOF, EVEN IF THE AUTHORS HAVE BEEN ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 # THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES,
 # INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE
@@ -38,7 +38,7 @@
 
 package require Tk
 
-namespace eval tkdnd {
+namespace eval ::tkdnd {
   variable _topw ".drag"
   variable _tabops
   variable _state
@@ -56,7 +56,7 @@ namespace eval tkdnd {
   bind TkDND_Drag2 <B2-Motion>     {tkdnd::_begin_drag motion 2 %W %s %X %Y}
   bind TkDND_Drag3 <ButtonPress-3> {tkdnd::_begin_drag press  3 %W %s %X %Y}
   bind TkDND_Drag3 <B3-Motion>     {tkdnd::_begin_drag motion 3 %W %s %X %Y}
-  
+
   # ----------------------------------------------------------------------------
   #  Command tkdnd::initialise: Initialise the TkDND package.
   # ----------------------------------------------------------------------------
@@ -97,7 +97,7 @@ namespace eval tkdnd {
     ## OS X returns "unix," but that's not useful because it has its own
     ## windowing system, aqua
     ## Under windows we have to also combine HOMEDRIVE & HOMEPATH...
-    if {![info exists UserHomeDir] && 
+    if {![info exists UserHomeDir] &&
         [string equal $_windowingsystem windows] &&
         [info exists env(HOMEDRIVE)] && [info exists env(HOMEPATH)]} {
       if {[file isdirectory $env(HOMEDRIVE)$env(HOMEPATH)]} {
@@ -109,7 +109,7 @@ namespace eval tkdnd {
       set UserHomeDir [pwd]
     }
     set UserHomeDir [file normalize $UserHomeDir]
-    
+
     ## Try to locate a temporary directory...
     foreach var {TKDND_TEMP_DIR TEMP TMP} {
       if {[info exists env($var)]} {
@@ -135,7 +135,8 @@ namespace eval tkdnd {
       set _drop_file_temp_dir $UserHomeDir
     }
     set _drop_file_temp_dir [file native $_drop_file_temp_dir]
-    
+
+    source $dir/tkdnd_generic.tcl
     switch $_windowingsystem {
       x11 {
         source $dir/tkdnd_unix.tcl
@@ -147,7 +148,6 @@ namespace eval tkdnd {
         set _platform_namespace olednd
       }
       aqua  {
-        source $dir/tkdnd_unix.tcl
         source $dir/tkdnd_macosx.tcl
         set _platform_namespace macdnd
       }
@@ -168,13 +168,13 @@ namespace eval tkdnd {
     variable _drop_file_temp_dir
     set _drop_file_temp_dir $dir
   }
-  
-};# namespace tkdnd
+ 
+};# namespace ::tkdnd
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::drag_source
 # ----------------------------------------------------------------------------
-proc tkdnd::drag_source { mode path { types {} } { event 1 } } {
+proc ::tkdnd::drag_source { mode path { types {} } { event 1 } } {
   set tags [bindtags $path]
   set idx  [lsearch $tags "TkDND_Drag*"]
   switch -- $mode {
@@ -202,7 +202,7 @@ proc tkdnd::drag_source { mode path { types {} } { event 1 } } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::drop_target
 # ----------------------------------------------------------------------------
-proc tkdnd::drop_target { mode path { types {} } } {
+proc ::tkdnd::drop_target { mode path { types {} } } {
   variable _windowingsystem
   set types [platform_specific_types $types]
   switch -- $mode {
@@ -255,7 +255,7 @@ proc tkdnd::drop_target { mode path { types {} } } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_begin_drag
 # ----------------------------------------------------------------------------
-proc tkdnd::_begin_drag { event button source state X Y } {
+proc ::tkdnd::_begin_drag { event button source state X Y } {
   variable _x0
   variable _y0
   variable _state
@@ -285,7 +285,7 @@ proc tkdnd::_begin_drag { event button source state X Y } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_init_drag
 # ----------------------------------------------------------------------------
-proc tkdnd::_init_drag { button source state rootX rootY } {
+proc ::tkdnd::_init_drag { button source state rootX rootY } {
   # Call the <<DragInitCmd>> binding.
   set cmd [bind $source <<DragInitCmd>>]
   if {[string length $cmd]} {
@@ -308,7 +308,7 @@ proc tkdnd::_init_drag { button source state rootX rootY } {
       foreach {t d} $_data {
         foreach t [platform_specific_types $t] {
           lappend types $t; lappend data $d
-	}
+        }
       }
       unset _data t d
     } else {
@@ -341,8 +341,8 @@ proc tkdnd::_init_drag { button source state rootX rootY } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::_end_drag
 # ----------------------------------------------------------------------------
-proc tkdnd::_end_drag { button source target action type data result
-                        state rootX rootY } {
+proc ::tkdnd::_end_drag { button source target action type data result
+                          state rootX rootY } {
   set rootX 0
   set rootY 0
   # Call the <<DragEndCmd>> binding.
@@ -380,39 +380,39 @@ proc tkdnd::_end_drag { button source target action type data result
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_specific_types
 # ----------------------------------------------------------------------------
-proc tkdnd::platform_specific_types { types } {
+proc ::tkdnd::platform_specific_types { types } {
   variable _platform_namespace
-  ${_platform_namespace}::_platform_specific_types $types
+  ${_platform_namespace}::platform_specific_types $types
 }; # tkdnd::platform_specific_types
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_independent_types
 # ----------------------------------------------------------------------------
-proc tkdnd::platform_independent_types { types } {
+proc ::tkdnd::platform_independent_types { types } {
   variable _platform_namespace
-  ${_platform_namespace}::_platform_independent_types $types
+  ${_platform_namespace}::platform_independent_types $types
 }; # tkdnd::platform_independent_types
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_specific_type
 # ----------------------------------------------------------------------------
-proc tkdnd::platform_specific_type { type } {
+proc ::tkdnd::platform_specific_type { type } {
   variable _platform_namespace
-  ${_platform_namespace}::_platform_specific_type $type
+  ${_platform_namespace}::platform_specific_type $type
 }; # tkdnd::platform_specific_type
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_independent_type
 # ----------------------------------------------------------------------------
-proc tkdnd::platform_independent_type { type } {
+proc ::tkdnd::platform_independent_type { type } {
   variable _platform_namespace
-  ${_platform_namespace}::_platform_independent_type $type
+  ${_platform_namespace}::platform_independent_type $type
 }; # tkdnd::platform_independent_type
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::bytes_to_string
 # ----------------------------------------------------------------------------
-proc tkdnd::bytes_to_string { bytes } {
+proc ::tkdnd::bytes_to_string { bytes } {
   set string {}
   foreach byte $bytes {
     append string [binary format c $byte]
@@ -423,7 +423,7 @@ proc tkdnd::bytes_to_string { bytes } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::urn_unquote
 # ----------------------------------------------------------------------------
-proc tkdnd::urn_unquote {url} {
+proc ::tkdnd::urn_unquote {url} {
   set result ""
   set start 0
   while {[regexp -start $start -indices {%[0-9a-fA-F]{2}} $url match]} {

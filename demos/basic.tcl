@@ -58,7 +58,7 @@ tkdnd::drop_target register .drop_target *
 set cmd {handle_event %e %W %X %Y %ST %TT %a %A %CST %CTT %t %T %CPT %b %D}
 set itemList {Event Widget X Y Source_Types Target_Types Source_Actions Action
               Common_Source_Types Common_Target_Types Types
-	      Drop_Type Cross_Platform_Drop_Type
+              Drop_Type Cross_Platform_Drop_Type
               Pressed_Keys Data}
 # Add the various events...
 bind .drop_target <<DropEnter>>      $cmd
@@ -73,7 +73,7 @@ bind .drop_target <<Drop>>           $cmd
 bind .drop_target <<Drop:DND_Files>> $cmd
 
 # Add a special drop command for DND_Color...
-bind .drop_target <<Drop:DND_Color>> $cmd 
+bind .drop_target <<Drop:DND_Color>> $cmd
 
 # Create some widgets for showing event info.
 foreach item $itemList {

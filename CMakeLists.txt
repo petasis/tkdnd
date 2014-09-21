@@ -204,6 +204,7 @@ INSTALL ( TARGETS ${PKG_TARGET_LIB_NAME}
           ARCHIVE DESTINATION ${PKG_TARGET_LIB_NAME} )
 INSTALL ( FILES library/pkgIndex.tcl
                 library/tkdnd.tcl
+                library/tkdnd_generic.tcl
                 library/tkdnd_compat.tcl
                 library/tkdnd_macosx.tcl
                 library/tkdnd_unix.tcl

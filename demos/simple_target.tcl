@@ -1,7 +1,9 @@
 package require tkdnd
 catch {console show}
 
-pack [ttk::button .drop_target -text " Drop Target (I can accept anything!) "] \
+pack [ttk::button .drop_target \
+      -text " Drop Target (I can accept anything!)\
+           \n          but only on the left half!"] \
       -fill x -padx 20 -pady 20
 
 tkdnd::drop_target register .drop_target *

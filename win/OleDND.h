@@ -471,7 +471,9 @@ class TkDND_DropTarget: public IDropTarget {
     TCHAR                szTempStr[MAX_PATH+2];
 
     Tcl_Obj             *typelist, *actionlist, *codelist;
+#ifdef DND_USE_ACTIVE
     bool                 drop_active;
+#endif
     
     const TCHAR * FormatName(UINT cfFormat) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
@@ -484,11 +486,17 @@ class TkDND_DropTarget: public IDropTarget {
 
   public:
     TkDND_DropTarget(Tcl_Interp *_interp, Tk_Window _tkwin) :
-      interp(_interp), tkwin(_tkwin), m_lRefCount(1), drop_active(false),
+      interp(_interp), tkwin(_tkwin), m_lRefCount(1),
+#ifdef DND_USE_ACTIVE
+      drop_active(false),
+#endif
       typelist(NULL), actionlist(NULL), codelist(NULL) {
     }; /* TkDND_DropTarget */
    
     ~TkDND_DropTarget(void) {
+      if (typelist   != NULL) Tcl_DecrRefCount(typelist);
+      if (actionlist != NULL) Tcl_DecrRefCount(actionlist);
+      if (codelist   != NULL) Tcl_DecrRefCount(codelist);
    }; /* ~TkDND_DropTarget */
    
     /* IUnknown interface members */
@@ -553,11 +561,13 @@ class TkDND_DropTarget: public IDropTarget {
         ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
         refuse_drop, ActionDefault
       };
+#ifdef DND_USE_ACTIVE
       if (drop_active) {
         return DROPEFFECT_COPY;
       }
+#endif
 
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragEnter", -1);
+      objv[0] = Tcl_NewStringObj("::tkdnd::olednd::HandleDragEnter", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
       objv[2] = typelist;
       objv[3] = actionlist;
@@ -583,7 +593,9 @@ class TkDND_DropTarget: public IDropTarget {
         case ActionDefault: effect = DROPEFFECT_COPY; break;
         case refuse_drop:   effect = DROPEFFECT_NONE; /* Refuse drop. */
       }
+#ifdef DND_USE_ACTIVE
       drop_active = true;
+#endif
       return effect;
     }; /* SendDragEnter */
 
@@ -600,10 +612,12 @@ class TkDND_DropTarget: public IDropTarget {
         ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
         refuse_drop, ActionDefault
       };
+#ifdef DND_USE_ACTIVE
       if (!drop_active) {
         return effect;
       }
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragOver", -1);
+#endif
+      objv[0] = Tcl_NewStringObj("::tkdnd::olednd::HandleDragOver", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
       objv[2] = GetPressedKeys(grfKeyState);
       objv[3] = Tcl_NewLongObj(pt.x);
@@ -642,11 +656,13 @@ class TkDND_DropTarget: public IDropTarget {
         ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
         refuse_drop, ActionDefault
       };
+#ifdef DND_USE_ACTIVE
       if (!drop_active) {
         return effect;
       }
       drop_active = false;
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDrop", -1);
+#endif
+      objv[0] = Tcl_NewStringObj("::tkdnd::olednd::HandleDrop", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
       objv[2] = GetPressedKeys(grfKeyState);
       objv[3] = Tcl_NewLongObj(pt.x);
@@ -654,13 +670,14 @@ class TkDND_DropTarget: public IDropTarget {
       objv[5] = type;
       objv[6] = data;
       TkDND_Status_Eval(7);
+      index = (enum dropactions) refuse_drop;
       if (status == TCL_OK) {
         /* Get the returned action... */
         result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
         status = Tcl_GetIndexFromObj(interp, result, (const char **)DropActions,
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
-        if (status != TCL_OK) index = (enum dropactions) ActionDefault;
+        if (status != TCL_OK) index = (enum dropactions) refuse_drop;
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    effect = DROPEFFECT_COPY; break;
@@ -677,12 +694,16 @@ class TkDND_DropTarget: public IDropTarget {
     void SendDragLeave(void) {
       Tcl_Obj *objv[2];
       int i;
+#ifdef DND_USE_ACTIVE
       if (drop_active) {
-        objv[0] = Tcl_NewStringObj("tkdnd::olednd::_HandleDragLeave", -1);
+#endif
+        objv[0] = Tcl_NewStringObj("::tkdnd::olednd::HandleDragLeave", -1);
         objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
         TkDND_Eval(2);
+#ifdef DND_USE_ACTIVE
       }
       drop_active = false;
+#endif
     }; /* SendDragLeave */
 
     /*
@@ -716,7 +737,9 @@ class TkDND_DropTarget: public IDropTarget {
       typelist    = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(typelist);
       actionlist  = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(actionlist);
       codelist    = Tcl_NewListObj(0, NULL); Tcl_IncrRefCount(codelist);
+#ifdef DND_USE_ACTIVE
       drop_active = false;
+#endif
 
       /*
        * Get the types supported by the drag source.
@@ -795,10 +818,12 @@ class TkDND_DropTarget: public IDropTarget {
         TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR
       };
       *pdwEffect = DROPEFFECT_NONE;
+#ifdef DND_USE_ACTIVE
       if (!drop_active) return S_OK;
       drop_active = false;
+#endif
       // Get the drop format list.
-      objv[0] = Tcl_NewStringObj("tkdnd::olednd::_GetDropTypes", -1);
+      objv[0] = Tcl_NewStringObj("::tkdnd::olednd::GetDropTypes", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
       TkDND_Status_Eval(2); if (status != TCL_OK) return S_OK;
       result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
@@ -817,7 +842,7 @@ class TkDND_DropTarget: public IDropTarget {
             case TYPE_CF_RTF:
             case TYPE_CF_RTFTEXT:
             case TYPE_CF_RICHTEXTFORMAT:
-              data = GetData_Bytearray(pDataObject, type);
+              data = GetData_Bytearray(pDataObject, typeObj[type_index]);
               break;
             case TYPE_CF_TEXT:
               data = GetData_CF_TEXT(pDataObject); break;
@@ -858,8 +883,9 @@ class TkDND_DropTarget: public IDropTarget {
       
       // We are ready to pass the info to the Tcl level, and get the desired
       // action.
+      Tcl_IncrRefCount(data);
       *pdwEffect = SendDrop(pt, grfKeyState, type, data);
-      Tcl_DecrRefCount(type);
+      Tcl_DecrRefCount(type); Tcl_IncrRefCount(data);
       return S_OK;
     }; /* Drop */
 
