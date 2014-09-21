@@ -1,11 +1,11 @@
 package require tkdnd
 catch {console show}
 
-pack [ttk::button .drag_source_text -text " Drag Source (Text) "] \
+pack [ttk::button .drag_source_text  -text " Drag Source (Text) " ] \
       -fill x -padx 20 -pady 20
 pack [ttk::button .drag_source_files -text " Drag Source (Files) "] \
       -fill x -padx 20 -pady 20
-pack [ttk::button .drag_source_html -text " Drag Source (HTML) "] \
+pack [ttk::button .drag_source_html  -text " Drag Source (HTML) " ] \
       -fill x -padx 20 -pady 20
 
 

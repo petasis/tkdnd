@@ -37,324 +37,74 @@
 #
 
 namespace eval xdnd {
-  variable _types {}
-  variable _typelist {}
-  variable _codelist {}
-  variable _actionlist {}
-  variable _pressedkeys {}
-  variable _action {}
-  variable _common_drag_source_types {}
-  variable _common_drop_target_types {}
-  variable _drag_source {}
-  variable _drop_target {}
-
   variable _dragging 0
 
-  variable _last_mouse_root_x 0
-  variable _last_mouse_root_y 0
-
-  proc debug {msg} {
-    puts $msg
-  };# debug
-
   proc initialise { } {
+    ## Mapping from platform types to TkDND types...
+    ::tkdnd::generic::initialise_platform_to_tkdnd_types [list \
+       text/plain\;charset=utf-8     DND_Text  \
+       UTF8_STRING                   DND_Text  \
+       text/plain                    DND_Text  \
+       STRING                        DND_Text  \
+       TEXT                          DND_Text  \
+       COMPOUND_TEXT                 DND_Text  \
+       text/uri-list                 DND_Files \
+       application/x-color           DND_Color \
+    ]
   };# initialise
+
 };# namespace xdnd
 
 # ----------------------------------------------------------------------------
-#  Command xdnd::_HandleXdndEnter
+#  Command xdnd::HandleXdndEnter
 # ----------------------------------------------------------------------------
-proc xdnd::_HandleXdndEnter { path drag_source typelist
-                              { actionlist { copy move link ask private } } 
-			      { pressedkeys 1 }
-			      { codelist {} }
-			    } {
-  variable _typelist;                 set _typelist    $typelist
-  variable _pressedkeys;              set _pressedkeys $pressedkeys
-  variable _action;                   set _action      refuse_drop
-  variable _common_drag_source_types; set _common_drag_source_types {}
-  variable _common_drop_target_types; set _common_drop_target_types {}
-  variable _actionlist
-  variable _drag_source;              set _drag_source $drag_source
-  variable _drop_target;              set _drop_target {}
-  variable _actionlist;               set _actionlist  $actionlist
-  variable _codelist                  set _codelist    $codelist
-
-  variable _last_mouse_root_x;        set _last_mouse_root_x 0
-  variable _last_mouse_root_y;        set _last_mouse_root_y 0
-  # debug "\n==============================================================="
-  # debug "xdnd::_HandleXdndEnter: path=$path, drag_source=$drag_source,\
-  #        typelist=$typelist"
-  # debug "xdnd::_HandleXdndEnter: ACTION: default"
-  return default
-};# xdnd::_HandleXdndEnter
-
-# ----------------------------------------------------------------------------
-#  Command xdnd::_HandleXdndPosition
-# ----------------------------------------------------------------------------
-proc xdnd::_HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
-  variable _types
-  variable _typelist
-  variable _actionlist
+proc xdnd::HandleXdndEnter { path drag_source typelist } {
   variable _pressedkeys
-  variable _action
-  variable _common_drag_source_types
-  variable _common_drop_target_types
-  variable _drag_source
-  variable _drop_target
-
-  variable _last_mouse_root_x;        set _last_mouse_root_x $rootX
-  variable _last_mouse_root_y;        set _last_mouse_root_y $rootY
-
-  # debug "xdnd::_HandleXdndPosition: drop_target=$drop_target,\
-  #            _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
-
-  if {![info exists _drag_source] && ![string length $_drag_source]} {
-    # debug "xdnd::_HandleXdndPosition: no or empty _drag_source:\
-    #               return refuse_drop"
-    return refuse_drop
-  }
-
-  if {$drag_source ne "" && $drag_source ne $_drag_source} {
-    debug "XDND position event from unexpected source: $_drag_source\
-           != $drag_source"
-    return refuse_drop
-  }
-
-  ## Does the new drop target support any of our new types?
-  set _types [bind $drop_target <<DropTargetTypes>>]
-  # debug ">> Accepted types: $drop_target $_types"
-  if {[llength $_types]} {
-    ## Examine the drop target types, to find at least one match with the drag
-    ## source types...
-    set supported_types [_supported_types $_typelist]
-    foreach type $_types {
-      foreach matched [lsearch -glob -all -inline $supported_types $type] {
-        ## Drop target supports this type.
-        lappend common_drag_source_types $matched
-        lappend common_drop_target_types $type
-      }
-    }
-  }
-
-  # debug "\t($_drop_target) -> ($drop_target)"
-  if {$drop_target != $_drop_target} {
-    if {[string length $_drop_target]} {
-      ## Call the <<DropLeave>> event.
-      # debug "\t<<DropLeave>> on $_drop_target"
-      set cmd [bind $_drop_target <<DropLeave>>]
-      if {[string length $cmd]} {
-        set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
-          %CST \{$_common_drag_source_types\} \
-          %CTT \{$_common_drop_target_types\} \
-          %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
-          %ST  \{$_typelist\}    %TT \{$_types\} \
-          %A   \{$_action\}      %a \{$_actionlist\} \
-          %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
-          %D   \{\}              %e <<DropLeave>> \
-          %L   \{$_typelist\}    %% % \
-          %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
-          %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
-          ] $cmd]
-        uplevel \#0 $cmd
-      }
-    }
-    set _drop_target {}
-
-    if {[info exists common_drag_source_types]} {
-      set _action refuse_drop
-      set _common_drag_source_types $common_drag_source_types
-      set _common_drop_target_types $common_drop_target_types
-      set _drop_target $drop_target
-      ## Drop target supports at least one type. Send a <<DropEnter>>.
-      # puts "<<DropEnter>> -> $drop_target"
-      set cmd [bind $drop_target <<DropEnter>>]
-      if {[string length $cmd]} {
-        focus $drop_target
-        set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
-          %CST \{$_common_drag_source_types\} \
-          %CTT \{$_common_drop_target_types\} \
-          %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
-          %ST  \{$_typelist\}    %TT \{$_types\} \
-          %A   $_action          %a  \{$_actionlist\} \
-          %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
-          %D   \{\}              %e  <<DropEnter>> \
-          %L   \{$_typelist\}    %%  % \
-          %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
-          %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
-          ] $cmd]
-        set _action [uplevel \#0 $cmd]
-	switch -exact -- $_action {
-          copy - move - link - ask - private - refuse_drop - default {}
-          default {set _action copy}
-        }
-      }
-    }
-    set _drop_target $drop_target
-  }
-
-  set _drop_target {}
-  if {[info exists common_drag_source_types]} {
-    set _common_drag_source_types $common_drag_source_types
-    set _common_drop_target_types $common_drop_target_types
-    set _drop_target $drop_target
-    ## Drop target supports at least one type. Send a <<DropPosition>>.
-    set cmd [bind $drop_target <<DropPosition>>]
-    if {[string length $cmd]} {
-      set cmd [string map [list %W $drop_target %X $rootX %Y $rootY \
-        %CST \{$_common_drag_source_types\} \
-        %CTT \{$_common_drop_target_types\} \
-        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
-        %ST  \{$_typelist\}    %TT \{$_types\} \
-        %A   $_action          %a  \{$_actionlist\} \
-        %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
-        %D   \{\}              %e  <<DropPosition>> \
-        %L   \{$_typelist\}    %%  % \
-        %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
-        %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
-        ] $cmd]
-      set _action [uplevel \#0 $cmd]
-    }
-  }
-  # Return values: copy, move, link, ask, private, refuse_drop, default
-  # debug "xdnd::_HandleXdndPosition: ACTION: $_action"
-  switch -exact -- $_action {
-    copy - move - link - ask - private - refuse_drop - default {}
-    default {set _action copy}
-  }
-  return $_action
-};# xdnd::_HandleXdndPosition
-
-# ----------------------------------------------------------------------------
-#  Command xdnd::_HandleXdndLeave
-# ----------------------------------------------------------------------------
-proc xdnd::_HandleXdndLeave { } {
-  variable _types
-  variable _typelist
   variable _actionlist
+  set _pressedkeys 1
+  set _actionlist  { copy move link ask private }
+  ::tkdnd::generic::HandleEnter $path $drag_source $typelist $typelist \
+           $_actionlist $_pressedkeys
+};# xdnd::HandleXdndEnter
+
+# ----------------------------------------------------------------------------
+#  Command xdnd::HandleXdndPosition
+# ----------------------------------------------------------------------------
+proc xdnd::HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
   variable _pressedkeys
-  variable _action
-  variable _common_drag_source_types
-  variable _common_drop_target_types
-  variable _drag_source
-  variable _drop_target
-  variable _last_mouse_root_x
-  variable _last_mouse_root_y
-  if {![info exists _drop_target]} {set _drop_target {}}
-  # debug "xdnd::_HandleXdndLeave: _drop_target=$_drop_target"
-  if {[info exists _drop_target] && [string length $_drop_target]} {
-    set cmd [bind $_drop_target <<DropLeave>>]
-    if {[string length $cmd]} {
-      set cmd [string map [list %W $_drop_target \
-        %X $_last_mouse_root_x %Y $_last_mouse_root_y \
-        %CST \{$_common_drag_source_types\} \
-        %CTT \{$_common_drop_target_types\} \
-        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
-        %ST  \{$_typelist\}    %TT \{$_types\} \
-        %A   \{$_action\}      %a  \{$_actionlist\} \
-        %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
-        %D   \{\}              %e  <<DropLeave>> \
-        %L   \{$_typelist\}    %%  % \
-        %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
-        %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
-        ] $cmd]
-      set _action [uplevel \#0 $cmd]
-    }
-  }
-  foreach var {_types _typelist _actionlist _pressedkeys _action
-               _common_drag_source_types _common_drop_target_types
-               _drag_source _drop_target} {
-    set $var {}
-  }
-};# xdnd::_HandleXdndLeave
+  variable _last_mouse_root_x; set _last_mouse_root_x $rootX
+  variable _last_mouse_root_y; set _last_mouse_root_y $rootY
+  ::tkdnd::generic::HandlePosition $drop_target $drag_source \
+                                   $_pressedkeys $rootX $rootY
+};# xdnd::HandleXdndPosition
+
+# ----------------------------------------------------------------------------
+#  Command xdnd::HandleXdndLeave
+# ----------------------------------------------------------------------------
+proc xdnd::HandleXdndLeave { } {
+  ::tkdnd::generic::HandleLeave
+};# xdnd::HandleXdndLeave
 
 # ----------------------------------------------------------------------------
 #  Command xdnd::_HandleXdndDrop
 # ----------------------------------------------------------------------------
-proc xdnd::_HandleXdndDrop { time } {
-  variable _types
-  variable _typelist
-  variable _actionlist
+proc xdnd::HandleXdndDrop { time } {
   variable _pressedkeys
-  variable _action
-  variable _common_drag_source_types
-  variable _common_drop_target_types
-  variable _drag_source
-  variable _drop_target
   variable _last_mouse_root_x
   variable _last_mouse_root_y
-  set rootX $_last_mouse_root_x
-  set rootY $_last_mouse_root_y
-
-  # puts "xdnd::_HandleXdndDrop: $time"
-
-  if {![info exists _drag_source] && ![string length $_drag_source]} {
-    return refuse_drop
-  }
-  if {![info exists _drop_target] && ![string length $_drop_target]} {
-    return refuse_drop
-  }
-  if {![llength $_common_drag_source_types]} {return refuse_drop}
-  ## Get the dropped data.
-  set data [_GetDroppedData $time]
-  ## Try to select the most specific <<Drop>> event.
-  foreach type [concat $_common_drag_source_types $_common_drop_target_types] {
-    set type [_platform_independent_type $type]
-    set cmd [bind $_drop_target <<Drop:$type>>]
-    if {[string length $cmd]} {
-      set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
-        %CST \{$_common_drag_source_types\} \
-        %CTT \{$_common_drop_target_types\} \
-        %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
-        %ST  \{$_typelist\}    %TT \{$_types\} \
-        %A   $_action          %a \{$_actionlist\} \
-        %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
-        %D   [list $data]      %e <<Drop:$type>> \
-        %L   \{$_typelist\}    %% % \
-        %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
-        %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
-        ] $cmd]
-      set _action [uplevel \#0 $cmd]
-      # Return values: copy, move, link, ask, private, refuse_drop
-      switch -exact -- $_action {
-        copy - move - link - ask - private - refuse_drop - default {}
-        default {set _action copy}
-      }
-      return $_action
-    }
-  }
-  set cmd [bind $_drop_target <<Drop>>]
-  if {[string length $cmd]} {
-    set cmd [string map [list %W $_drop_target %X $rootX %Y $rootY \
-      %CST \{$_common_drag_source_types\} \
-      %CTT \{$_common_drop_target_types\} \
-      %CPT \{[lindex [_platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
-      %ST  \{$_typelist\}    %TT \{$_types\} \
-      %A   $_action          %a \{$_actionlist\} \
-      %b   \{$_pressedkeys\} %m \{$_pressedkeys\} \
-      %D   [list $data]      %e <<Drop>> \
-      %L   \{$_typelist\}    %% % \
-      %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
-      %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
-      ] $cmd]
-    set _action [uplevel \#0 $cmd]
-  }
-  # Return values: copy, move, link, ask, private, refuse_drop
-  switch -exact -- $_action {
-    copy - move - link - ask - private - refuse_drop - default {}
-    default {set _action copy}
-  }
-  return $_action
-};# xdnd::_HandleXdndDrop
+  ## Get the dropped data...
+  ::tkdnd::generic::SetDroppedData [GetDroppedData $time]
+  ::tkdnd::generic::HandleDrop {} {} $_pressedkeys \
+                               $_last_mouse_root_x $_last_mouse_root_y $time
+};# xdnd::HandleXdndDrop
 
 # ----------------------------------------------------------------------------
 #  Command xdnd::_GetDroppedData
 # ----------------------------------------------------------------------------
-proc xdnd::_GetDroppedData { time } {
-  variable _drag_source
-  variable _drop_target
-  variable _common_drag_source_types
-  variable _use_tk_selection
+proc xdnd::GetDroppedData { time } {
+  set _drag_source              [::tkdnd::generic::GetDragSource]
+  set _drop_target              [::tkdnd::generic::GetDropTarget]
+  set _common_drag_source_types [::tkdnd::generic::GetDragSourceCommonTypes]
   if {![llength $_common_drag_source_types]} {
     error "no common data types between the drag source and drop target widgets"
   }
@@ -364,7 +114,6 @@ proc xdnd::_GetDroppedData { time } {
   } else {
     set _use_tk_selection 1
   }
-  #set _use_tk_selection 1
   foreach type $_common_drag_source_types {
     # puts "TYPE: $type ($_drop_target)"
     # _get_selection $_drop_target $time $type
@@ -373,7 +122,7 @@ proc xdnd::_GetDroppedData { time } {
         selection get -displayof $_drop_target -selection XdndSelection \
                       -type $type
                                               } result options]} {
-        return [_normalise_data $type $result]
+        return [normalise_data $type $result]
       }
     } else {
       # puts "_selection_get -displayof $_drop_target -selection XdndSelection \
@@ -384,74 +133,45 @@ proc xdnd::_GetDroppedData { time } {
         _selection_get -displayof $_drop_target -selection XdndSelection \
                       -type $type -time $time
                                               } result options]} {
-        return [_normalise_data $type $result]
+        return [normalise_data $type $result]
       }
     }
   }
   return -options $options $result
-};# xdnd::_GetDroppedData
+};# xdnd::GetDroppedData
 
 # ----------------------------------------------------------------------------
-#  Command xdnd::_GetDragSource
+#  Command xdnd::platform_specific_types
 # ----------------------------------------------------------------------------
-proc xdnd::_GetDragSource {  } {
-  variable _drag_source
-  return  $_drag_source
-};# xdnd::_GetDragSource
+proc xdnd::platform_specific_types { types } {
+  ::tkdnd::generic::platform_specific_types $types
+}; # xdnd::platform_specific_types
 
 # ----------------------------------------------------------------------------
-#  Command xdnd::_GetDropTarget
+#  Command xdnd::platform_specific_type
 # ----------------------------------------------------------------------------
-proc xdnd::_GetDropTarget {  } {
-  variable _drop_target
-  if {[string length $_drop_target]} {
-    return [winfo id $_drop_target]
-  }
-  return 0
-};# xdnd::_GetDropTarget
+proc xdnd::platform_specific_type { type } {
+  ::tkdnd::generic::platform_specific_type $type
+}; # xdnd::platform_specific_type
 
 # ----------------------------------------------------------------------------
-#  Command xdnd::_GetDragSourceCommonTypes
+#  Command tkdnd::platform_independent_types
 # ----------------------------------------------------------------------------
-proc xdnd::_GetDragSourceCommonTypes {  } {
-  variable _common_drag_source_types
-  return  $_common_drag_source_types
-};# xdnd::_GetDragSourceCommonTypes
+proc ::tkdnd::platform_independent_types { types } {
+  ::tkdnd::generic::platform_independent_types $types
+}; # tkdnd::platform_independent_types
 
 # ----------------------------------------------------------------------------
-#  Command xdnd::_GetDropTargetCommonTypes
+#  Command xdnd::platform_independent_type
 # ----------------------------------------------------------------------------
-proc xdnd::_GetDropTargetCommonTypes {  } {
-  variable _common_drag_source_types
-  return  $_common_drag_source_types
-};# xdnd::_GetDropTargetCommonTypes
-
-# ----------------------------------------------------------------------------
-#  Command xdnd::_supported_types
-# ----------------------------------------------------------------------------
-proc xdnd::_supported_types { types } {
-  set new_types {}
-  foreach type $types {
-    if {[_supported_type $type]} {lappend new_types $type}
-  }
-  return $new_types
-}; # xdnd::_supported_types
-
-# ----------------------------------------------------------------------------
-#  Command xdnd::_platform_specific_types
-# ----------------------------------------------------------------------------
-proc xdnd::_platform_specific_types { types } {
-  set new_types {}
-  foreach type $types {
-    set new_types [concat $new_types [_platform_specific_type $type]]
-  }
-  return $new_types
-}; # xdnd::_platform_specific_types
+proc xdnd::platform_independent_type { type } {
+  ::tkdnd::generic::platform_independent_type $type
+}; # xdnd::platform_independent_type
 
 # ----------------------------------------------------------------------------
 #  Command xdnd::_normalise_data
 # ----------------------------------------------------------------------------
-proc xdnd::_normalise_data { type data } {
+proc xdnd::normalise_data { type data } {
   # Tk knows how to interpret the following types:
   #    STRING, TEXT, COMPOUND_TEXT
   #    UTF8_STRING
@@ -495,49 +215,7 @@ proc xdnd::_normalise_data { type data } {
     application/q-iconlist -
     default    {return $data}
   }
-}; # xdnd::_normalise_data
-
-# ----------------------------------------------------------------------------
-#  Command xdnd::_platform_specific_type
-# ----------------------------------------------------------------------------
-proc xdnd::_platform_specific_type { type } {
-  switch $type {
-    DND_Text   {return [list text/plain\;charset=utf-8 UTF8_STRING \
-                             text/plain STRING TEXT COMPOUND_TEXT]}
-    DND_Files  {return [list text/uri-list]}
-    DND_Color  {return [list application/x-color]}
-    default    {return [list $type]}
-  }
-}; # xdnd::_platform_specific_type
-
-# ----------------------------------------------------------------------------
-#  Command xdnd::_platform_independent_type
-# ----------------------------------------------------------------------------
-proc xdnd::_platform_independent_type { type } {
-  switch -glob $type {
-    UTF8_STRING         -
-    STRING              -
-    TEXT                -
-    COMPOUND_TEXT       -
-    text/plain*         {return DND_Text}
-    text/uri-list*      {return DND_Files}
-    application/x-color {return DND_Color}
-    default             {return [list $type]}
-  }
-}; # xdnd::_platform_independent_type
-
-# ----------------------------------------------------------------------------
-#  Command xdnd::_supported_type
-# ----------------------------------------------------------------------------
-proc xdnd::_supported_type { type } {
-  switch -glob [string tolower $type] {
-    {text/plain;charset=utf-8} - text/plain -
-    utf8_string - string - text - compound_text -
-    text/uri-list* -
-    application/x-color {return 1}
-  }
-  return 0
-}; # xdnd::_supported_type
+}; # xdnd::normalise_data
 
 #############################################################################
 ##
@@ -633,6 +311,7 @@ proc xdnd::_dodragdrop { source actions types data button } {
   _unregister_generic_event_handler
   catch {selection clear -selection XdndSelection}
   unregisterSelectionHandler $source $types
+  return $_dodragdrop_drop_target_accepts_action
 };# xdnd::_dodragdrop
 
 # ----------------------------------------------------------------------------
@@ -808,6 +487,21 @@ proc xdnd::_HandleXdndFinished {event} {
   set _dodragdrop_drop_target 0
   variable _dragging
   if {$_dragging} {set _dragging 0}
+  
+  variable _dodragdrop_drop_target_accepts_drop
+  variable _dodragdrop_drop_target_accepts_action
+  if {[dict size $event]} {
+    foreach key {target accept action} {
+      set $key [dict get $event $key]
+    }
+    set _dodragdrop_drop_target_accepts_drop   $accept
+    set _dodragdrop_drop_target_accepts_action $action
+  } else {
+    set _dodragdrop_drop_target_accepts_drop 0
+  }
+  if {!$_dodragdrop_drop_target_accepts_drop} {
+    set _dodragdrop_drop_target_accepts_action refuse_drop
+  }
   # puts "XdndFinished: $event"
 };# xdnd::_HandleXdndFinished
 

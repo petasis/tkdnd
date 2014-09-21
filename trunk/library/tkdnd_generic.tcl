@@ -48,8 +48,6 @@ namespace eval generic {
   variable _drag_source {}
   variable _drop_target {}
 
-  variable _dragging 0
-
   variable _last_mouse_root_x 0
   variable _last_mouse_root_y 0
 
@@ -143,20 +141,10 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
   set _pressedkeys $pressedkeys
 
   ## Does the new drop target support any of our new types?
-  set _types [bind $drop_target <<DropTargetTypes>>]
-  # debug ">> Accepted types: $drop_target $_types"
-  if {[llength $_types]} {
-    ## Examine the drop target types, to find at least one match with the drag
-    ## source types...
-    set supported_types [supported_types $_typelist]
-    foreach type $_types {
-      foreach matched [lsearch -glob -all -inline $supported_types $type] {
-        ## Drop target supports this type.
-        lappend common_drag_source_types $matched
-        lappend common_drop_target_types $type
-      }
-    }
-  }
+  # foreach {common_drag_source_types common_drop_target_types} \
+  #         [GetWindowCommonTypes $drop_target $_typelist] {break}
+  foreach {drop_target common_drag_source_types common_drop_target_types} \
+          [FindWindowWithCommonTypes $drop_target $_typelist] {break}
 
   # debug "\t($_drop_target) -> ($drop_target)"
   if {$drop_target != $_drop_target} {
@@ -180,13 +168,13 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
         uplevel \#0 $cmd
       }
     }
-    set _drop_target {}
+    set _drop_target $drop_target
+    set _action      refuse_drop
 
-    if {[info exists common_drag_source_types]} {
+    if {[llength $common_drag_source_types]} {
       set _action [lindex $_actionlist 0]
       set _common_drag_source_types $common_drag_source_types
       set _common_drop_target_types $common_drop_target_types
-      set _drop_target $drop_target
       ## Drop target supports at least one type. Send a <<DropEnter>>.
       # puts "<<DropEnter>> -> $drop_target"
       set cmd [bind $drop_target <<DropEnter>>]
@@ -211,11 +199,10 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
         }
       }
     }
-    set _drop_target $drop_target
   }
 
   set _drop_target {}
-  if {[info exists common_drag_source_types]} {
+  if {[llength $common_drag_source_types]} {
     set _common_drag_source_types $common_drag_source_types
     set _common_drop_target_types $common_drop_target_types
     set _drop_target $drop_target
@@ -373,6 +360,45 @@ proc generic::HandleDrop {drop_target drag_source pressedkeys rootX rootY time }
 };# generic::HandleDrop
 
 # ----------------------------------------------------------------------------
+#  Command generic::GetWindowCommonTypes
+# ----------------------------------------------------------------------------
+proc generic::GetWindowCommonTypes { win typelist } {
+  set types [bind $win <<DropTargetTypes>>]
+  # debug ">> Accepted types: $win $_types"
+  set common_drag_source_types {}
+  set common_drop_target_types {}
+  if {[llength $types]} {
+    ## Examine the drop target types, to find at least one match with the drag
+    ## source types...
+    set supported_types [supported_types $typelist]
+    foreach type $types {
+      foreach matched [lsearch -glob -all -inline $supported_types $type] {
+        ## Drop target supports this type.
+        lappend common_drag_source_types $matched
+        lappend common_drop_target_types $type
+      }
+    }
+  }
+  list $common_drag_source_types $common_drop_target_types
+};# generic::GetWindowCommonTypes
+
+# ----------------------------------------------------------------------------
+#  Command generic::FindWindowWithCommonTypes
+# ----------------------------------------------------------------------------
+proc generic::FindWindowWithCommonTypes { win typelist } {
+  set toplevel [winfo toplevel $win]
+  while {![string equal $win $toplevel]} {
+    foreach {common_drag_source_types common_drop_target_types} \
+            [GetWindowCommonTypes $win $typelist] {break}
+    if {[llength $common_drag_source_types]} {
+      return [list $win $common_drag_source_types $common_drop_target_types]
+    }
+    set win [winfo parent $win]
+  }
+  return { {} {} {} }
+};# generic::FindWindowWithCommonTypes
+
+# ----------------------------------------------------------------------------
 #  Command generic::GetDroppedData
 # ----------------------------------------------------------------------------
 proc generic::GetDroppedData { time } {
@@ -401,10 +427,7 @@ proc generic::GetDragSource { } {
 # ----------------------------------------------------------------------------
 proc generic::GetDropTarget { } {
   variable _drop_target
-  if {[string length $_drop_target]} {
-    return [winfo id $_drop_target]
-  }
-  return 0
+  return $_drop_target
 };# generic::GetDropTarget
 
 # ----------------------------------------------------------------------------

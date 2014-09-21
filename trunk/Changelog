@@ -1,4 +1,14 @@
 2014-09-21  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_unix.tcl: Changed implementation to re-use the
+	generic implementation.
+
+	* library/tkdnd_generic.tcl: Two new procedures,
+	generic::GetWindowCommonTypes and generic::FindWindowWithCommonTypes.
+	The last one tries to find a window that can accept the current drag.
+
+	* unix/TkDND_XDND.c: Fixed a bug in getting the "acccepted" field
+	in XdndFinished.
+
 	* demos/overlapping_targets.tcl: New demo (more a "testing" utility for
 	mega-widget support).
 
@@ -18,8 +28,8 @@
 	* library/tkdnd_windows.tcl: Changed implementation to re-use the
 	generic implementation.
 
-	* library/tkdnd_generic.tcl: Added a new "generic" implementation, with
-	the aim to be re-used by all supported platforms.
+	* library/tkdnd_generic.tcl: Added a new "generic" implementation of
+	handling drops, with the aim to be re-used by all supported platforms.
 
 2014-08-19  Petasis George  <petasis@iit.demokritos.gr>
 	* unix/TkDND_XDND.c:
