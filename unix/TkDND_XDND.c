@@ -117,6 +117,8 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #define Tk_Interp TkDND_Interp
 #endif /* Tk_Interp */
 
+#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
+
 /*
  * XDND Section
  */
@@ -367,7 +369,7 @@ int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
   }
   /* We have all the information we need. Its time to pass it at the Tcl
    * level.*/
-  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndEnter", -1);
+  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::HandleXdndEnter", -1);
   objv[1] = Tcl_NewStringObj(Tk_PathName(toplevel), -1);
   objv[2] = Tcl_NewLongObj(drag_source);
   objv[3] = Tcl_NewListObj(0, NULL);
@@ -447,7 +449,7 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   /* Ask the Tk widget whether it will accept the drop... */
   index = refuse_drop;
   if (mouse_tkwin != NULL) {
-    objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndPosition", -1);
+    objv[0] = Tcl_NewStringObj("tkdnd::xdnd::HandleXdndPosition", -1);
     objv[1] = Tcl_NewStringObj(Tk_PathName(mouse_tkwin), -1);
     objv[2] = Tcl_NewIntObj(rootX);
     objv[3] = Tcl_NewIntObj(rootY);
@@ -508,7 +510,7 @@ int TkDND_HandleXdndLeave(Tk_Window tkwin, XEvent *xevent) {
   Tcl_Obj* objv[1];
   int i;
   if (interp == NULL) return False; 
-  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndLeave", -1);
+  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::HandleXdndLeave", -1);
   TkDND_Eval(1);
   return True;
 } /* TkDND_HandleXdndLeave */
@@ -549,7 +551,7 @@ int TkDND_HandleXdndDrop(Tk_Window tkwin, XEvent *xevent) {
   //XFlush(Tk_Display(tkwin));
 
   /* Call out Tcl callback. */
-  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_HandleXdndDrop", -1);
+  objv[0] = Tcl_NewStringObj("tkdnd::xdnd::HandleXdndDrop", -1);
   objv[1] = Tcl_NewLongObj(time);
   TkDND_Status_Eval(2);
   if (status == TCL_OK) {
@@ -643,7 +645,7 @@ int TkDND_HandleXdndFinished(Tk_Window tkwin, XEvent *xevent) {
   TkDND_Dict_PutLong(objv[1], "target", xevent->xclient.data.l[0]);
   /* data.l[1] bit 0 is set if the current target accepted the drop and
    *  successfully performed the accepted drop action */
-  TkDND_Dict_PutInt(objv[1], "accept", (xevent->xclient.data.l[1] & 0x1L)?1:0);
+  TkDND_Dict_PutInt(objv[1], "accept", (XDND_FINISHED_ACCEPTED(xevent))?1:0);
   /* data.l[2] contains the action performed by the target */
   action = xevent->xclient.data.l[2];
   if (action == Tk_InternAtom(tkwin, "XdndActionCopy")) {
