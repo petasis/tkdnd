@@ -1,5 +1,7 @@
-
 2014-09-21  Petasis George  <petasis@iit.demokritos.gr>
+	* demos/overlapping_targets.tcl: New demo (more a "testing" utility for
+	mega-widget support).
+
 	* CMakeLists.txt:
 	* configure.in: Updated installed files.
 
