@@ -5,13 +5,17 @@ set filename [file normalize [info script]]
 ##
 ## Drag source
 ##
-pack [ttk::button .drag_source -text " Drag Source "] \
+pack [ttk::button .drag_source    -text " Drag Source (Ttk widget)"] \
+      -fill x -padx 20 -pady 20
+pack [button      .drag_source_tk -text " Drag Source (Tk widget)"] \
       -fill x -padx 20 -pady 20
 
 tkdnd::drag_source register .drag_source
+tkdnd::drag_source register .drag_source_tk
 
 ## Event <<DragInitCmd>>
-bind .drag_source <<DragInitCmd>> my_data
+bind .drag_source    <<DragInitCmd>> my_data
+bind .drag_source_tk <<DragInitCmd>> my_data
 
 proc my_data {} {
   list copy [list \
