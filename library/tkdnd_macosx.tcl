@@ -58,6 +58,7 @@ namespace eval macdnd {
     ::tkdnd::generic::initialise_platform_to_tkdnd_types [list \
        NSPasteboardTypeString  DND_Text  \
        NSFilenamesPboardType   DND_Files \
+       NSPasteboardTypeHTML    DND_HTML  \
     ]
   };# initialise
 

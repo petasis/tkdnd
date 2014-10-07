@@ -1,5 +1,6 @@
 2014-10-07  Petasis George  <petasis@iit.demokritos.gr>
-	* library/tkdnd_macosx.tcl:
+	* macosx/macdnd.m:
+	* library/tkdnd_macosx.tcl: Added support for DND_HTML in OS X.
 
 	* library/tkdnd_unix.tcl: Added support for DND_HTML in XDND.
 

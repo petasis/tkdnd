@@ -341,6 +341,10 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
     element = Tcl_NewStringObj("NSPasteboardTypeString", -1);
     Tcl_ListObjAppendElement(NULL, objv[3], element);
   }
+  if ([[sourcePasteBoard types] containsObject:NSPasteboardTypeHTML]) {
+    element = Tcl_NewStringObj("NSPasteboardTypeHTML", -1);
+    Tcl_ListObjAppendElement(NULL, objv[3], element);
+  }
   if ([[sourcePasteBoard types] containsObject:NSFilenamesPboardType]) {
     element = Tcl_NewStringObj("NSFilenamesPboardType", -1);
     Tcl_ListObjAppendElement(NULL, objv[3], element);
@@ -531,7 +535,17 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
           Tcl_ListObjAppendElement(interp, data, element);
         }
       }
+    } else if ([type isEqualToString:NSPasteboardTypeHTML]) {
+      /* HTML ... */
+      for (NSPasteboardItem *item in [sourcePasteBoard pasteboardItems]) {
+        NSString *pasteboardvalue = [item stringForType:NSPasteboardTypeHTML];
+        if (pasteboardvalue) {
+          data = Tcl_NewStringObj([pasteboardvalue UTF8String], -1);
+          break;
+        }
+      }
     }
+
     if (data != NULL) break;
   }
   Tcl_DecrRefCount(result);
@@ -616,11 +630,11 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   DNDView          *dragview;
   NSImage          *dragicon = NULL;
   static char *DropTypes[] = {
-    "NSPasteboardTypeString", "NSFilenamesPboardType",
+    "NSPasteboardTypeString", "NSPasteboardTypeHTML", "NSFilenamesPboardType",
     (char *) NULL
   };
   enum droptypes {
-    TYPE_NSPasteboardTypeString, TYPE_NSFilenamesPboardType
+    TYPE_NSPasteboardTypeString, TYPE_NSPasteboardTypeHTML, TYPE_NSFilenamesPboardType
   };
   static char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -631,7 +645,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
     refuse_drop, ActionDefault
   };
-  bool added_string = false, added_filenames = false, perform_drag = false;
+  bool added_string = false, added_filenames = false, added_html = false,
+       perform_drag = false;
 
   if (objc != 6) {
     Tcl_WrongNumArgs(interp, 1, objv, "path actions types data button");
@@ -688,6 +703,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                  "droptypes", 0, &index);
     if (status != TCL_OK) continue;
     switch ((enum droptypes) index) {
+      case TYPE_NSPasteboardTypeHTML: {
+        if (!added_html) {
+          // [draggedtypes addObject: NSPasteboardTypeString];
+          added_html   = true;
+          perform_drag = true;
+        }
+        break;
+      }
       case TYPE_NSPasteboardTypeString: {
         if (!added_string) {
           // [draggedtypes addObject: NSPasteboardTypeString];
@@ -718,8 +741,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
    * to drop targets via [sender draggingPasteboard]
    */
   NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
-  NSMutableArray *dataitems =[[[NSMutableArray alloc] init] autorelease];
-  NSMutableArray *filelist  = [[[NSMutableArray alloc] init] autorelease];
+  NSMutableArray *dataitems    = [[[NSMutableArray alloc] init] autorelease];
+  NSMutableArray *filelist     = [[[NSMutableArray alloc] init] autorelease];
   [dragpasteboard clearContents];
 
   if (added_filenames) {
@@ -750,6 +773,27 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           [dataitems addObject: item];
           //[dragpasteboard writeObjects:[NSArray arrayWithObject:item]];
           //[dragpasteboard setString:datastring forType:NSPasteboardTypeString];
+
+          /* Create a custom icon: draw dragged string into drag icon,
+           * make sure icon is large enough to contain several lines of text */
+          if (dragicon == NULL) {
+            dragicon = [[NSImage alloc]
+              initWithSize:NSMakeSize(Tk_Width(path), Tk_Height(path))];
+            [dragicon lockFocus];
+            [[NSColor clearColor] set];
+            NSRectFill(NSMakeRect(0, 0, 1000,1000));
+            [datastring drawAtPoint: NSZeroPoint withAttributes: nil];
+            [dragicon unlockFocus];
+          }
+          break;
+        }
+        case TYPE_NSPasteboardTypeHTML: {
+          /* Place HTML into the clipboard. */
+          NSString *datastring =
+             [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
+          NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+          [item setString:datastring forType:NSPasteboardTypeHTML];
+          [dataitems addObject: item];
 
           /* Create a custom icon: draw dragged string into drag icon,
            * make sure icon is large enough to contain several lines of text */
@@ -856,7 +900,7 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
   Tcl_Obj **type;
   int typec, i, len;
   char *str;
-  bool added_string = false, added_filenames = false;
+  bool added_string = false, added_filenames = false, added_html = false;
 
   if (objc != 3) {
     Tcl_WrongNumArgs(ip, 1, objv, "path types-list");
@@ -902,10 +946,19 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
         [draggedtypes addObject: NSFilenamesPboardType];
         added_filenames = true;
       }
+      if (!added_html) {
+        [draggedtypes addObject: NSPasteboardTypeHTML];
+        added_html = true;
+      }
     } else if (strncmp(str, "NSPasteboardTypeString", len) == 0) {
       if (!added_string) {
         [draggedtypes addObject: NSPasteboardTypeString];
         added_string = true;
+      }
+    } else if (strncmp(str, "NSPasteboardTypeHTML", len) == 0) {
+      if (!added_html) {
+        [draggedtypes addObject: NSPasteboardTypeHTML];
+        added_html = true;
       }
     } else if (strncmp(str, "NSFilenamesPboardType", len) == 0) {
       if (!added_filenames) {
