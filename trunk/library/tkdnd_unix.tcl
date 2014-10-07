@@ -49,6 +49,8 @@ namespace eval xdnd {
        TEXT                          DND_Text  \
        COMPOUND_TEXT                 DND_Text  \
        text/uri-list                 DND_Files \
+       text/html\;charset=utf-8      DND_HTML  \
+       text/html                     DND_HTML  \
        application/x-color           DND_Color \
     ]
   };# initialise
@@ -178,8 +180,17 @@ proc xdnd::normalise_data { type data } {
   # Else, it returns a list of 8 or 32 bit numbers...
   switch -glob $type {
     STRING - UTF8_STRING - TEXT - COMPOUND_TEXT {return $data}
-    text/html     -
-    text/plain    {
+    text/html {
+      if {[catch {
+            encoding convertfrom unicode $data
+           } string]} {
+        set string $data
+      }
+      return [string map {\r\n \n} $string]
+    }
+    text/html\;charset=utf-8  -
+    text/plain\;charset=utf-8 -
+    text/plain {
       if {[catch {
             encoding convertfrom utf-8 [tkdnd::bytes_to_string $data]
            } string]} {
@@ -487,7 +498,7 @@ proc xdnd::_HandleXdndFinished {event} {
   set _dodragdrop_drop_target 0
   variable _dragging
   if {$_dragging} {set _dragging 0}
-  
+
   variable _dodragdrop_drop_target_accepts_drop
   variable _dodragdrop_drop_target_accepts_action
   if {[dict size $event]} {
@@ -616,7 +627,9 @@ proc xdnd::_default_action {event} {
 proc xdnd::getFormatForType {type} {
   switch -glob [string tolower $type] {
     text/plain\;charset=utf-8 -
+    text/html\;charset=utf-8  -
     utf8_string               {set format UTF8_STRING}
+    text/html                 -
     text/plain                -
     string                    -
     text                      -
