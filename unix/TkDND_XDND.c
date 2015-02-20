@@ -90,6 +90,12 @@
   Tcl_DictObjPut(interp, dict, key, value); \
   Tcl_DecrRefCount(key); Tcl_DecrRefCount(value);
 
+#define TkDND_Dict_PutWideInt(dict, k, v) \
+  key   = Tcl_NewStringObj(k, -1); Tcl_IncrRefCount(key); \
+  value = Tcl_NewWideIntObj(v); Tcl_IncrRefCount(value); \
+  Tcl_DictObjPut(interp, dict, key, value); \
+  Tcl_DecrRefCount(key); Tcl_DecrRefCount(value);
+
 #define TkDND_Dict_PutLong(dict, k, v) \
   key   = Tcl_NewStringObj(k, -1); Tcl_IncrRefCount(key); \
   value = Tcl_NewLongObj(v); Tcl_IncrRefCount(value); \
@@ -993,7 +999,7 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutInt(dict,  "y",       eventPtr->xmotion.y);
       TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xmotion.x_root);
       TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xmotion.y_root);
-      TkDND_Dict_PutLong(dict, "time",    eventPtr->xmotion.time);
+      TkDND_Dict_PutWideInt(dict, "time",    eventPtr->xmotion.time);
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xmotion.state);
       break;
     case ButtonPress:
@@ -1002,7 +1008,7 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutInt(dict,  "y",       eventPtr->xbutton.y);
       TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xbutton.x_root);
       TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xbutton.y_root);
-      TkDND_Dict_PutLong(dict, "time",    eventPtr->xbutton.time);
+      TkDND_Dict_PutWideInt(dict, "time",    eventPtr->xbutton.time);
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xbutton.state);
       TkDND_Dict_PutInt(dict,  "button",  eventPtr->xbutton.button);
       break;
@@ -1012,7 +1018,7 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutInt(dict,  "y",       eventPtr->xbutton.y);
       TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xbutton.x_root);
       TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xbutton.y_root);
-      TkDND_Dict_PutLong(dict, "time",    eventPtr->xbutton.time);
+      TkDND_Dict_PutWideInt(dict, "time",    eventPtr->xbutton.time);
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xbutton.state);
       TkDND_Dict_PutInt(dict,  "button",  eventPtr->xbutton.button);
       break;
@@ -1022,7 +1028,7 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutInt(dict,  "y",       eventPtr->xkey.y);
       TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xkey.x_root);
       TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xkey.y_root);
-      TkDND_Dict_PutLong(dict, "time",    eventPtr->xkey.time);
+      TkDND_Dict_PutWideInt(dict, "time",    eventPtr->xkey.time);
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
       TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
       main_window = Tk_MainWindow(interp);
@@ -1044,7 +1050,7 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutInt(dict,  "y",       eventPtr->xkey.y);
       TkDND_Dict_PutInt(dict,  "x_root",  eventPtr->xkey.x_root);
       TkDND_Dict_PutInt(dict,  "y_root",  eventPtr->xkey.y_root);
-      TkDND_Dict_PutLong(dict, "time",    eventPtr->xkey.time);
+      TkDND_Dict_PutWideInt(dict, "time",    eventPtr->xkey.time);
       TkDND_AddStateInformation(interp,   dict,     eventPtr->xkey.state);
       TkDND_Dict_PutInt(dict,  "keycode", eventPtr->xkey.keycode);
       main_window = Tk_MainWindow(interp);
@@ -1063,17 +1069,17 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
     case EnterNotify:
       return 0;
       TkDND_Dict_Put(dict, "type", "EnterNotify");
-      TkDND_Dict_PutLong(dict, "time",    eventPtr->xcrossing.time);
+      TkDND_Dict_PutWideInt(dict, "time",    eventPtr->xcrossing.time);
       break;
     case LeaveNotify:
       return 0;
       TkDND_Dict_Put(dict, "type", "LeaveNotify");
-      TkDND_Dict_PutLong(dict, "time",    eventPtr->xcrossing.time);
+      TkDND_Dict_PutWideInt(dict, "time",    eventPtr->xcrossing.time);
       break;
     case SelectionRequest:
       main_window = Tk_MainWindow(interp);
       TkDND_Dict_Put(dict, "type", "SelectionRequest");
-      TkDND_Dict_PutLong(dict, "time",     eventPtr->xselectionrequest.time);
+      TkDND_Dict_PutWideInt(dict, "time",     eventPtr->xselectionrequest.time);
       TkDND_Dict_PutLong(dict, "owner",    eventPtr->xselectionrequest.owner);
       TkDND_Dict_PutLong(dict, "requestor",
                                 eventPtr->xselectionrequest.requestor);
