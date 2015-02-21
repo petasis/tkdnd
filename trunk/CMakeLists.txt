@@ -43,6 +43,7 @@ IF ( WIN32 )
 ELSE  ( WIN32 )
   ## Unix and OS X...
   IF ( APPLE )
+    SET ( CMAKE_OSX_ARCHITECTURES "x86_64;i386" )
     FIND_LIBRARY ( COCOA_LIBRARY Cocoa )
     INCLUDE_DIRECTORIES ( macosx )
     INCLUDE_DIRECTORIES ( /Library/Frameworks/Tk.framework/Versions/8.6/PrivateHeaders )
