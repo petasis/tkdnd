@@ -1,3 +1,6 @@
+2015-02-25  Petasis George  <petasis@iit.demokritos.gr>
+	TkDND 2.8 released.
+
 2015-02-20  Petasis George  <petasis@iit.demokritos.gr>
 	* unix/TkDND_XDND.c: Fixed a bug in converting Time to a Tcl object.
 	Now Tcl_NewWideIntObj() is used, as Tcl_NewLongObj() could cause an
