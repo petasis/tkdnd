@@ -292,7 +292,18 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
     set cmd [string map [list %W $source %X $rootX %Y $rootY %x $X %y $Y \
                               %S $state  %e <<DragInitCmd>> %A \{\} %% % \
                               %t [bind $source <<DragSourceTypes>>]] $cmd]
-    set info [uplevel \#0 $cmd]
+    set code [catch {uplevel \#0 $cmd} info options]
+    switch -exact -- $code {
+      0 {}
+      3 - 4 {
+        # FRINK: nocheck
+        return
+      }
+      default {
+        return -options $options $info
+      }
+    }
+
     set len [llength $info]
     if {$len == 3} {
       foreach { actions types _data } $info { break }
@@ -312,6 +323,9 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
       }
       unset _data t d
     } else {
+      if {$len == 1 && [string equal [lindex $actions 0] "refuse_drop"]} {
+        return
+      }
       error "not enough items in the result of the <<DragInitCmd>>\
              event binding. Either 2 or 3 items are expected."
     }
