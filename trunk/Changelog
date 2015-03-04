@@ -1,5 +1,10 @@
-2015-02-25  Petasis George  <petasis@iit.demokritos.gr>
+2015-03-15  Petasis George  <petasis@iit.demokritos.gr>
 	TkDND 2.8 released.
+
+2015-03-04  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd.tcl: Added support in <<DragInitCmd>> & <<DragEndCmd>>
+	for %x, %y mouse coordinates (relative to window that is the drag
+	source).
 
 2015-02-20  Petasis George  <petasis@iit.demokritos.gr>
 	* unix/TkDND_XDND.c: Fixed a bug in converting Time to a Tcl object.
