@@ -342,7 +342,7 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
 #  Command tkdnd::_end_drag
 # ----------------------------------------------------------------------------
 proc ::tkdnd::_end_drag { button source target action type data result
-                          state rootX rootY } {
+                          state rootX rootY X Y } {
   set rootX 0
   set rootY 0
   # Call the <<DragEndCmd>> binding.
