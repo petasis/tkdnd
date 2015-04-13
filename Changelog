@@ -1,5 +1,9 @@
-2015-03-15  Petasis George  <petasis@iit.demokritos.gr>
+2015-04-20  Petasis George  <petasis@iit.demokritos.gr>
 	TkDND 2.8 released.
+
+2015-04-13  Petasis George  <petasis@iit.demokritos.gr>
+	* library\tkdnd_generic.tcl: Fixed SF bug #30: Toplevel Widget Cannot
+	Be Drop Target. Bug reported by Tim Tomkinson.
 
 2015-03-04  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd.tcl: Added support in <<DragInitCmd>> & <<DragEndCmd>>

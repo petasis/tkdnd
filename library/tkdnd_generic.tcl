@@ -395,6 +395,12 @@ proc generic::FindWindowWithCommonTypes { win typelist } {
     }
     set win [winfo parent $win]
   }
+  ## We have reached the toplevel, which may be also a target (SF Bug #30)
+  foreach {common_drag_source_types common_drop_target_types} \
+          [GetWindowCommonTypes $win $typelist] {break}
+  if {[llength $common_drag_source_types]} {
+    return [list $win $common_drag_source_types $common_drop_target_types]
+  }
   return { {} {} {} }
 };# generic::FindWindowWithCommonTypes
 
