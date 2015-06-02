@@ -354,14 +354,14 @@ It is an error to use this command for a \fIwindow\fR that has not been
 registered as a drag source with \fBtkdnd::drag_source register\fR.
 .TP
 \fBtkdnd::platform_specific_types \fItype-list\fR
-This command will accept a list of types that can contain platform independnent
+This command will accept a list of types that can contain platform independent
 or platform specific types. A new list will be returned, where each platform
 independent type in \fItype-list\fR will be substituted by one or more platform
 specific types. Thus, the returned list may have more elements than
 \fItype-list\fR.
 .TP
 \fBtkdnd::platform_independent_types\fI type-list\fR
-This command will accept a list of types that can contain platform independnent
+This command will accept a list of types that can contain platform independent
 or platform specific types. A new list will be returned, where each platform
 specific type in \fItype-list\fR will be substituted by one or more platform
 independent types. Thus, the returned list may have more elements than
@@ -378,7 +378,7 @@ environmental variables: \fBTKDND_TEMP_DIR\fR, \fBTEMP\fR, \fBTMP\fR.
 This command will change the temporary directory used by TkDND for storing
 temporary files to \fIdirectory\fR.
 .SH SUPPORTED TYPES
-In order to declare the format that the data that will transfered during
+In order to declare the format that the data that will transferred during
 a drag and drop operation, all drag and drop protocols use the notion of types.
 Unfortunately, each protocol defines its own, usually platform specific, types. TkDND, trying to maintain portability among different platforms, offers some
 predefined types for some basic kinds of data, like text, and filenames.
@@ -412,17 +412,17 @@ used for the conversion.
 .br
 \fBFileGroupDescriptor - FileContents\fR: These two types are used for
 transferring a set of files that do not appear physically on disk, like files
-from compressed folders or Outlook e-mail messages. File names are transfered as
-in the CF_TEXT type, while file contents are transfered in binary. TkDND
+from compressed folders or Outlook e-mail messages. File names are transferred as
+in the CF_TEXT type, while file contents are transferred in binary. TkDND
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
 files in the temporary folder are returned. Note that TkDND support this type
 pair only as drop targets and not as drag sources.
 .br
 \fBFileGroupDescriptorW - FileContents\fR: These two types are used for
-transfering a set of files that do not appear physically on disk, like files
-from compressed folders or Outlook e-mail messages. File names are transfered as
-in the CF_UNICODETEXT type, while file contents are transfered in binary. TkDND
+transferring a set of files that do not appear physically on disk, like files
+from compressed folders or Outlook e-mail messages. File names are transferred as
+in the CF_UNICODETEXT type, while file contents are transferred in binary. TkDND
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
 files in the temporary folder are returned. Note that TkDND support this type

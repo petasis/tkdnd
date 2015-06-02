@@ -111,13 +111,13 @@ Thus, <I>window</I> will stop receiving events related to drag operations.
 It is an error to use this command for a <I>window</I> that has not been
 registered as a drag source with <B>tkdnd::drag_source register</B>.
 <DT><B>tkdnd::platform_specific_types </B><I>type-list</I><DD>
-This command will accept a list of types that can contain platform independnent
+This command will accept a list of types that can contain platform independent
 or platform specific types. A new list will be returned, where each platform
 independent type in <I>type-list</I> will be substituted by one or more platform
 specific types. Thus, the returned list may have more elements than
 <I>type-list</I>.
 <DT><B>tkdnd::platform_independent_types</B><I> type-list</I><DD>
-This command will accept a list of types that can contain platform independnent
+This command will accept a list of types that can contain platform independent
 or platform specific types. A new list will be returned, where each platform
 specific type in <I>type-list</I> will be substituted by one or more platform
 independent types. Thus, the returned list may have more elements than
@@ -135,14 +135,14 @@ temporary files to <I>directory</I>.
 <A NAME="lbAE">&nbsp;</A>
 <H2>SUPPORTED TYPES</H2>
 
-In order to declare the format that the data that will transfered during
+In order to declare the format that the data that will transferred during
 a drag and drop operation, all drag and drop protocols use the notion of types.
 Unfortunately, each protocol defines its own, usually platform specific, types. Tkdnd, trying to maintain portability among different platforms, offers some
 predefined types for some basic kinds of data, like text, and filenames.
 Currently, the following predifined cross-platform values are available:
 <DL COMPACT>
 <DT><B>DND_Text</B>:<DD>
-This type can be used for transfering textual data. Internally, it is translated
+This type can be used for transferring textual data. Internally, it is translated
 to the following platform specific formats:
 <BR>
 
@@ -155,7 +155,7 @@ Unix: <B>text/plain;charset=UTF-8</B>, <B>text/plain</B>.
 Mac: <B>NSStringPboardType</B>
   <BR>
 <DT><B>DND_Files</B>:<DD>
-This type can be used for transfering a list of file names.
+This type can be used for transferring a list of file names.
 Internally, it is translated to the following platform specific formats:
 <BR>
 
@@ -177,9 +177,9 @@ used for the conversion.
 <BR>
 
 <B>FileGroupDescriptor - FileContents</B>: These two types are used for
-transfering a set of files that do not appear physically on disk, like files
-from compressed folders or Outlook e-mail messages. File names are transfered as
-in the CF_TEXT type, while file contents are transfered in binary. Tkdnd
+transferring a set of files that do not appear physically on disk, like files
+from compressed folders or Outlook e-mail messages. File names are transferred as
+in the CF_TEXT type, while file contents are transferred in binary. Tkdnd
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
 files in the temporary folder are returned. Note that tkdnd support this type
@@ -187,9 +187,9 @@ pair only as drop targets and not as drag sources.
 <BR>
 
 <B>FileGroupDescriptorW - FileContents</B>: These two types are used for
-transfering a set of files that do not appear physically on disk, like files
-from compressed folders or Outlook e-mail messages. File names are transfered as
-in the CF_UNICODETEXT type, while file contents are transfered in binary. Tkdnd
+transferring a set of files that do not appear physically on disk, like files
+from compressed folders or Outlook e-mail messages. File names are transferred as
+in the CF_UNICODETEXT type, while file contents are transferred in binary. Tkdnd
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
 files in the temporary folder are returned. Note that tkdnd support this type
@@ -255,7 +255,7 @@ mandatory, but if it is defined, it has to return an action. In case an action
 is not returned, the drop is refused for this window.
 <DT><B>&lt;&lt;DropLeave&gt;&gt;</B>:<DD>
 This event is triggered when the mouse leaves outside the
-area covered by window, whithout a drop happening. The binding of such an event
+area covered by window, without a drop happening. The binding of such an event
 is expected to restore the visual state of the window to normal (i.e. the visual
 state the window was in before the &lt;&lt;DropEnter&gt;&gt; event was triggered). The
 binding for such an event is not expected to return a value.
@@ -310,7 +310,7 @@ bind .drag_source &lt;&lt;DragInitCmd&gt;&gt; \
 
 <DT><B>&lt;&lt;DragEndCmd&gt;&gt;</B>:<DD>
 This event is triggered when the drag action has finished (either when the drop
-was succesful or not). Its main purpose is to process the dropped data according
+was successful or not). Its main purpose is to process the dropped data according
 to the drop action returned by the drop target. Binding for such an event
 is not mandatory, and the binding is not expected to return a value.
 </DL>
