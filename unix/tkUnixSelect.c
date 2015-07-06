@@ -246,7 +246,7 @@ void TkDND_PropertyNotifyEventProc(ClientData clientData, XEvent *eventPtr) {
       Tcl_DStringAppend(buffer, Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
     }
   } else {
-    /* An error occured... */
+    /* An error occurred... */
     detail->result = status;
   }
   Tcl_DStringFree(&ds);
