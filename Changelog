@@ -1,5 +1,14 @@
-2015-04-20  Petasis George  <petasis@iit.demokritos.gr>
+2015-07-07  Petasis George  <petasis@iit.demokritos.gr>
 	TkDND 2.8 released.
+
+2015-07-06  Petasis George  <petasis@iit.demokritos.gr>
+	* Makefile.in:
+	* doc/tkDND.htm:
+	* doc/tkDND.n:
+	* macosx/macdnd.m:
+	* unix/tkUnixSelect.c: Applied two patches from Andrew Murray,
+	regarding various fixes (various typos and unused variable warnings
+	under OS X).
 
 2015-04-13  Petasis George  <petasis@iit.demokritos.gr>
 	* library\tkdnd_generic.tcl: Fixed SF bug #30: Toplevel Widget Cannot
