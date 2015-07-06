@@ -133,7 +133,7 @@ Tk_Window TkMacOSXGetTkWindow(NSWindow *w) {
  * added, and returned.
  */
 DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
-  NSRect frame, bounds;
+  NSRect frame;
   DNDView* dnd_view = [view viewWithTag:TkDND_Tag];
 #ifdef TKDND_OSX_KEVIN_WORKARROUND
   Rect bnds;
@@ -172,7 +172,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
     [dnd_view setFrame:frame];
   }
 
-  bounds = [view bounds];
+  NSRect bounds = [view bounds];
   if (!NSEqualRects(bounds, [dnd_view bounds])) {
     [dnd_view setBounds:bounds];
   }
