@@ -44,19 +44,21 @@ namespace eval olednd {
        CF_UNICODETEXT          DND_Text  \
        CF_TEXT                 DND_Text  \
        CF_HDROP                DND_Files \
-       FileGroupDescriptor     DND_Files \
-       FileGroupDescriptorW    DND_Files \
+       UniformResourceLocator  DND_URL   \
        CF_HTML                 DND_HTML  \
        {HTML Format}           DND_HTML  \
        CF_RTF                  DND_RTF   \
        CF_RTFTEXT              DND_RTF   \
        {Rich Text Format}      DND_RTF   \
     ]
+    # FileGroupDescriptorW    DND_Files \
+    # FileGroupDescriptor     DND_Files \
 
     ## Mapping from TkDND types to platform types...
     ::tkdnd::generic::initialise_tkdnd_to_platform_types [list \
        DND_Text  {CF_UNICODETEXT CF_TEXT}               \
        DND_Files {CF_HDROP}                             \
+       DND_URL   {UniformResourceLocator UniformResourceLocatorW} \
        DND_HTML  {CF_HTML {HTML Format}}                \
        DND_RTF   {CF_RTF CF_RTFTEXT {Rich Text Format}} \
     ]

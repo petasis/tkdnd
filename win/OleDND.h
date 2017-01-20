@@ -809,13 +809,15 @@ class TkDND_DropTarget: public IDropTarget {
         "CF_HTML", "HTML Format",
         "CF_RTF", "CF_RTFTEXT", "Rich Text Format",
         "FileGroupDescriptorW", "FileGroupDescriptor",
+        "UniformResourceLocator", "UniformResourceLocatorW",
         (char *) NULL
       };
       enum droptypes {
         TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP,
         TYPE_CF_HTML, TYPE_CF_HTMLFORMAT,
         TYPE_CF_RTF, TYPE_CF_RTFTEXT, TYPE_CF_RICHTEXTFORMAT,
-        TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR
+        TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR,
+        TYPE_UNIFORMRESOURCELOCATOR, TYPE_UNIFORMRESOURCELOCATORW
       };
       *pdwEffect = DROPEFFECT_NONE;
 #ifdef DND_USE_ACTIVE
@@ -848,6 +850,10 @@ class TkDND_DropTarget: public IDropTarget {
               data = GetData_CF_TEXT(pDataObject); break;
             case TYPE_CF_HDROP:
               data = GetData_CF_HDROP(pDataObject); break;
+            case TYPE_UNIFORMRESOURCELOCATORW:
+              data = GetData_UniformResourceLocator(pDataObject); break;
+            case TYPE_UNIFORMRESOURCELOCATOR:
+              data = GetData_UniformResourceLocatorW(pDataObject); break;
             case TYPE_FILEGROUPDESCRIPTORW:
               // Get a directory where we can store files...
               objv[0]=Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
@@ -1251,6 +1257,74 @@ private:
       ReleaseStgMedium(&storage);
       return result;
     }; /* GetData_FileGroupDescriptorW */
+
+    Tcl_Obj *GetData_UniformResourceLocator(IDataObject *pDataObject) {
+      STGMEDIUM StgMed;
+      FORMATETC fmte = {
+        RegisterClipboardFormat( _TEXT("UniformResourceLocator") ),
+        (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+      
+      if (pDataObject->QueryGetData(&fmte) == S_OK) {
+        if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
+          Tcl_DString ds;
+          char *data, *destPtr;
+          data = (char *) GlobalLock(StgMed.hGlobal);
+          Tcl_DStringInit(&ds);
+          Tcl_UniCharToUtfDString((Tcl_UniChar *) data,
+              Tcl_UniCharLen((Tcl_UniChar *) data), &ds);
+          GlobalUnlock(StgMed.hGlobal);
+          ReleaseStgMedium(&StgMed);
+          /*  Translate CR/LF to LF.  */
+          data = destPtr = Tcl_DStringValue(&ds);
+          while (*data) {
+              if (data[0] == '\r' && data[1] == '\n') {
+                  data++;
+              } else {
+                  *destPtr++ = *data++;
+              }
+          }
+          *destPtr = '\0';
+          Tcl_Obj *result = Tcl_NewStringObj(Tcl_DStringValue(&ds), -1);
+          Tcl_DStringFree(&ds);
+          return result;
+        }
+      }
+      return NULL;
+    }; /* GetData_UniformResourceLocator */
+
+    Tcl_Obj *GetData_UniformResourceLocatorW(IDataObject *pDataObject) {
+      STGMEDIUM StgMed;
+      FORMATETC fmte = {
+        RegisterClipboardFormat( _TEXT("UniformResourceLocatorW") ),
+        (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+      
+      if (pDataObject->QueryGetData(&fmte) == S_OK) {
+        if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
+          Tcl_DString ds;
+          char *data, *destPtr;
+          data = (char *) GlobalLock(StgMed.hGlobal);
+          Tcl_DStringInit(&ds);
+          Tcl_UniCharToUtfDString((Tcl_UniChar *) data,
+              Tcl_UniCharLen((Tcl_UniChar *) data), &ds);
+          GlobalUnlock(StgMed.hGlobal);
+          ReleaseStgMedium(&StgMed);
+          /*  Translate CR/LF to LF.  */
+          data = destPtr = Tcl_DStringValue(&ds);
+          while (*data) {
+              if (data[0] == '\r' && data[1] == '\n') {
+                  data++;
+              } else {
+                  *destPtr++ = *data++;
+              }
+          }
+          *destPtr = '\0';
+          Tcl_Obj *result = Tcl_NewStringObj(Tcl_DStringValue(&ds), -1);
+          Tcl_DStringFree(&ds);
+          return result;
+        }
+      }
+      return NULL;
+    }; /* GetData_UniformResourceLocatorW */
 
 }; /* TkDND_DropTarget */
 

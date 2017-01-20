@@ -22,7 +22,7 @@ PROJECT ( tkdnd )
 ## Package version information:
 SET ( PKG_NAME          ${PROJECT_NAME} )
 SET ( PKG_MAJOR_VERSION 2 )
-SET ( PKG_MINOR_VERSION 8 )
+SET ( PKG_MINOR_VERSION 9 )
 SET ( PKG_BUILD_VERSION 0 )
 ## Author:
 SET ( PKG_VENDOR        "Georgios Petasis" )
