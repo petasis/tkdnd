@@ -43,6 +43,12 @@
 #include "Strsafe.h"
 #endif
 
+static void TkDND_OnWindowDestroy(ClientData clientData, XEvent *eventPtr) {
+  Tk_Window tkwin = (Tk_Window) clientData;
+  if (eventPtr->type != DestroyNotify) return;
+  RevokeDragDrop(Tk_GetHWND(Tk_WindowId(tkwin)));
+}; /* TkDND_OnWindowDestroy */
+
 int TkDND_RegisterDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                  int objc, Tcl_Obj *CONST objv[]) {
   TkDND_DropTarget *pDropTarget;
@@ -68,24 +74,28 @@ int TkDND_RegisterDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     Tcl_SetResult(interp, "out of memory", TCL_STATIC);
     return TCL_ERROR;
   }
+  pDropTarget->AddRef();
   hret = RegisterDragDrop(Tk_GetHWND(Tk_WindowId(tkwin)), pDropTarget);
+  pDropTarget->Release();
   switch (hret) {
     case E_OUTOFMEMORY: {
-      delete pDropTarget;
       Tcl_AppendResult(interp, "unable to register \"", Tcl_GetString(objv[1]),
                 "\" as a drop target: out of memory", (char *) NULL);
       break;
     }
     case DRAGDROP_E_INVALIDHWND: {
-      delete pDropTarget;
       Tcl_AppendResult(interp, "unable to register \"", Tcl_GetString(objv[1]),
                 "\" as a drop target: invalid window handle", (char *) NULL);
       break;
     }
-    case DRAGDROP_E_ALREADYREGISTERED: {
+    case DRAGDROP_E_ALREADYREGISTERED:
       /* Silently ignore this. The window has been registered before. */
+    case S_OK: {
+      /* Arrange RevokeDragDrop to be called on destroy... */
+      Tk_CreateEventHandler(tkwin, StructureNotifyMask,
+                            TkDND_OnWindowDestroy, tkwin);
+      return TCL_OK;
     }
-    case S_OK: return TCL_OK;
   }
   return TCL_ERROR;
 }; /* TkDND_RegisterDragDropObjCmd */
@@ -114,6 +124,8 @@ int TkDND_RevokeDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
               "\" has never been registered as a drop target", (char *) NULL);
     return TCL_ERROR;
   }
+  Tk_DeleteEventHandler(tkwin, StructureNotifyMask,
+                        TkDND_OnWindowDestroy, tkwin);
 
   return TCL_OK;
 }; /* TkDND_RevokeDragDropObjCmd */

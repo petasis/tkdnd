@@ -1,3 +1,15 @@
+2017-01-25  Petasis George  <petasis@iit.demokritos.gr>
+	* win\OleDND.cpp: Fixed a memory leak on the pDropTarget object in
+	TkDND_RegisterDragDropObjCmd. Added calls to RevokeDragDrop on window
+	destroy.
+
+2017-01-20  Petasis George  <petasis@iit.demokritos.gr>
+	* configure.in:
+	* CMakeLists.txt:
+	* library\tkdnd_windows.tcl:
+	* win\OleDND.h: Added support fot type UniformResourceLocator under
+	Windows.
+
 2015-07-07  Petasis George  <petasis@iit.demokritos.gr>
 	TkDND 2.8 released.
 
