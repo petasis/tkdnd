@@ -1,3 +1,6 @@
+2017-08-25  Petasis George  <petasis@iit.demokritos.gr>
+	* CMakeLists.txt: Added support for -Dwith-tcl, -Dwith-tclsh.
+
 2017-01-25  Petasis George  <petasis@iit.demokritos.gr>
 	* win\OleDND.cpp: Fixed a memory leak on the pDropTarget object in
 	TkDND_RegisterDragDropObjCmd. Added calls to RevokeDragDrop on window

@@ -1,19 +1,4 @@
-CMAKE_MINIMUM_REQUIRED ( VERSION 2.6 )
-IF ( POLICY CMP0042 )
-  CMAKE_POLICY ( SET CMP0042 NEW )
-ENDIF ( POLICY CMP0042 )
-
-## Ensure that the variable PKG_OS_ARCH exists! If undefined, define it with
-## the value "x86_32"
-IF ( NOT PKG_OS_ARCH )
-  SET ( PKG_OS_ARCH x86_32 )
-ENDIF ( NOT PKG_OS_ARCH )
-
-## ===========================================================================
-##  No need to modify below this point!
-## ===========================================================================
-
-SET ( NO_MSVCRT ON )
+CMAKE_MINIMUM_REQUIRED ( VERSION 3.2 FATAL_ERROR )
 
 ## ===========================================================================
 ##  Project Information
@@ -26,6 +11,28 @@ SET ( PKG_MINOR_VERSION 9 )
 SET ( PKG_BUILD_VERSION 0 )
 ## Author:
 SET ( PKG_VENDOR        "Georgios Petasis" )
+
+## ===========================================================================
+##  User options...
+## ===========================================================================
+set(with-tclsh "" CACHE FILEPATH "location of a working tclsh executable")
+set(with-tcl   "" CACHE PATH "directory containing tcl configuration (tclConfig.sh)")
+
+## Ensure that the variable PKG_OS_ARCH exists! If undefined, define it with
+## the value "x86_32"
+IF ( NOT PKG_OS_ARCH )
+  SET ( PKG_OS_ARCH x86_32 )
+ENDIF ( NOT PKG_OS_ARCH )
+
+IF ( POLICY CMP0042 )
+  CMAKE_POLICY ( SET CMP0042 NEW )
+ENDIF ( POLICY CMP0042 )
+
+## ===========================================================================
+##  No need to modify below this point!
+## ===========================================================================
+
+SET ( NO_MSVCRT ON )
 
 ## ===========================================================================
 ##  Project sources
@@ -125,18 +132,30 @@ SET ( CP           ${CMAKE_COMMAND} -E copy )
 ##  Locate Tcl/Tk
 ## ===========================================================================
 MESSAGE ( STATUS "Searching for Tcl/Tk..." )
+if (NOT "${with-tcl}" STREQUAL "")
+  MESSAGE ( STATUS "  Tcl lib directory manually set by -Dwith-tcl=" ${with-tcl} )
+  get_filename_component(TKDND_TCL_ROOT "${with-tcl}" DIRECTORY)
+  MESSAGE ( STATUS "  Setting Tcl root to: " ${TKDND_TCL_ROOT} )
+  set ( CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${TKDND_TCL_ROOT} )
+  set (TCL_ROOT ${TKDND_TCL_ROOT})
+  set (TclStub_ROOT ${TKDND_TCL_ROOT})
+endif ()
+if (NOT "${with-tclsh}" STREQUAL "")
+  MESSAGE ( STATUS "  Tclsh manually set by -Dwith-tclsh=" ${with-tclsh} )
+  set (TCL_TCLSH ${with-tclsh})
+endif ()
 FIND_PACKAGE ( TCL REQUIRED )
 FIND_PACKAGE ( TclStub REQUIRED )
 
 ## Tcl/Tk info (useful for debug purposes)...
-# MESSAGE ( STATUS "  TCL_TCLSH:               " ${TCL_TCLSH} )
+  MESSAGE ( STATUS "  TCL_TCLSH:               " ${TCL_TCLSH} )
   MESSAGE ( STATUS "  TCL_INCLUDE_PATH:        " ${TCL_INCLUDE_PATH} )
   MESSAGE ( STATUS "  TCL_STUB_LIBRARY:        " ${TCL_STUB_LIBRARY} )
-# MESSAGE ( STATUS "  TCL_LIBRARY:             " ${TCL_LIBRARY} )
-# MESSAGE ( STATUS "  TK_WISH:                 " ${TK_WISH} )
+  MESSAGE ( STATUS "  TCL_LIBRARY:             " ${TCL_LIBRARY} )
+  MESSAGE ( STATUS "  TK_WISH:                 " ${TK_WISH} )
   MESSAGE ( STATUS "  TK_INCLUDE_PATH:         " ${TK_INCLUDE_PATH} )
   MESSAGE ( STATUS "  TK_STUB_LIBRARY:         " ${TK_STUB_LIBRARY} )
-# MESSAGE ( STATUS "  TK_LIBRARY:              " ${TK_LIBRARY} )
+  MESSAGE ( STATUS "  TK_LIBRARY:              " ${TK_LIBRARY} )
 
 ## Enable Tcl/Tk stubs globally...
 ADD_DEFINITIONS     ( -DUSE_TCL_STUBS )

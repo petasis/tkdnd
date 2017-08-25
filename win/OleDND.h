@@ -447,7 +447,7 @@ private:
     }; /* LookupFormatEtc */
 
     HGLOBAL DupGlobalMem(HGLOBAL hMem) {
-      DWORD   len    = GlobalSize(hMem);
+      SIZE_T  len    = GlobalSize(hMem);
       PVOID   source = GlobalLock(hMem);
       PVOID   dest   = GlobalAlloc(GMEM_FIXED, len);
       memcpy(dest, source, len);
@@ -910,7 +910,7 @@ private:
         Tcl_NewStringObj("unsupported type", -1);
       }
       bytes = (unsigned char *) GlobalLock(StgMed.hGlobal);
-      result = Tcl_NewByteArrayObj(bytes, GlobalSize(StgMed.hGlobal));
+      result = Tcl_NewByteArrayObj(bytes, (int) GlobalSize(StgMed.hGlobal));
       GlobalUnlock(StgMed.hGlobal);
       ReleaseStgMedium(&StgMed);
       return result;
@@ -1260,7 +1260,7 @@ private:
 
     Tcl_Obj *GetData_UniformResourceLocator(IDataObject *pDataObject) {
       STGMEDIUM StgMed;
-      FORMATETC fmte = {
+      FORMATETC fmte = { (CLIPFORMAT)
         RegisterClipboardFormat( _TEXT("UniformResourceLocator") ),
         (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       
@@ -1294,7 +1294,7 @@ private:
 
     Tcl_Obj *GetData_UniformResourceLocatorW(IDataObject *pDataObject) {
       STGMEDIUM StgMed;
-      FORMATETC fmte = {
+      FORMATETC fmte = { (CLIPFORMAT)
         RegisterClipboardFormat( _TEXT("UniformResourceLocatorW") ),
         (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       
