@@ -218,8 +218,9 @@ public:
     }; /* Next */
     
     HRESULT __stdcall Skip(ULONG celt) {
+      if ((m_nIndex + celt) >= m_nNumFormats) return S_FALSE;
       m_nIndex += celt;
-      return (m_nIndex <= m_nNumFormats) ? S_OK : S_FALSE;
+      return S_OK;
     }; /* Skip */
     
     HRESULT __stdcall Reset(void) {
@@ -252,7 +253,7 @@ public:
       }
     }; /* TkDND_FormatEtc */
 
-    ~TkDND_FormatEtc() {
+    virtual ~TkDND_FormatEtc() {
        if (m_pFormatEtc) {
          for(ULONG i = 0; i < m_nNumFormats; i++) {
            if(m_pFormatEtc[i].ptd) CoTaskMemFree(m_pFormatEtc[i].ptd);
@@ -395,7 +396,7 @@ public:
       currentFormat = 0;
     }; /* TkDND_DataObject */
     
-    ~TkDND_DataObject() {
+    virtual ~TkDND_DataObject() {
       // cleanup
       if(m_pFormatEtc) delete[] m_pFormatEtc;
       if(m_pStgMedium) delete[] m_pStgMedium;
@@ -486,18 +487,18 @@ class TkDND_DropTarget: public IDropTarget {
 
   public:
     TkDND_DropTarget(Tcl_Interp *_interp, Tk_Window _tkwin) :
-      interp(_interp), tkwin(_tkwin), m_lRefCount(1),
+      m_lRefCount(1), interp(_interp), tkwin(_tkwin),
 #ifdef DND_USE_ACTIVE
       drop_active(false),
 #endif
       typelist(NULL), actionlist(NULL), codelist(NULL) {
     }; /* TkDND_DropTarget */
    
-    ~TkDND_DropTarget(void) {
+    virtual ~TkDND_DropTarget(void) {
       if (typelist   != NULL) Tcl_DecrRefCount(typelist);
       if (actionlist != NULL) Tcl_DecrRefCount(actionlist);
       if (codelist   != NULL) Tcl_DecrRefCount(codelist);
-   }; /* ~TkDND_DropTarget */
+    }; /* ~TkDND_DropTarget */
    
     /* IUnknown interface members */
     HRESULT __stdcall QueryInterface(REFIID iid, void ** ppvObject) {
@@ -1407,7 +1408,7 @@ public:
       button = b;
     }; /* TkDND_DropSource */
     
-    ~TkDND_DropSource() {};
+    virtual ~TkDND_DropSource() {};
         
 private:
     LONG   m_lRefCount;

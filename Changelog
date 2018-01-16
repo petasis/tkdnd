@@ -1,6 +1,9 @@
 2018-01-16  Petasis George  <petasis@iit.demokritos.gr>
+	* win/TkDND_OleDND.h: Made destructors in all classes virtual.
+
 	* win/TkDND_OleDND.cpp: Fixes for C++ warnings (which does not allow to
-	pass a static string to  Tcl_SetResult()).
+	pass a static string to Tcl_SetResult()).
+
 	* CMakeLists.txt: Added support for building with msys2 & gcc under
 	windows.
 
