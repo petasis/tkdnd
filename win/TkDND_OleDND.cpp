@@ -43,6 +43,12 @@
 #include "Strsafe.h"
 #endif
 
+#include <cstring>
+
+#define TKDND_REPORT_ERROR(x) \
+    {char errmsg[126]; std::strncpy(errmsg, x, 124);\
+     Tcl_SetResult(interp, errmsg, TCL_STATIC);}
+
 static void TkDND_OnWindowDestroy(ClientData clientData, XEvent *eventPtr) {
   Tk_Window tkwin = (Tk_Window) clientData;
   if (eventPtr->type != DestroyNotify) return;
@@ -71,7 +77,7 @@ int TkDND_RegisterDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 
   pDropTarget = new TkDND_DropTarget(interp, tkwin);
   if (pDropTarget == NULL) {
-    Tcl_SetResult(interp, "out of memory", TCL_STATIC);
+    TKDND_REPORT_ERROR("out of memory");
     return TCL_ERROR;
   }
   pDropTarget->AddRef();
@@ -197,7 +203,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     status = Tcl_GetIntFromObj(interp, objv[5], &button);
     if (status != TCL_OK) return status;
     if (button < 1 || button > 3) {
-      Tcl_SetResult(interp, "button must be either 1, 2, or 3", TCL_STATIC);
+      TKDND_REPORT_ERROR("button must be either 1, 2, or 3");
       return TCL_ERROR;
     }
   }
@@ -226,8 +232,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   status = Tcl_ListObjGetElements(interp, objv[4], &data_nu, &data);
   if (status != TCL_OK) return status;
   if (type_nu != data_nu) {
-    Tcl_SetResult(interp, "lists type & data must have the same length",
-                  TCL_STATIC);
+    TKDND_REPORT_ERROR("lists type & data must have the same length");
     return TCL_ERROR;
   }
   m_pfmtetc  = new FORMATETC[type_nu];
@@ -358,14 +363,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 
   pDataObject = new TkDND_DataObject(m_pfmtetc, m_pstgmed, type_nu);
   if (pDataObject == NULL) {
-    Tcl_SetResult(interp, "unable to create OLE Data object", TCL_STATIC);
+    TKDND_REPORT_ERROR("unable to create OLE Data object");
     return TCL_ERROR;
   }
 
   pDropSource = new TkDND_DropSource(button);
   if (pDropSource == NULL) {
     pDataObject->Release();
-    Tcl_SetResult(interp, "unable to create OLE Drop Source object",TCL_STATIC);
+    TKDND_REPORT_ERROR("unable to create OLE Drop Source object");
     return TCL_ERROR;
   }
 
@@ -379,13 +384,16 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   delete[] m_pfmtetc;
   delete[] m_pstgmed;
   if (dwResult == DRAGDROP_S_DROP) {
+    char msg[24];
     switch (dwEffect) {
-      case DROPEFFECT_COPY: Tcl_SetResult(interp, "copy", TCL_STATIC); break;
-      case DROPEFFECT_MOVE: Tcl_SetResult(interp, "move", TCL_STATIC); break;
-      case DROPEFFECT_LINK: Tcl_SetResult(interp, "link", TCL_STATIC); break;
+      case DROPEFFECT_COPY: std::strncpy(msg, "copy", 20); break;
+      case DROPEFFECT_MOVE: std::strncpy(msg, "move", 20); break;
+      case DROPEFFECT_LINK: std::strncpy(msg, "link", 20); break;
     }
+    Tcl_SetResult(interp, msg, TCL_STATIC);
   } else {
-    Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
+    char msg[24]; std::strncpy(msg, "refuse_drop", 20);
+    Tcl_SetResult(interp, msg, TCL_STATIC);
   }
   return TCL_OK;
 error:
@@ -440,7 +448,7 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
    */
   Tcl_GetVersion(&major, &minor, &patchlevel, NULL);
   if ((major == 8) && (minor == 3) && (patchlevel < 3)) {
-    Tcl_SetResult(interp, "tkdnd requires Tk 8.3.3 or greater", TCL_STATIC);
+    TKDND_REPORT_ERROR("tkdnd requires Tk 8.3.3 or greater");
     return TCL_ERROR;
   }
 

@@ -34,6 +34,10 @@ ENDIF ( POLICY CMP0042 )
 
 SET ( NO_MSVCRT ON )
 
+# Check headers
+include(CheckIncludeFile)
+include(CheckIncludeFiles)
+
 ## ===========================================================================
 ##  Project sources
 ## ===========================================================================
@@ -46,6 +50,12 @@ IF ( WIN32 )
   ADD_DEFINITIONS     ( -DUNICODE )
   ADD_DEFINITIONS     ( -D_UNICODE )
   # ADD_DEFINITIONS     ( -D_MBCS )
+
+  check_include_files(Strsafe.h       HAVE_STRSAFE_H)
+
+  IF(HAVE_STRSAFE_H)
+    ADD_DEFINITIONS ( -DHAVE_STRSAFE_H )
+  ENDIF(HAVE_STRSAFE_H)
 
 ELSE  ( WIN32 )
   ## Unix and OS X...
@@ -83,6 +93,7 @@ ENDIF ( WIN32 )
 ## If we are building with MINGW, link statically to its libs...
 ##
 IF ( MINGW )
+  SET ( NO_MSVCRT OFF )
   INCLUDE ( CheckCCompilerFlag )
   CHECK_C_COMPILER_FLAG ( -static-libgcc    FLAG_static_libgcc    )
   CHECK_C_COMPILER_FLAG ( -static-libstdc++ FLAG_static_libstdcpp )
