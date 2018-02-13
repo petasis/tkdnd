@@ -84,6 +84,10 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #define Tk_Interp TkDND_Interp
 #endif /* Tk_Interp */
 
+#ifndef CONST
+#   define CONST const
+#endif
+
 /*
  * Here we need to wrap Cocoa methods in Cocoa class: methods for initiating,
  * tracking, and terminating drag from inside and outside the application.

@@ -1,3 +1,8 @@
+2018-02-13  Petasis George  <petasis@iit.demokritos.gr>
+	* macosx/macdnd.m:
+	* unix/TkDND_XDND.c: Tcl 9.0 seems to not define any more "CONST", thus
+	add this definition if it is missing (defined to "const").
+
 2018-01-16  Petasis George  <petasis@iit.demokritos.gr>
 	* win/TkDND_OleDND.h: Made destructors in all classes virtual.
 
