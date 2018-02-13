@@ -1,4 +1,9 @@
 2018-02-13  Petasis George  <petasis@iit.demokritos.gr>
+	* configure:
+	* configure.ac:
+	* configure.in:
+	* tclconfig/tcl.m4: Updated to latest TEA.
+
 	* macosx/macdnd.m:
 	* unix/TkDND_XDND.c: Tcl 9.0 seems to not define any more "CONST", thus
 	add this definition if it is missing (defined to "const").
