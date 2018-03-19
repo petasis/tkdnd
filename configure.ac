@@ -93,14 +93,15 @@ TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_ge
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
-if test "${TEA_PLATFORM}" = "windows" ; then
+AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
+#if test "${TEA_PLATFORM}" = "windows" ; then
     # Ensure no empty if clauses
-    :
+    # :
     AC_PROG_CXX
     CC=$CXX
     AC_CHECK_HEADER(Strsafe.h,
         [AC_DEFINE(HAVE_STRSAFE_H, 1, [Do we have <Strsafe.h>?])],
-	[AC_DEFINE(NO_STRSAFE_H,   1, [Do we have <Strsafe.h>?])])
+        [AC_DEFINE(NO_STRSAFE_H,   1, [Do we have <Strsafe.h>?])])
     TEA_ADD_CFLAGS([-DUNICODE -D_UNICODE])
     TEA_ADD_SOURCES([win/TkDND_OleDND.cpp])
     TEA_ADD_LIBS(kernel32.lib user32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib)
@@ -116,11 +117,14 @@ if test "${TEA_PLATFORM}" = "windows" ; then
     CLEANFILES="pkgIndex.tcl *.lib *.dll *.exp *.ilk *.pdb vc*.pch"
     #TEA_ADD_SOURCES([win/winFile.c])
     #TEA_ADD_INCLUDES([-I\"$(${CYGPATH} ${srcdir}/win)\"])
-else
+],[
+#else
+    # The following block executes under non-windows
     CLEANFILES="pkgIndex.tcl"
     #TEA_ADD_SOURCES([unix/unixFile.c])
     #TEA_ADD_LIBS([-lsuperfly])
-fi
+#fi
+])
 
 if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
     TEA_ADD_SOURCES([unix/TkDND_XDND.c unix/tkUnixSelect.c unix/Cursors.c])

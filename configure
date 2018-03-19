@@ -5790,9 +5790,12 @@ done
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
-if test "${TEA_PLATFORM}" = "windows" ; then
+case ${TEA_PLATFORM} in #(
+  windows|*MINGW64_*) :
+
+#if test "${TEA_PLATFORM}" = "windows" ; then
     # Ensure no empty if clauses
-    :
+    # :
     ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -6150,11 +6153,17 @@ $as_echo "#define BUILD_tkdnd 1" >>confdefs.h
     CLEANFILES="pkgIndex.tcl *.lib *.dll *.exp *.ilk *.pdb vc*.pch"
     #TEA_ADD_SOURCES([win/winFile.c])
     #TEA_ADD_INCLUDES([-I\"$(${CYGPATH} ${srcdir}/win)\"])
-else
+ ;; #(
+  *) :
+
+#else
+    # The following block executes under non-windows
     CLEANFILES="pkgIndex.tcl"
     #TEA_ADD_SOURCES([unix/unixFile.c])
     #TEA_ADD_LIBS([-lsuperfly])
-fi
+#fi
+ ;;
+esac
 
 if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
 

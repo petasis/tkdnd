@@ -1,4 +1,8 @@
 2018-02-13  Petasis George  <petasis@iit.demokritos.gr>
+	configure.ac: "${TEA_PLATFORM}" = "windows" fails under MINGW64.
+	Added a check for TEA_PLATFORM to include also MINGW64
+	(windows|*MINGW64_*).
+
 	* library/tkdnd_compat.tcl: Fixed a bug in compat::bindsource2,
 	suggested by segalion: https://github.com/petasis/tkdnd/issues/13
 	(The bug was that compat::bindsource2 called
