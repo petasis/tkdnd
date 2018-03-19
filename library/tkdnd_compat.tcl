@@ -138,7 +138,7 @@ proc compat::bindsource1 {window type} {
 };# compat::bindsource1
 
 proc compat::bindsource2 {window type script} {
-  ::tkdnd::drag_source register $window $type 2
+  ::tkdnd::drag_source register $window $type
   bind $window <<DragInitCmd>> "list {copy} %t \[$script\]"
 };# compat::bindsource2
 

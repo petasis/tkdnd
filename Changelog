@@ -1,4 +1,10 @@
 2018-02-13  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_compat.tcl: Fixed a bug in compat::bindsource2,
+	suggested by segalion: https://github.com/petasis/tkdnd/issues/13
+	(The bug was that compat::bindsource2 called
+	::tkdnd::drag_source register with event 2.)
+
+2018-02-13  Petasis George  <petasis@iit.demokritos.gr>
 	* configure:
 	* configure.ac:
 	* configure.in:
