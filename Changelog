@@ -1,4 +1,8 @@
 2018-05-26  Petasis George  <petasis@iit.demokritos.gr>
+	* configure: Regenerated with "autoconf -i".
+
+	* tclconfig/tcl.m4: Updated to the latest version.
+
 	* configure.ac: Removed option "-fobjc-gc" from OS X build.
 
 	* win/OleDND.h: Added the option to skip some events during DragOver().
