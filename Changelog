@@ -1,4 +1,6 @@
 2018-05-26  Petasis George  <petasis@iit.demokritos.gr>
+	* configure.ac: Removed option "-fobjc-gc" from OS X build.
+
 	* win/OleDND.h: Added the option to skip some events during DragOver().
 	To activate it, DND_DRAGOVER_SKIP_EVENTS must be defined.
 
