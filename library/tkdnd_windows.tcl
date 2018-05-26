@@ -76,7 +76,7 @@ proc olednd::HandleDragEnter { drop_target typelist actionlist pressedkeys
                                 $codelist $actionlist $pressedkeys
   set action [::tkdnd::generic::HandlePosition $drop_target {} \
                                                $pressedkeys $rootX $rootY]
-  if {$::tkdnd::_auto_update} {update}
+  if {$::tkdnd::_auto_update} {update idletasks}
   return $action
 };# olednd::HandleDragEnter
 
@@ -86,7 +86,7 @@ proc olednd::HandleDragEnter { drop_target typelist actionlist pressedkeys
 proc olednd::HandleDragOver { drop_target pressedkeys rootX rootY } {
   set action [::tkdnd::generic::HandlePosition $drop_target {} \
                                                $pressedkeys $rootX $rootY]
-  if {$::tkdnd::_auto_update} {update}
+  if {$::tkdnd::_auto_update} {update idletasks}
   return $action
 };# olednd::HandleDragOver
 
@@ -95,7 +95,7 @@ proc olednd::HandleDragOver { drop_target pressedkeys rootX rootY } {
 # ----------------------------------------------------------------------------
 proc olednd::HandleDragLeave { drop_target } {
   ::tkdnd::generic::HandleLeave
-  if {$::tkdnd::_auto_update} {update}
+  if {$::tkdnd::_auto_update} {update idletasks}
 };# olednd::HandleDragLeave
 
 # ----------------------------------------------------------------------------
@@ -105,7 +105,7 @@ proc olednd::HandleDrop { drop_target pressedkeys rootX rootY type data } {
   ::tkdnd::generic::SetDroppedData [normalise_data $type $data]
   set action [::tkdnd::generic::HandleDrop $drop_target {} \
                                            $pressedkeys $rootX $rootY 0]
-  if {$::tkdnd::_auto_update} {update}
+  if {$::tkdnd::_auto_update} {update idletasks}
   return $action
 };# olednd::HandleXdndDrop
 

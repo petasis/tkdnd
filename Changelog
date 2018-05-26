@@ -1,4 +1,11 @@
 2018-05-26  Petasis George  <petasis@iit.demokritos.gr>
+	* win/OleDND.h: Added the option to skip some events during DragOver().
+	To activate it, DND_DRAGOVER_SKIP_EVENTS must be defined.
+
+	* library/tkdnd_windows.tcl: Changed "update" to "update idletasks".
+	Bug reported by flopp Github user.
+	Bug #17: https://github.com/petasis/tkdnd/issues/17.
+
 	* win/TkDND_OleDND.cpp: Fixed a bug in TKDND_REPORT_ERROR(x), where the
 	errmsg pointer could go out of scope. Bug and patch provided by ralfixx
 	Github user. Bug #18: https://github.com/petasis/tkdnd/issues/18.

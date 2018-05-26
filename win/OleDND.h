@@ -475,6 +475,14 @@ class TkDND_DropTarget: public IDropTarget {
 #ifdef DND_USE_ACTIVE
     bool                 drop_active;
 #endif
+
+#ifdef DND_DRAGOVER_SKIP_EVENTS
+    DWORD		 last_keyState;
+    LONG		 last_X, last_Y;
+    DWORD                last_effect;
+    bool	 	 skip_if_unchanged;
+#endif /* DND_DRAGOVER_SKIP_EVENTS */
+    
     
     const TCHAR * FormatName(UINT cfFormat) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
@@ -491,8 +499,12 @@ class TkDND_DropTarget: public IDropTarget {
 #ifdef DND_USE_ACTIVE
       drop_active(false),
 #endif
-      typelist(NULL), actionlist(NULL), codelist(NULL) {
-    }; /* TkDND_DropTarget */
+      typelist(NULL), actionlist(NULL), codelist(NULL)
+#ifdef DND_DRAGOVER_SKIP_EVENTS	      
+      , last_effect(DROPEFFECT_NONE), last_X(0), last_Y(0), last_keyState(0),
+      skip_if_unchanged(false)
+#endif /* DND_DRAGOVER_SKIP_EVENTS */
+    { }; /* TkDND_DropTarget */
    
     virtual ~TkDND_DropTarget(void) {
       if (typelist   != NULL) Tcl_DecrRefCount(typelist);
@@ -551,7 +563,6 @@ class TkDND_DropTarget: public IDropTarget {
 
     DWORD SendDragEnter(POINTL pt, DWORD grfKeyState) {
       Tcl_Obj *objv[8], *result;
-      int i, status, index;
       DWORD effect = DROPEFFECT_NONE;
       static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -562,6 +573,7 @@ class TkDND_DropTarget: public IDropTarget {
         ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
         refuse_drop, ActionDefault
       };
+      int i, status, index = (enum dropactions) refuse_drop;
 #ifdef DND_USE_ACTIVE
       if (drop_active) {
         return DROPEFFECT_COPY;
@@ -602,7 +614,6 @@ class TkDND_DropTarget: public IDropTarget {
 
     DWORD SendDragOver(POINTL pt, DWORD grfKeyState) {
       Tcl_Obj *objv[8], *result;
-      int i, status, index;
       DWORD effect = DROPEFFECT_NONE;
       static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -613,11 +624,28 @@ class TkDND_DropTarget: public IDropTarget {
         ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
         refuse_drop, ActionDefault
       };
+      int i, status, index = (enum dropactions) refuse_drop;
 #ifdef DND_USE_ACTIVE
       if (!drop_active) {
         return effect;
       }
 #endif
+
+#ifdef DND_DRAGOVER_SKIP_EVENTS
+      /* If the state has not changed, we can skip some events, to skip some CPU
+       * load. Note that SendDragOver is called very frequently, and has to
+       * respond as fast as possible... */
+      if (skip_if_unchanged &&
+          (pt.x == last_X) && (pt.y == last_Y) &&
+	  (grfKeyState == last_keyState)) {
+        skip_if_unchanged = false;
+	return last_effect;
+      }
+
+      skip_if_unchanged = false;
+      last_X = pt.x; last_Y = pt.y; last_keyState = grfKeyState;
+#endif /* DND_DRAGOVER_SKIP_EVENTS */
+
       objv[0] = Tcl_NewStringObj("::tkdnd::olednd::HandleDragOver", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
       objv[2] = GetPressedKeys(grfKeyState);
@@ -631,6 +659,9 @@ class TkDND_DropTarget: public IDropTarget {
                                      "dropactions", 0, &index);
         Tcl_DecrRefCount(result);
         if (status != TCL_OK) index = (enum dropactions) ActionDefault;
+#ifdef DND_DRAGOVER_SKIP_EVENTS
+	skip_if_unchanged = true;
+#endif /* DND_DRAGOVER_SKIP_EVENTS */
       }
       switch ((enum dropactions) index) {
         case ActionCopy:    effect = DROPEFFECT_COPY; break;
@@ -641,12 +672,14 @@ class TkDND_DropTarget: public IDropTarget {
         case ActionDefault: effect = DROPEFFECT_COPY; break;
         case refuse_drop:   effect = DROPEFFECT_NONE; /* Refuse drop. */
       }
+#ifdef DND_DRAGOVER_SKIP_EVENTS
+      last_effect = effect;
+#endif /* DND_DRAGOVER_SKIP_EVENTS */
       return effect;
     }; /* SendDragOver */
 
     DWORD SendDrop(POINTL pt, DWORD grfKeyState, Tcl_Obj *type, Tcl_Obj *data) {
       Tcl_Obj *objv[8], *result;
-      int i, status, index;
       DWORD effect = DROPEFFECT_NONE;
       static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -657,6 +690,7 @@ class TkDND_DropTarget: public IDropTarget {
         ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
         refuse_drop, ActionDefault
       };
+      int i, status, index = (enum dropactions) refuse_drop;
 #ifdef DND_USE_ACTIVE
       if (!drop_active) {
         return effect;
@@ -671,7 +705,6 @@ class TkDND_DropTarget: public IDropTarget {
       objv[5] = type;
       objv[6] = data;
       TkDND_Status_Eval(7);
-      index = (enum dropactions) refuse_drop;
       if (status == TCL_OK) {
         /* Get the returned action... */
         result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
@@ -1386,6 +1419,10 @@ public:
           break;
         }
       }
+      // If no buttons are pressed, cancel...
+      if( ((grfKeyState & MK_LBUTTON) == 0) &&
+          ((grfKeyState & MK_MBUTTON) == 0) &&
+          ((grfKeyState & MK_RBUTTON) == 0) ) return DRAGDROP_S_CANCEL;
 
       // continue with the drag-drop
       return S_OK;
