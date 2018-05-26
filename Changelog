@@ -1,3 +1,12 @@
+2018-05-26  Petasis George  <petasis@iit.demokritos.gr>
+	* win/TkDND_OleDND.cpp: Fixed a bug in TKDND_REPORT_ERROR(x), where the
+	errmsg pointer could go out of scope. Bug and patch provided by ralfixx
+	Github user. Bug #18: https://github.com/petasis/tkdnd/issues/18.
+
+        * Makefile.in: Added a fix for .cpp files, compiled under windows with
+	configure/make. Bug and patch provided by ralfixx
+	Github user. Bug #18: https://github.com/petasis/tkdnd/issues/18.
+
 2018-02-13  Petasis George  <petasis@iit.demokritos.gr>
 	configure.ac: "${TEA_PLATFORM}" = "windows" fails under MINGW64.
 	Added a check for TEA_PLATFORM to include also MINGW64

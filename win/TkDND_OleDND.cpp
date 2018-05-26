@@ -46,8 +46,7 @@
 #include <cstring>
 
 #define TKDND_REPORT_ERROR(x) \
-    {char errmsg[126]; std::strncpy(errmsg, x, 124);\
-     Tcl_SetResult(interp, errmsg, TCL_STATIC);}
+    { Tcl_SetObjResult(interp, Tcl_NewStringObj(x, -1)); }
 
 static void TkDND_OnWindowDestroy(ClientData clientData, XEvent *eventPtr) {
   Tk_Window tkwin = (Tk_Window) clientData;

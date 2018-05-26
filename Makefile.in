@@ -169,7 +169,7 @@ AR		= @AR@
 CFLAGS		= @CFLAGS@
 COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 
-.SUFFIXES: .c .$(OBJEXT)
+.SUFFIXES: .c .$(OBJEXT) .cpp
 
 #========================================================================
 # Start of user-definable TARGETS section
