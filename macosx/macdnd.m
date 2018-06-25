@@ -23,6 +23,10 @@
     #define TKDND_ARC
 #endif
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
+    #define TKDND_LION_OR_LATER
+#endif
+
 #pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
 #if 0
 // not using clang LLVM compiler, or LLVM version is not 3.x
@@ -97,7 +101,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
  * tracking, and terminating drag from inside and outside the application.
  */
 
-@interface DNDView : NSView {
+@interface DNDView : NSView <NSDraggingSource> {
 //  NSDragOperation sourceDragMask;
 //  NSPasteboard   *sourcePasteBoard;
 //  NSMutableArray *draggedtypes;
@@ -116,6 +120,10 @@ DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 @end
 
 @implementation DNDView
+
+- (NSDragOperation)draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context {
+  return NSDragOperationCopy;
+}
 
 - (void)setTag:(NSInteger) t {
   tag = t;
@@ -893,12 +901,17 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
   }
 
-  NSSize dragOffset = NSMakeSize(0.0, 0.0);
 
   /* Get the mouse coordinates, so as the icon can slide back at the correct
    * location, if the drag is cancelled. */
   NSPoint global         = [NSEvent mouseLocation];
-  NSPoint imageLocation  = [[dragview window] convertScreenToBase:global];
+  NSPoint imageLocation;
+  #ifdef TKDND_LION_OR_LATER
+  NSRect imageRect = [[dragview window] convertRectFromScreen:NSMakeRect(global.x, global.y, 0, 0)];
+  imageLocation = imageRect.origin;
+  #else
+  imageLocation = [[dragview window] convertScreenToBase:global];
+  #endif
   NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseDragged
                                       location:imageLocation
                                  modifierFlags:0
@@ -910,6 +923,17 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                       pressure:0];
 
   /* Initiate the drag operation... */
+  #ifdef TKDND_LION_OR_LATER
+  NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:dragicon];
+  NSRect draggingRect = NSMakeRect(imageLocation.x, imageLocation.y, 0, 0);
+  [dragItem setDraggingFrame:draggingRect contents:dragpasteboard];
+  NSDraggingSession *draggingSession = [dragview beginDraggingSessionWithItems:[NSArray arrayWithObject:dragItem]
+  				event:event
+               source:dragview];
+  draggingSession.animatesToStartingPositionsOnCancelOrFail = YES;
+  draggingSession.draggingFormation = NSDraggingFormationNone;
+  #else
+  NSSize dragOffset = NSMakeSize(0.0, 0.0);
   [dragview dragImage:dragicon
                    at:imageLocation
                offset:dragOffset
@@ -917,6 +941,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
            pasteboard:dragpasteboard
                source:dragview
             slideBack:YES];
+  #endif
 
   /* Get the drop action... */
 
