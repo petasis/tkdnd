@@ -403,7 +403,6 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
 
   Tk_Window     tkwin            = TkMacOSXGetTkWindow([self window]);
   Tcl_Interp   *interp           = Tk_Interp(tkwin);
-  NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
   /* Get the coordinates of the cursor... */
   mouseLoc = [NSEvent mouseLocation];
 
