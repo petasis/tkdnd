@@ -901,7 +901,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   NSPoint imageLocation  = [[dragview window] convertScreenToBase:global];
   NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseDragged
                                       location:imageLocation
-                                 modifierFlags:NSLeftMouseDownMask
+                                 modifierFlags:0
                                      timestamp:0
                                   windowNumber:[[dragview window] windowNumber]
                                        context:NULL
