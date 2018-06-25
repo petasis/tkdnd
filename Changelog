@@ -1,3 +1,8 @@
+2018-06-25  Petasis George  <petasis@iit.demokritos.gr>
+	* configure: Regenerated with "autoconf -i".
+
+	* tclconfig/tcl.m4: Updated to the latest TEA version.
+
 2018-05-26  Petasis George  <petasis@iit.demokritos.gr>
 	* configure: Regenerated with "autoconf -i".
 

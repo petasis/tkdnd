@@ -12,12 +12,14 @@ catch {file delete -force config.cache}
 
 puts "+++ Running 'bash configure -srcdir=$srcdir\n\
       \                 --prefix=$srcdir/cmake/runtime\n\
+      \                 --exec-prefix=$srcdir/cmake/runtime\n\
       \                 --with-tcl=$libpath\n\
       \                 --with-tk=$libpath\n\
       \                 --with-tclinclude=$includepath\n\
       \                 --with-tkinclude=$includepath'\n\
       \            in directory [pwd]..."
 catch {exec bash configure -srcdir=$srcdir --prefix=$srcdir/cmake/runtime \
+            --exec-prefix=$srcdir/cmake/runtime \
             --with-tcl=$libpath --with-tk=$libpath \
             --with-tclinclude=$includepath \
             --with-tkinclude=$includepath >@stdout 2>@stderr}
