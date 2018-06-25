@@ -296,7 +296,7 @@ After installing MSYS2, and making sure that your Tcl/Tk installation can be use
 
 The resulting binaries will be placed in `<tkdnd-src-directory>/cmake/runtime` directory.
 
-### Unix, Linux
+#### Unix, Linux
 If you don't want to use CMake, you can use configure/make to build TkDND. Just open a terminal and execute the following:
 
     cd <tkdnd-src-directory>
