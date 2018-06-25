@@ -141,6 +141,147 @@ The whole process should like like the following output:
     -- Up-to-date: D:/Users/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd_unix.tcl
     -- Up-to-date: D:/Users/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd_windows.tcl
     
+### Unix, Linux
+Open a terminal and execute the following:
+
+    cd <tkdnd-src-directory>/cmake
+    bash build.sh (for 32-bit) or bash build64.sh (for 64-bits)
+
+If system detection has completed without errors, two new directories will be created, `debug-nmake-x86_32` and `release-nmake-x86_32`, for building debug/release builds for 32-bits, or `debug-nmake-x86_64` and `release-nmake-x86_64` for building debug/release builds for 64-bits.
+
+For building a(ny) release:
+
+    cd release-nmake-x86_64
+    make install
+
+The resulting binaries will be placed in `<tkdnd-src-directory>/cmake/runtime` directory.
+
+The whole process should like like the following output:
+
+    $ bash build64.sh
+    -- The C compiler identification is GNU 8.1.1
+    -- The CXX compiler identification is GNU 8.1.1
+    -- Check for working C compiler: /usr/bin/gcc
+    -- Check for working C compiler: /usr/bin/gcc -- works
+    -- Detecting C compiler ABI info
+    -- Detecting C compiler ABI info - done
+    -- Detecting C compile features
+    -- Detecting C compile features - done
+    -- Check for working CXX compiler: /usr/bin/g++
+    -- Check for working CXX compiler: /usr/bin/g++ -- works
+    -- Detecting CXX compiler ABI info
+    -- Detecting CXX compiler ABI info - done
+    -- Detecting CXX compile features
+    -- Detecting CXX compile features - done
+    -- Searching for X11...
+    -- Looking for XOpenDisplay in /usr/lib64/libX11.so;/usr/lib64/libXext.so
+    -- Looking for XOpenDisplay in /usr/lib64/libX11.so;/usr/lib64/libXext.so - found
+    -- Looking for gethostbyname
+    -- Looking for gethostbyname - found
+    -- Looking for connect
+    -- Looking for connect - found
+    -- Looking for remove
+    -- Looking for remove - found
+    -- Looking for shmat
+    -- Looking for shmat - found
+    -- Found X11: /usr/lib64/libX11.so
+    --   X11_INCLUDE_DIR:         /usr/include
+    --   X11_LIBRARIES:           /usr/lib64/libX11.so/usr/lib64/libXext.so
+    -- ===========================================================
+    --  Welcome to the tkdnd 2.9 build system!
+    --   * Selected generator:  Unix Makefiles
+    --   * Operating System ID: Linux-4.16.16-300.fc28.x86_64-x86_64
+    --   * Installation Directory: /home/petasis/tkdnd/cmake/runtime
+    -- ===========================================================
+    -- Searching for Tcl/Tk...
+    -- Found Tclsh: /bin/tclsh (found version "8.6")
+    -- Found TCL: /usr/lib64/libtcl.so
+    -- Found TCLTK: /usr/lib64/libtcl.so
+    -- Found TK: /usr/lib64/libtk.so
+    --   TCL_TCLSH:               /bin/tclsh
+    --   TCL_INCLUDE_PATH:        /usr/include
+    --   TCL_STUB_LIBRARY:        /usr/lib64/libtclstub8.6.a
+    --   TCL_LIBRARY:             /usr/lib64/libtcl.so
+    --   TK_WISH:                 /bin/wish
+    --   TK_INCLUDE_PATH:         /usr/include
+    --   TK_STUB_LIBRARY:         /usr/lib64/libtkstub8.6.a
+    --   TK_LIBRARY:              /usr/lib64/libtk.so
+    --       + Shared Library: tkdnd
+    -- Configuring done
+    -- Generating done
+    -- Build files have been written to: /home/petasis/tkdnd/cmake/debug-nmake-x86_64
+    -- The C compiler identification is GNU 8.1.1
+    -- The CXX compiler identification is GNU 8.1.1
+    -- Check for working C compiler: /usr/bin/gcc
+    -- Check for working C compiler: /usr/bin/gcc -- works
+    -- Detecting C compiler ABI info
+    -- Detecting C compiler ABI info - done
+    -- Detecting C compile features
+    -- Detecting C compile features - done
+    -- Check for working CXX compiler: /usr/bin/g++
+    -- Check for working CXX compiler: /usr/bin/g++ -- works
+    -- Detecting CXX compiler ABI info
+    -- Detecting CXX compiler ABI info - done
+    -- Detecting CXX compile features
+    -- Detecting CXX compile features - done
+    -- Searching for X11...
+    -- Looking for XOpenDisplay in /usr/lib64/libX11.so;/usr/lib64/libXext.so
+    -- Looking for XOpenDisplay in /usr/lib64/libX11.so;/usr/lib64/libXext.so - found
+    -- Looking for gethostbyname
+    -- Looking for gethostbyname - found
+    -- Looking for connect
+    -- Looking for connect - found
+    -- Looking for remove
+    -- Looking for remove - found
+    -- Looking for shmat
+    -- Looking for shmat - found
+    -- Found X11: /usr/lib64/libX11.so
+    --   X11_INCLUDE_DIR:         /usr/include
+    --   X11_LIBRARIES:           /usr/lib64/libX11.so/usr/lib64/libXext.so
+    -- ===========================================================
+    --  Welcome to the tkdnd 2.9 build system!
+    --   * Selected generator:  Unix Makefiles
+    --   * Operating System ID: Linux-4.16.16-300.fc28.x86_64-x86_64
+    --   * Installation Directory: /home/petasis/tkdnd/cmake/runtime
+    -- ===========================================================
+    -- Searching for Tcl/Tk...
+    -- Found Tclsh: /bin/tclsh (found version "8.6")
+    -- Found TCL: /usr/lib64/libtcl.so
+    -- Found TCLTK: /usr/lib64/libtcl.so
+    -- Found TK: /usr/lib64/libtk.so
+    --   TCL_TCLSH:               /bin/tclsh
+    --   TCL_INCLUDE_PATH:        /usr/include
+    --   TCL_STUB_LIBRARY:        /usr/lib64/libtclstub8.6.a
+    --   TCL_LIBRARY:             /usr/lib64/libtcl.so
+    --   TK_WISH:                 /bin/wish
+    --   TK_INCLUDE_PATH:         /usr/include
+    --   TK_STUB_LIBRARY:         /usr/lib64/libtkstub8.6.a
+    --   TK_LIBRARY:              /usr/lib64/libtk.so
+    --       + Shared Library: tkdnd
+    -- Configuring done
+    -- Generating done
+    -- Build files have been written to: /home/petasis/tkdnd/cmake/release-nmake-x86_64
+    
+    $ make install
+    Scanning dependencies of target tkdnd2.9
+    [ 25%] Building C object CMakeFiles/tkdnd2.9.dir/unix/TkDND_XDND.c.o
+    [ 50%] Building C object CMakeFiles/tkdnd2.9.dir/unix/tkUnixSelect.c.o
+    [ 75%] Building C object CMakeFiles/tkdnd2.9.dir/unix/Cursors.c.o
+    [100%] Linking C shared library libtkdnd2.9.so
+    [100%] Built target tkdnd2.9
+    Install the project...
+    -- Install configuration: "Release"
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/libtkdnd2.9.so
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/pkgIndex.tcl
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd.tcl
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd_generic.tcl
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd_compat.tcl
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd_macosx.tcl
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd_unix.tcl
+    -- Installing: /home/petasis/tkdnd/cmake/runtime/tkdnd2.9/tkdnd_windows.tcl
+
+### Build with configure/make
+#### Windows
 ##### G++ and MSYS2
 If you don't want to use CMake, you can install MSYS2 and the G++ compiler (TkDND requires a C++ compiler for Windows). You can follow these instructions to install MSYS2:
 
