@@ -50,7 +50,7 @@
 
 #endif // __clang_major__ < 3
 
-#define TKDND_OSX_KEVIN_WORKARROUND
+#define TKDND_OSX_KEVIN_WORKAROUND
 
 #define TkDND_Tag    1234
 
@@ -139,9 +139,9 @@ Tk_Window TkMacOSXGetTkWindow(NSWindow *w) {
 DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   NSRect frame;
   DNDView* dnd_view = [view viewWithTag:TkDND_Tag];
-#ifdef TKDND_OSX_KEVIN_WORKARROUND
+#ifdef TKDND_OSX_KEVIN_WORKAROUND
   Rect bnds;
-#endif /* TKDND_OSX_KEVIN_WORKARROUND */
+#endif /* TKDND_OSX_KEVIN_WORKAROUND */
 
   if (dnd_view == nil) {
     dnd_view = [[DNDView alloc] init];
@@ -156,7 +156,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
      * found cases where the code below is needed, in order for DnD to work
      * correctly under Snow Leopard 10.6. So, I am restoring it...
      */
-#ifdef TKDND_OSX_KEVIN_WORKARROUND
+#ifdef TKDND_OSX_KEVIN_WORKAROUND
     /* Hack to make sure subview is set to take up entire geometry of window. */
     TkMacOSXWinBounds((TkWindow*)tkwin, &bnds);
     frame = NSMakeRect(bnds.left, bnds.top, 100000, 100000);
@@ -164,10 +164,10 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
     if (!NSEqualRects(frame, [dnd_view frame])) {
       [dnd_view setFrame:frame];
     }
-#endif /* TKDND_OSX_KEVIN_WORKARROUND */
+#endif /* TKDND_OSX_KEVIN_WORKAROUND */
   }
 
-#ifndef TKDND_OSX_KEVIN_WORKARROUND
+#ifndef TKDND_OSX_KEVIN_WORKAROUND
   if (dnd_view == nil) return dnd_view;
 
   /* Ensure that we have the correct geometry... */
@@ -180,7 +180,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   if (!NSEqualRects(bounds, [dnd_view bounds])) {
     [dnd_view setBounds:bounds];
   }
-#endif /* TKDND_OSX_KEVIN_WORKARROUND */
+#endif /* TKDND_OSX_KEVIN_WORKAROUND */
   return dnd_view;
 }; /* TkDND_GetDNDSubview */
 
