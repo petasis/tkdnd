@@ -2,12 +2,22 @@
 # The next line is executed by /bin/sh, but not tcl \
 exec tclsh "$0" ${1+"$@"}
 
+set srcdir [file dirname [file normalize [info script]]]
+
+puts "TkDND sources: $srcdir"
+
 set libpath [file dirname [info library]]
 set includepath [file dirname $libpath]/include
 catch {file delete -force config.cache}
 
-puts "+++ Running 'configure --with-tcl=$libpath --with-tk=$libpath --with-tclinclude=$includepath --with-tkinclude=$includepath' in directory [pwd]..."
-catch {exec ./configure \
+puts "+++ Running 'bash configure -srcdir=$srcdir\n\
+      \                 --prefix=$srcdir/cmake/runtime\n\
+      \                 --with-tcl=$libpath\n\
+      \                 --with-tk=$libpath\n\
+      \                 --with-tclinclude=$includepath\n\
+      \                 --with-tkinclude=$includepath'\n\
+      \            in directory [pwd]..."
+catch {exec bash configure -srcdir=$srcdir --prefix=$srcdir/cmake/runtime \
             --with-tcl=$libpath --with-tk=$libpath \
             --with-tclinclude=$includepath \
             --with-tkinclude=$includepath >@stdout 2>@stderr}
