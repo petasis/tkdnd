@@ -262,6 +262,7 @@ The whole process should like like the following output:
     -- Generating done
     -- Build files have been written to: /home/petasis/tkdnd/cmake/release-nmake-x86_64
     
+    $ cd release-nmake-x86_64
     $ make install
     Scanning dependencies of target tkdnd2.9
     [ 25%] Building C object CMakeFiles/tkdnd2.9.dir/unix/TkDND_XDND.c.o
@@ -288,6 +289,15 @@ If you don't want to use CMake, you can install MSYS2 and the G++ compiler (TkDN
 [https://github.com/orlp/dev-on-windows/wiki/Installing-GCC--&-MSYS2](https://github.com/orlp/dev-on-windows/wiki/Installing-GCC--&-MSYS2)
 
 After installing MSYS2, and making sure that your Tcl/Tk installation can be used from inside MSYS2 terminal, you can use the standard configure/make install procedure to build TkDND. You can automate the configuration process, by running in an MSYS2 terminal:
+
+    cd <tkdnd-src-directory>
+    tclsh tcl-conf
+    make install
+
+The resulting binaries will be placed in `<tkdnd-src-directory>/cmake/runtime` directory.
+
+### Unix, Linux
+If you don't want to use CMake, you can use configure/make to build TkDND. Just open a terminal and execute the following:
 
     cd <tkdnd-src-directory>
     tclsh tcl-conf
