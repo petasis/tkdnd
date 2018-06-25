@@ -19,6 +19,10 @@
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
 
+#if defined(__has_feature) && __has_feature(objc_arc)
+    #define TKDND_ARC
+#endif
+
 #pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
 #if 0
 // not using clang LLVM compiler, or LLVM version is not 3.x
@@ -700,7 +704,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /* Initialize array of drag types... */
-  NSMutableArray *draggedtypes=[[[NSMutableArray alloc] init] autorelease];
+  NSMutableArray *draggedtypes;
+  #ifdef TKDND_ARC
+  draggedtypes=[[NSMutableArray alloc] init];
+  #else
+  draggedtypes=[[[NSMutableArray alloc] init] autorelease];
+  #endif
   /* Iterate over all data, to collect the types... */
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
@@ -745,8 +754,15 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
    * to drop targets via [sender draggingPasteboard]
    */
   NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
-  NSMutableArray *dataitems    = [[[NSMutableArray alloc] init] autorelease];
-  NSMutableArray *filelist     = [[[NSMutableArray alloc] init] autorelease];
+  NSMutableArray *dataitems;
+  NSMutableArray *filelist;
+  #ifdef TKDND_ARC
+  dataitems    = [[NSMutableArray alloc] init];
+  filelist     = [[NSMutableArray alloc] init];
+  #else
+  dataitems    = [[[NSMutableArray alloc] init] autorelease];
+  filelist     = [[[NSMutableArray alloc] init] autorelease];
+  #endif
   [dragpasteboard clearContents];
 
   if (added_filenames) {
@@ -754,7 +770,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
        use it, is through setPropertyList:forType, which operates only on the first
        item. So, call declareTypes, to create this first item... */
     //[dragpasteboard declareTypes:draggedtypes owner:dragview];
-    NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+    NSPasteboardItem *item;
+    #ifdef TKDND_ARC
+    item = [[NSPasteboardItem alloc] init];
+    #else
+    item = [[[NSPasteboardItem alloc] init] autorelease];
+    #endif
     [dataitems addObject: item];
   }
 
@@ -772,7 +793,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           /* Place the string into the clipboard. */
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
-          NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+          NSPasteboardItem *item;
+          #ifdef TKDND_ARC
+          item = [[NSPasteboardItem alloc] init];
+          #else
+          item = [[[NSPasteboardItem alloc] init] autorelease];
+          #endif
           [item setString:datastring forType:NSPasteboardTypeString];
           [dataitems addObject: item];
           //[dragpasteboard writeObjects:[NSArray arrayWithObject:item]];
@@ -795,7 +821,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           /* Place HTML into the clipboard. */
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
-          NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+          NSPasteboardItem *item;
+          #ifdef TKDND_ARC
+          item = [[NSPasteboardItem alloc] init];
+          #else
+          item = [[[NSPasteboardItem alloc] init] autorelease];
+          #endif
           [item setString:datastring forType:NSPasteboardTypeHTML];
           [dataitems addObject: item];
 
