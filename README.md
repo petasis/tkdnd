@@ -31,7 +31,7 @@ For building a(ny) release:
 
 The resulting binaries will be placed in `<tkdnd-src-directory>/cmake/runtime` directory.
 
-The whole process should like like the follwoing output:
+The whole process should like like the following output:
 
     D:\Users\petasis\tkdnd\cmake>build64
     -- The C compiler identification is MSVC 19.14.26431.0
@@ -146,7 +146,7 @@ If you don't want to use CMake, you can install MSYS2 and the G++ compiler (TkDN
 
 [https://github.com/orlp/dev-on-windows/wiki/Installing-GCC--&-MSYS2](https://github.com/orlp/dev-on-windows/wiki/Installing-GCC--&-MSYS2)
 
-After installing MSYS2, and making sure that your Tcl/Tk installation can be used from inside MSYS2 terminal, you can use the standart configure/make install procedure to build TkDND. You can automate the configuration process, by running in an MSYS2 terminal:
+After installing MSYS2, and making sure that your Tcl/Tk installation can be used from inside MSYS2 terminal, you can use the standard configure/make install procedure to build TkDND. You can automate the configuration process, by running in an MSYS2 terminal:
 
     cd <tkdnd-src-directory>
     tclsh tcl-conf
