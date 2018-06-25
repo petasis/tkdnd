@@ -106,12 +106,21 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
     TEA_ADD_SOURCES([win/TkDND_OleDND.cpp])
     TEA_ADD_LIBS(kernel32.lib user32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib)
 
-    ## Check if the compiler accepts -static-libstdc++...
-    AC_CACHE_CHECK([if the compiler understands -static-libstdc++],
-        tcl_cv_cc_staticlib, [
-        hold_cflags=$CFLAGS; CFLAGS="$CFLAGS -static-libstdc++"
-        AC_TRY_COMPILE(,, tcl_cv_cc_staticlib=yes, tcl_cv_cc_staticlib=no)
-        CFLAGS=$hold_cflags])
+    ## Are we using GCC?
+    AS_IF([test "$GCC" = yes], [
+      ## Check if the compiler accepts -static-libstdc++...
+      AC_CACHE_CHECK([if the compiler understands -static-libstdc++],
+          tcl_cv_cc_staticlib, [
+          hold_cflags=$CFLAGS; CFLAGS="$CFLAGS -static-libstdc++"
+          AC_TRY_COMPILE(,, tcl_cv_cc_staticlib=yes, tcl_cv_cc_staticlib=no)
+          CFLAGS=$hold_cflags])
+    ], [
+        ## We are under Windows but not using GCC. MS Visual Studio?
+	CFLAGS_OPTIMIZE=""
+	CFLAGS_WARNING=""
+	AC_CHECK_TOOL(LINK, link.exe)
+        STLIB_LD='${LINK}'
+    ])
 
     AC_DEFINE(BUILD_tkdnd, 1, [Build windows export dll])
     CLEANFILES="pkgIndex.tcl *.lib *.dll *.exp *.ilk *.pdb vc*.pch"
@@ -212,14 +221,14 @@ TEA_MAKE_LIB
 TEA_PROG_TCLSH
 TEA_PROG_WISH
 
-if test "${TEA_PLATFORM}" = "windows" ; then
-  ## If the compiler accepts -static-libstdc++, modify the compiler
-  ## and linker options...
-  if test $tcl_cv_cc_staticlib = yes; then
-      CFLAGS="$CFLAGS -static-libgcc -static-libstdc++"
-      SHLIB_LD="$SHLIB_LD -static-libgcc -static-libstdc++"
-  fi
-fi
+# if test "${TEA_PLATFORM}" = "windows" ; then
+#   ## If the compiler accepts -static-libstdc++, modify the compiler
+#   ## and linker options...
+#   if test $tcl_cv_cc_staticlib = yes; then
+#       CFLAGS="$CFLAGS -static-libgcc -static-libstdc++"
+#       SHLIB_LD="$SHLIB_LD -static-libgcc -static-libstdc++"
+#   fi
+# fi
 
 #--------------------------------------------------------------------
 # The code makes use of PTR2INT, ensure the correct definition is

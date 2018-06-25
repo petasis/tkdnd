@@ -172,7 +172,7 @@ VALGRIND	= valgrind
 VALGRINDARGS	= --tool=memcheck --num-callers=8 --leak-resolution=high \
 		  --leak-check=yes --show-reachable=yes -v
 
-.SUFFIXES: .c .$(OBJEXT)
+.SUFFIXES: .c .cpp .$(OBJEXT)
 
 #========================================================================
 # Start of user-definable TARGETS section
@@ -306,6 +306,12 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macosx
 
 .c.@OBJEXT@:
+	$(COMPILE) -c `@CYGPATH@ $<` -o $@
+
+.cpp.@OBJEXT@:
+	$(COMPILE) -c `@CYGPATH@ $<` -o $@
+
+.m.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
 #========================================================================
