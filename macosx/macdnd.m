@@ -19,6 +19,14 @@
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
 
+#if defined(__has_feature) && __has_feature(objc_arc)
+    #define TKDND_ARC
+#endif
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
+    #define TKDND_LION_OR_LATER
+#endif
+
 #pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
 #if 0
 // not using clang LLVM compiler, or LLVM version is not 3.x
@@ -50,7 +58,7 @@
 
 #endif // __clang_major__ < 3
 
-#define TKDND_OSX_KEVIN_WORKARROUND
+#define TKDND_OSX_KEVIN_WORKAROUND
 
 #define TkDND_Tag    1234
 
@@ -93,7 +101,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
  * tracking, and terminating drag from inside and outside the application.
  */
 
-@interface DNDView : NSView {
+@interface DNDView : NSView <NSDraggingSource> {
 //  NSDragOperation sourceDragMask;
 //  NSPasteboard   *sourcePasteBoard;
 //  NSMutableArray *draggedtypes;
@@ -112,6 +120,10 @@ DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 @end
 
 @implementation DNDView
+
+- (NSDragOperation)draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context {
+  return NSDragOperationCopy;
+}
 
 - (void)setTag:(NSInteger) t {
   tag = t;
@@ -139,9 +151,9 @@ Tk_Window TkMacOSXGetTkWindow(NSWindow *w) {
 DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   NSRect frame;
   DNDView* dnd_view = [view viewWithTag:TkDND_Tag];
-#ifdef TKDND_OSX_KEVIN_WORKARROUND
+#ifdef TKDND_OSX_KEVIN_WORKAROUND
   Rect bnds;
-#endif /* TKDND_OSX_KEVIN_WORKARROUND */
+#endif /* TKDND_OSX_KEVIN_WORKAROUND */
 
   if (dnd_view == nil) {
     dnd_view = [[DNDView alloc] init];
@@ -156,7 +168,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
      * found cases where the code below is needed, in order for DnD to work
      * correctly under Snow Leopard 10.6. So, I am restoring it...
      */
-#ifdef TKDND_OSX_KEVIN_WORKARROUND
+#ifdef TKDND_OSX_KEVIN_WORKAROUND
     /* Hack to make sure subview is set to take up entire geometry of window. */
     TkMacOSXWinBounds((TkWindow*)tkwin, &bnds);
     frame = NSMakeRect(bnds.left, bnds.top, 100000, 100000);
@@ -164,10 +176,10 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
     if (!NSEqualRects(frame, [dnd_view frame])) {
       [dnd_view setFrame:frame];
     }
-#endif /* TKDND_OSX_KEVIN_WORKARROUND */
+#endif /* TKDND_OSX_KEVIN_WORKAROUND */
   }
 
-#ifndef TKDND_OSX_KEVIN_WORKARROUND
+#ifndef TKDND_OSX_KEVIN_WORKAROUND
   if (dnd_view == nil) return dnd_view;
 
   /* Ensure that we have the correct geometry... */
@@ -180,7 +192,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   if (!NSEqualRects(bounds, [dnd_view bounds])) {
     [dnd_view setBounds:bounds];
   }
-#endif /* TKDND_OSX_KEVIN_WORKARROUND */
+#endif /* TKDND_OSX_KEVIN_WORKAROUND */
   return dnd_view;
 }; /* TkDND_GetDNDSubview */
 
@@ -399,7 +411,6 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
 
   Tk_Window     tkwin            = TkMacOSXGetTkWindow([self window]);
   Tcl_Interp   *interp           = Tk_Interp(tkwin);
-  NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
   /* Get the coordinates of the cursor... */
   mouseLoc = [NSEvent mouseLocation];
 
@@ -700,7 +711,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /* Initialize array of drag types... */
-  NSMutableArray *draggedtypes=[[[NSMutableArray alloc] init] autorelease];
+  NSMutableArray *draggedtypes;
+  #ifdef TKDND_ARC
+  draggedtypes=[[NSMutableArray alloc] init];
+  #else
+  draggedtypes=[[[NSMutableArray alloc] init] autorelease];
+  #endif
   /* Iterate over all data, to collect the types... */
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
@@ -745,8 +761,15 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
    * to drop targets via [sender draggingPasteboard]
    */
   NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
-  NSMutableArray *dataitems    = [[[NSMutableArray alloc] init] autorelease];
-  NSMutableArray *filelist     = [[[NSMutableArray alloc] init] autorelease];
+  NSMutableArray *dataitems;
+  NSMutableArray *filelist;
+  #ifdef TKDND_ARC
+  dataitems    = [[NSMutableArray alloc] init];
+  filelist     = [[NSMutableArray alloc] init];
+  #else
+  dataitems    = [[[NSMutableArray alloc] init] autorelease];
+  filelist     = [[[NSMutableArray alloc] init] autorelease];
+  #endif
   [dragpasteboard clearContents];
 
   if (added_filenames) {
@@ -754,7 +777,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
        use it, is through setPropertyList:forType, which operates only on the first
        item. So, call declareTypes, to create this first item... */
     //[dragpasteboard declareTypes:draggedtypes owner:dragview];
-    NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+    NSPasteboardItem *item;
+    #ifdef TKDND_ARC
+    item = [[NSPasteboardItem alloc] init];
+    #else
+    item = [[[NSPasteboardItem alloc] init] autorelease];
+    #endif
     [dataitems addObject: item];
   }
 
@@ -772,7 +800,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           /* Place the string into the clipboard. */
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
-          NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+          NSPasteboardItem *item;
+          #ifdef TKDND_ARC
+          item = [[NSPasteboardItem alloc] init];
+          #else
+          item = [[[NSPasteboardItem alloc] init] autorelease];
+          #endif
           [item setString:datastring forType:NSPasteboardTypeString];
           [dataitems addObject: item];
           //[dragpasteboard writeObjects:[NSArray arrayWithObject:item]];
@@ -795,7 +828,12 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           /* Place HTML into the clipboard. */
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
-          NSPasteboardItem *item = [[[NSPasteboardItem alloc] init] autorelease];
+          NSPasteboardItem *item;
+          #ifdef TKDND_ARC
+          item = [[NSPasteboardItem alloc] init];
+          #else
+          item = [[[NSPasteboardItem alloc] init] autorelease];
+          #endif
           [item setString:datastring forType:NSPasteboardTypeHTML];
           [dataitems addObject: item];
 
@@ -863,15 +901,20 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     dragicon = [NSImage imageNamed:NSImageNameIconViewTemplate];
   }
 
-  NSSize dragOffset = NSMakeSize(0.0, 0.0);
 
   /* Get the mouse coordinates, so as the icon can slide back at the correct
    * location, if the drag is cancelled. */
   NSPoint global         = [NSEvent mouseLocation];
-  NSPoint imageLocation  = [[dragview window] convertScreenToBase:global];
+  NSPoint imageLocation;
+  #ifdef TKDND_LION_OR_LATER
+  NSRect imageRect = [[dragview window] convertRectFromScreen:NSMakeRect(global.x, global.y, 0, 0)];
+  imageLocation = imageRect.origin;
+  #else
+  imageLocation = [[dragview window] convertScreenToBase:global];
+  #endif
   NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseDragged
                                       location:imageLocation
-                                 modifierFlags:NSLeftMouseDownMask
+                                 modifierFlags:0
                                      timestamp:0
                                   windowNumber:[[dragview window] windowNumber]
                                        context:NULL
@@ -880,6 +923,17 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                       pressure:0];
 
   /* Initiate the drag operation... */
+  #ifdef TKDND_LION_OR_LATER
+  NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:dragicon];
+  NSRect draggingRect = NSMakeRect(imageLocation.x, imageLocation.y, 0, 0);
+  [dragItem setDraggingFrame:draggingRect contents:dragpasteboard];
+  NSDraggingSession *draggingSession = [dragview beginDraggingSessionWithItems:[NSArray arrayWithObject:dragItem]
+  				event:event
+               source:dragview];
+  draggingSession.animatesToStartingPositionsOnCancelOrFail = YES;
+  draggingSession.draggingFormation = NSDraggingFormationNone;
+  #else
+  NSSize dragOffset = NSMakeSize(0.0, 0.0);
   [dragview dragImage:dragicon
                    at:imageLocation
                offset:dragOffset
@@ -887,6 +941,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
            pasteboard:dragpasteboard
                source:dragview
             slideBack:YES];
+  #endif
 
   /* Get the drop action... */
 
