@@ -6,16 +6,16 @@ set srcdir [file dirname [file normalize [info script]]]
 
 puts "TkDND sources: $srcdir"
 
-set libpath [file dirname [info library]]
+set libpath [file dirname [file normalize [info library]]]
 set includepath [file dirname $libpath]/include
 catch {file delete -force config.cache}
 
 set bits --disable-64bit
 catch {
-switch $::tcl_platform(machine) {
-  amd64   {set bits --enable-64bit}
-  default {set bits --disable-64bit}
-}
+  switch $::tcl_platform(machine) {
+    amd64   {set bits --enable-64bit}
+    default {set bits --disable-64bit}
+  }
 }
 
 puts "+++ Running 'bash configure -srcdir=$srcdir\n\

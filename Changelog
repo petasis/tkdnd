@@ -1,6 +1,9 @@
 2018-06-25  Petasis George  <petasis@iit.demokritos.gr>
 	* Makefile.in: Updated to latest Makefile.in from Tcl sample extension.
 
+	* tcl-conf: Convert path returned by [info library] into an absolute
+	path.
+
 2018-06-25  Petasis George  <petasis@iit.demokritos.gr>
 	* configure: Regenerated with "autoconf -i".
 
