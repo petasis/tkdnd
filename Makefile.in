@@ -144,8 +144,8 @@ TCLSH		= $(TCLSH_ENV) $(PKG_ENV) $(TCLSH_PROG)
 
 SHARED_BUILD	= @SHARED_BUILD@
 
-INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@
-#INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @TK_INCLUDES@ @TK_XINCLUDES@
+#INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@
+INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @TK_INCLUDES@ @TK_XINCLUDES@
 
 PKG_CFLAGS	= @PKG_CFLAGS@
 
@@ -208,8 +208,8 @@ libraries:
 doc:
 	@echo "If you have documentation to create, place the commands to"
 	@echo "build the docs in the 'doc:' target.  For example:"
-	@echo "        xml2nroff sample.xml > sample.n"
-	@echo "        xml2html sample.xml > sample.html"
+	@echo "        xml2nroff tkdnd.xml > tkdnd.n"
+	@echo "        xml2html tkdnd.xml > tkdnd.html"
 
 install: all install-binaries install-libraries install-doc
 
