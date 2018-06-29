@@ -1,3 +1,9 @@
+2018-06-29  Petasis George  <petasis@iit.demokritos.gr>
+	* tcl-conf: Added a quick check to locate tclConfig.sh & tkConfig.sh,
+	if they have been placed in non-standard locations withing the Tcl
+	installtion directory. Bug #18
+	(https://github.com/petasis/tkdnd/issues/18).
+
 2018-06-25  Petasis George  <petasis@iit.demokritos.gr>
 	* Makefile.in: Updated to latest Makefile.in from Tcl sample extension.
 

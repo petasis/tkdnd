@@ -6,30 +6,87 @@ set srcdir [file dirname [file normalize [info script]]]
 
 puts "TkDND sources: $srcdir"
 
-set libpath [file dirname [file normalize [info library]]]
-set includepath [file dirname $libpath]/include
+set libpath     [file dirname [file normalize [info library]]]
+set root        [file dirname $libpath]
+set includepath $root/include
+set tcl_libpath $libpath
+set tk_libpath  $libpath
 catch {file delete -force config.cache}
 
 set bits --disable-64bit
 catch {
   switch $::tcl_platform(machine) {
+    x86_64  -
     amd64   {set bits --enable-64bit}
     default {set bits --disable-64bit}
   }
 }
 
+## Do we have Tcllib's fileutil?
+if {[catch {package require fileutil}]} {
+  puts "Tcllib's package \"fileutil\" not found! Simulating..."
+  ## From: http://wiki.tcl.tk/2042
+  proc rglob { dirpath patterns } {
+    set rlist {}
+    foreach fpath [glob -nocomplain -types f -directory ${dirpath} \
+                                             {*}${patterns}] {
+      lappend rlist ${fpath}
+    }
+    foreach dir [glob -nocomplain -types d -directory ${dirpath} *] {
+      lappend rlist {*}[rglob ${dir} ${patterns}]
+    }
+    return ${rlist}
+  };# rglob
+  proc find_file {path filename} {
+    set found [rglob $path $filename]
+    if {![llength $found]} {
+      puts stderr "Cannot find file \"$filename\" within directory (and\
+      sub-directories) \"$path\"."
+      exit 1
+    }
+    lindex $found 0
+  };# find_file
+} else {
+  puts "Tcllib's package \"fileutil\" found!"
+  proc find_file {path filename} {
+    set found [fileutil::findByPattern $path -glob -- $filename]
+    if {![llength $found]} {
+      puts stderr "Cannot find file \"$filename\" within directory (and\
+      sub-directories) \"$path\"."
+      exit 2
+    }
+    lindex $found 0
+  };# find_file
+}
+puts {}
+
+## Ensure we can find tclConfig.sh & tkConfig.sh
+if {![file exists $tcl_libpath/tclConfig.sh]} {
+  ## Ok, we are missing the configuration file. Can we find it?
+  set tcl_libpath [file dirname [find_file $root tclConfig.sh]]
+}
+puts "Found \"tclConfig.sh\" in \"$tcl_libpath\"."
+
+if {![file exists $tk_libpath/tkConfig.sh]} {
+  ## Ok, we are missing the configuration file. Can we find it?
+  set tk_libpath [file dirname [find_file $root tkConfig.sh]]
+}
+puts "Found \"tkConfig.sh\"  in \"$tk_libpath\"."
+
+puts {}
+
 puts "+++ Running 'bash configure -srcdir=$srcdir\n\
       \                 --prefix=$srcdir/cmake/runtime\n\
       \                 --exec-prefix=$srcdir/cmake/runtime\n\
-      \                 --with-tcl=$libpath\n\
-      \                 --with-tk=$libpath\n\
+      \                 --with-tcl=$tcl_libpath\n\
+      \                 --with-tk=$tk_libpath\n\
       \                 --with-tclinclude=$includepath\n\
       \                 --with-tkinclude=$includepath\n\
       \                 $bits'\n\
       \            in directory [pwd]..."
 catch {exec bash configure -srcdir=$srcdir --prefix=$srcdir/cmake/runtime \
             --exec-prefix=$srcdir/cmake/runtime \
-            --with-tcl=$libpath --with-tk=$libpath \
+            --with-tcl=$tcl_libpath --with-tk=$tk_libpath \
             --with-tclinclude=$includepath \
             --with-tkinclude=$includepath $bits >@stdout 2>@stderr}
 exit 0
