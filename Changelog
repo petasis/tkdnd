@@ -49,7 +49,7 @@
 	configure/make. Bug and patch provided by ralfixx
 	Github user. Bug #18: https://github.com/petasis/tkdnd/issues/18.
 
-2018-02-13  Petasis George  <petasis@iit.demokritos.gr>
+2018-02-19  Petasis George  <petasis@iit.demokritos.gr>
 	configure.ac: "${TEA_PLATFORM}" = "windows" fails under MINGW64.
 	Added a check for TEA_PLATFORM to include also MINGW64
 	(windows|*MINGW64_*).
