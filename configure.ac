@@ -162,7 +162,7 @@ TEA_PUBLIC_TCL_HEADERS
 
 TEA_PUBLIC_TK_HEADERS
 TEA_PRIVATE_TK_HEADERS
-TEA_PATH_X
+#TEA_PATH_X
 
 #--------------------------------------------------------------------
 # Check whether --enable-threads or --disable-threads was given.

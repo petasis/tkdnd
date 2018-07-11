@@ -646,7 +646,6 @@ AR
 STUBS_BUILD
 SHARED_BUILD
 TCL_THREADS
-XMKMF
 TK_XLIB_DIR_NATIVE
 TK_TOP_DIR_NATIVE
 TK_INCLUDES
@@ -757,7 +756,6 @@ with_tcl
 with_tk
 with_tclinclude
 with_tkinclude
-with_x
 enable_threads
 enable_shared
 enable_stubs
@@ -779,8 +777,7 @@ CPPFLAGS
 CPP
 CXX
 CXXFLAGS
-CCC
-XMKMF'
+CCC'
 
 
 # Initialize some variables set by options.
@@ -1377,10 +1374,6 @@ Fine tuning of the installation directories:
 _ACEOF
 
   cat <<\_ACEOF
-
-X features:
-  --x-includes=DIR    X include files are in DIR
-  --x-libraries=DIR   X library files are in DIR
 _ACEOF
 fi
 
@@ -1412,7 +1405,6 @@ Optional Packages:
   --with-tk               directory containing tk configuration (tkConfig.sh)
   --with-tclinclude       directory containing the public Tcl header files
   --with-tkinclude        directory containing the public Tk header files
-  --with-x                use the X Window System
   --with-celib=DIR        use Windows/CE support library from DIR
 
 Some influential environment variables:
@@ -1426,7 +1418,6 @@ Some influential environment variables:
   CPP         C preprocessor
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
-  XMKMF       Path to xmkmf, Makefile generator for X Window System
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -6181,333 +6172,7 @@ $as_echo_n "checking for Tk private include files... " >&6; }
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${result}" >&5
 $as_echo "${result}" >&6; }
 
-
-    if test "${TEA_WINDOWINGSYSTEM}" = "x11" ; then
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for X" >&5
-$as_echo_n "checking for X... " >&6; }
-
-
-# Check whether --with-x was given.
-if test "${with_x+set}" = set; then :
-  withval=$with_x;
-fi
-
-# $have_x is `yes', `no', `disabled', or empty when we do not yet know.
-if test "x$with_x" = xno; then
-  # The user explicitly disabled X.
-  have_x=disabled
-else
-  case $x_includes,$x_libraries in #(
-    *\'*) as_fn_error $? "cannot use X directory names containing '" "$LINENO" 5;; #(
-    *,NONE | NONE,*) if ${ac_cv_have_x+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  # One or both of the vars are not set, and there is no cached value.
-ac_x_includes=no ac_x_libraries=no
-rm -f -r conftest.dir
-if mkdir conftest.dir; then
-  cd conftest.dir
-  cat >Imakefile <<'_ACEOF'
-incroot:
-	@echo incroot='${INCROOT}'
-usrlibdir:
-	@echo usrlibdir='${USRLIBDIR}'
-libdir:
-	@echo libdir='${LIBDIR}'
-_ACEOF
-  if (export CC; ${XMKMF-xmkmf}) >/dev/null 2>/dev/null && test -f Makefile; then
-    # GNU make sometimes prints "make[1]: Entering ...", which would confuse us.
-    for ac_var in incroot usrlibdir libdir; do
-      eval "ac_im_$ac_var=\`\${MAKE-make} $ac_var 2>/dev/null | sed -n 's/^$ac_var=//p'\`"
-    done
-    # Open Windows xmkmf reportedly sets LIBDIR instead of USRLIBDIR.
-    for ac_extension in a so sl dylib la dll; do
-      if test ! -f "$ac_im_usrlibdir/libX11.$ac_extension" &&
-	 test -f "$ac_im_libdir/libX11.$ac_extension"; then
-	ac_im_usrlibdir=$ac_im_libdir; break
-      fi
-    done
-    # Screen out bogus values from the imake configuration.  They are
-    # bogus both because they are the default anyway, and because
-    # using them would break gcc on systems where it needs fixed includes.
-    case $ac_im_incroot in
-	/usr/include) ac_x_includes= ;;
-	*) test -f "$ac_im_incroot/X11/Xos.h" && ac_x_includes=$ac_im_incroot;;
-    esac
-    case $ac_im_usrlibdir in
-	/usr/lib | /usr/lib64 | /lib | /lib64) ;;
-	*) test -d "$ac_im_usrlibdir" && ac_x_libraries=$ac_im_usrlibdir ;;
-    esac
-  fi
-  cd ..
-  rm -f -r conftest.dir
-fi
-
-# Standard set of common directories for X headers.
-# Check X11 before X11Rn because it is often a symlink to the current release.
-ac_x_header_dirs='
-/usr/X11/include
-/usr/X11R7/include
-/usr/X11R6/include
-/usr/X11R5/include
-/usr/X11R4/include
-
-/usr/include/X11
-/usr/include/X11R7
-/usr/include/X11R6
-/usr/include/X11R5
-/usr/include/X11R4
-
-/usr/local/X11/include
-/usr/local/X11R7/include
-/usr/local/X11R6/include
-/usr/local/X11R5/include
-/usr/local/X11R4/include
-
-/usr/local/include/X11
-/usr/local/include/X11R7
-/usr/local/include/X11R6
-/usr/local/include/X11R5
-/usr/local/include/X11R4
-
-/usr/X386/include
-/usr/x386/include
-/usr/XFree86/include/X11
-
-/usr/include
-/usr/local/include
-/usr/unsupported/include
-/usr/athena/include
-/usr/local/x11r5/include
-/usr/lpp/Xamples/include
-
-/usr/openwin/include
-/usr/openwin/share/include'
-
-if test "$ac_x_includes" = no; then
-  # Guess where to find include files, by looking for Xlib.h.
-  # First, try using that file with no special directory specified.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <X11/Xlib.h>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  # We can compile using X headers with no special include directory.
-ac_x_includes=
-else
-  for ac_dir in $ac_x_header_dirs; do
-  if test -r "$ac_dir/X11/Xlib.h"; then
-    ac_x_includes=$ac_dir
-    break
-  fi
-done
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-fi # $ac_x_includes = no
-
-if test "$ac_x_libraries" = no; then
-  # Check for the libraries.
-  # See if we find them without any special options.
-  # Don't add to $LIBS permanently.
-  ac_save_LIBS=$LIBS
-  LIBS="-lX11 $LIBS"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <X11/Xlib.h>
-int
-main ()
-{
-XrmInitialize ()
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  LIBS=$ac_save_LIBS
-# We can link X programs with no special library path.
-ac_x_libraries=
-else
-  LIBS=$ac_save_LIBS
-for ac_dir in `$as_echo "$ac_x_includes $ac_x_header_dirs" | sed s/include/lib/g`
-do
-  # Don't even attempt the hair of trying to link an X program!
-  for ac_extension in a so sl dylib la dll; do
-    if test -r "$ac_dir/libX11.$ac_extension"; then
-      ac_x_libraries=$ac_dir
-      break 2
-    fi
-  done
-done
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi # $ac_x_libraries = no
-
-case $ac_x_includes,$ac_x_libraries in #(
-  no,* | *,no | *\'*)
-    # Didn't find X, or a directory has "'" in its name.
-    ac_cv_have_x="have_x=no";; #(
-  *)
-    # Record where we found X for the cache.
-    ac_cv_have_x="have_x=yes\
-	ac_x_includes='$ac_x_includes'\
-	ac_x_libraries='$ac_x_libraries'"
-esac
-fi
-;; #(
-    *) have_x=yes;;
-  esac
-  eval "$ac_cv_have_x"
-fi # $with_x != no
-
-if test "$have_x" != yes; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_x" >&5
-$as_echo "$have_x" >&6; }
-  no_x=yes
-else
-  # If each of the values was on the command line, it overrides each guess.
-  test "x$x_includes" = xNONE && x_includes=$ac_x_includes
-  test "x$x_libraries" = xNONE && x_libraries=$ac_x_libraries
-  # Update the cache value to reflect the command line values.
-  ac_cv_have_x="have_x=yes\
-	ac_x_includes='$x_includes'\
-	ac_x_libraries='$x_libraries'"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: libraries $x_libraries, headers $x_includes" >&5
-$as_echo "libraries $x_libraries, headers $x_includes" >&6; }
-fi
-
-    not_really_there=""
-    if test "$no_x" = ""; then
-	if test "$x_includes" = ""; then
-	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <X11/Xlib.h>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-
-else
-  not_really_there="yes"
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-	else
-	    if test ! -r $x_includes/X11/Xlib.h; then
-		not_really_there="yes"
-	    fi
-	fi
-    fi
-    if test "$no_x" = "yes" -o "$not_really_there" = "yes"; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for X11 header files" >&5
-$as_echo_n "checking for X11 header files... " >&6; }
-	found_xincludes="no"
-	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <X11/Xlib.h>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  found_xincludes="yes"
-else
-  found_xincludes="no"
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-	if test "$found_xincludes" = "no"; then
-	    dirs="/usr/unsupported/include /usr/local/include /usr/X386/include /usr/X11R6/include /usr/X11R5/include /usr/include/X11R5 /usr/include/X11R4 /usr/openwin/include /usr/X11/include /usr/sww/include"
-	    for i in $dirs ; do
-		if test -r $i/X11/Xlib.h; then
-		    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $i" >&5
-$as_echo "$i" >&6; }
-		    XINCLUDES=" -I$i"
-		    found_xincludes="yes"
-		    break
-		fi
-	    done
-	fi
-    else
-	if test "$x_includes" != ""; then
-	    XINCLUDES="-I$x_includes"
-	    found_xincludes="yes"
-	fi
-    fi
-    if test "$found_xincludes" = "no"; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: couldn't find any!" >&5
-$as_echo "couldn't find any!" >&6; }
-    fi
-
-    if test "$no_x" = yes; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for X11 libraries" >&5
-$as_echo_n "checking for X11 libraries... " >&6; }
-	XLIBSW=nope
-	dirs="/usr/unsupported/lib /usr/local/lib /usr/X386/lib /usr/X11R6/lib /usr/X11R5/lib /usr/lib/X11R5 /usr/lib/X11R4 /usr/openwin/lib /usr/X11/lib /usr/sww/X11/lib"
-	for i in $dirs ; do
-	    if test -r $i/libX11.a -o -r $i/libX11.so -o -r $i/libX11.sl -o -r $i/libX11.dylib; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $i" >&5
-$as_echo "$i" >&6; }
-		XLIBSW="-L$i -lX11"
-		x_libraries="$i"
-		break
-	    fi
-	done
-    else
-	if test "$x_libraries" = ""; then
-	    XLIBSW=-lX11
-	else
-	    XLIBSW="-L$x_libraries -lX11"
-	fi
-    fi
-    if test "$XLIBSW" = nope ; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for XCreateWindow in -lXwindow" >&5
-$as_echo_n "checking for XCreateWindow in -lXwindow... " >&6; }
-if ${ac_cv_lib_Xwindow_XCreateWindow+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lXwindow  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char XCreateWindow ();
-int
-main ()
-{
-return XCreateWindow ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_Xwindow_XCreateWindow=yes
-else
-  ac_cv_lib_Xwindow_XCreateWindow=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_Xwindow_XCreateWindow" >&5
-$as_echo "$ac_cv_lib_Xwindow_XCreateWindow" >&6; }
-if test "x$ac_cv_lib_Xwindow_XCreateWindow" = xyes; then :
-  XLIBSW=-lXwindow
-fi
-
-    fi
-    if test "$XLIBSW" = nope ; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: could not find any!  Using -lX11." >&5
-$as_echo "could not find any!  Using -lX11." >&6; }
-	XLIBSW=-lX11
-    fi
-    # TEA specific:
-    if test x"${XLIBSW}" != x ; then
-	PKG_LIBS="${PKG_LIBS} ${XLIBSW}"
-    fi
-
-    fi
-
+#TEA_PATH_X
 
 #--------------------------------------------------------------------
 # Check whether --enable-threads or --disable-threads was given.
