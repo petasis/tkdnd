@@ -141,8 +141,12 @@ fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then
     TEA_ADD_SOURCES([macosx/macdnd.m])
-#   TEA_ADD_CFLAGS([-DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc])
     TEA_ADD_CFLAGS([-DMAC_TK_COCOA -std=gnu99 -x objective-c])
+    if test "`uname -r | cut -d . -f 1`" -gt 10; then :
+      TEA_ADD_CFLAGS([-fobjc-arc])
+    else
+      TEA_ADD_CFLAGS([-fobjc-gc])
+    fi
     TEA_ADD_LIBS([-framework Cocoa -framework Carbon])
 fi
 

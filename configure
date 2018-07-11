@@ -5887,11 +5887,21 @@ if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then
 
 
 
-#   TEA_ADD_CFLAGS([-DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc])
 
     PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c"
 
 
+    if test "`uname -r | cut -d . -f 1`" -gt 10; then :
+
+    PKG_CFLAGS="$PKG_CFLAGS -fobjc-arc"
+
+
+    else
+
+    PKG_CFLAGS="$PKG_CFLAGS -fobjc-gc"
+
+
+    fi
 
     vars="-framework Cocoa -framework Carbon"
     for i in $vars; do
