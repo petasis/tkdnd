@@ -1,3 +1,14 @@
+2018-07-12  Petasis George  <petasis@iit.demokritos.gr>
+	* win/Makefile: Merged pull request #5: Updated Windows version number.
+	https://github.com/petasis/tkdnd/pull/5
+
+	* demos/dndSpy.tcl: Merged pull request #10: Added executable flag to
+	demo with shebang line.
+	https://github.com/petasis/tkdnd/pull/10
+
+	* Changelog: Merged pull request #15:
+	https://github.com/petasis/tkdnd/pull/15
+
 2018-07-11  Petasis George  <petasis@iit.demokritos.gr>
 	* tcl-conf: Added more checks, needed for macOS.
 
