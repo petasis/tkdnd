@@ -8,10 +8,31 @@ puts "TkDND sources: $srcdir"
 
 set libpath     [file dirname [file normalize [info library]]]
 set root        [file dirname $libpath]
-set includepath $root/include
+set tcl_includepath $root/include
+set tk_includepath  $root/include
 set tcl_libpath $libpath
 set tk_libpath  $libpath
 catch {file delete -force config.cache}
+
+# puts "ROOT: $root"
+
+catch {
+  switch -nocase -- $::tcl_platform(os) {
+    darwin {
+      foreach dir [list \
+         $root/Headers \
+         [string map {Tcl Tk} $root]/Headers \
+         /System/Library/Frameworks/Tcl.framework \
+         /System/Library/Frameworks/Tk.framework \
+      ] {
+        if {[file exists $dir/tclConfig.sh]} {set tcl_libpath     $dir}
+        if {[file exists $dir/tkConfig.sh]}  {set tk_libpath      $dir}
+        if {[file exists $dir/tcl.h]}        {set tcl_includepath $dir}
+        if {[file exists $dir/tk.h]}         {set tk_includepath  $dir}
+      }
+    }
+  }
+}
 
 set bits --disable-64bit
 catch {
@@ -21,6 +42,7 @@ catch {
     default {set bits --disable-64bit}
   }
 }
+
 
 ## Do we have Tcllib's fileutil?
 if {[catch {package require fileutil}]} {
@@ -73,6 +95,19 @@ if {![file exists $tk_libpath/tkConfig.sh]} {
 }
 puts "Found \"tkConfig.sh\"  in \"$tk_libpath\"."
 
+## Ensure we can find tclConfig.sh & tkConfig.sh
+if {![file exists $tcl_includepath/tcl.h]} {
+  ## Ok, we are missing the configuration file. Can we find it?
+  set tcl_includepath [file dirname [find_file $root tcl.h]]
+}
+puts "Found \"tcl.h\" in \"$tcl_includepath\"."
+
+if {![file exists $tk_includepath/tk.h]} {
+  ## Ok, we are missing the configuration file. Can we find it?
+  set tk_includepath [file dirname [find_file $root tk.h]]
+}
+puts "Found \"tk.h\"  in \"$tk_includepath\"."
+
 puts {}
 
 puts "+++ Running 'bash configure -srcdir=$srcdir\n\
@@ -80,13 +115,13 @@ puts "+++ Running 'bash configure -srcdir=$srcdir\n\
       \                 --exec-prefix=$srcdir/cmake/runtime\n\
       \                 --with-tcl=$tcl_libpath\n\
       \                 --with-tk=$tk_libpath\n\
-      \                 --with-tclinclude=$includepath\n\
-      \                 --with-tkinclude=$includepath\n\
+      \                 --with-tclinclude=$tcl_includepath\n\
+      \                 --with-tkinclude=$tk_includepath\n\
       \                 $bits'\n\
       \            in directory [pwd]..."
 catch {exec bash configure -srcdir=$srcdir --prefix=$srcdir/cmake/runtime \
             --exec-prefix=$srcdir/cmake/runtime \
             --with-tcl=$tcl_libpath --with-tk=$tk_libpath \
-            --with-tclinclude=$includepath \
-            --with-tkinclude=$includepath $bits >@stdout 2>@stderr}
+            --with-tclinclude=$tcl_includepath \
+            --with-tkinclude=$tk_includepath $bits >@stdout 2>@stderr}
 exit 0

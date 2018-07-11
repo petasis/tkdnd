@@ -13,6 +13,10 @@
  *
  */
 
+/* OS X compiler cannot handle redefinition of panic. Thus disable
+ * deprecated functions. We do not use them anyway. */
+#define TCL_NO_DEPRECATED
+
 #import <tcl.h>
 #import <tk.h>
 #import <tkInt.h>
@@ -89,6 +93,29 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #endif
 
 /*
+ * After macOS 10.7 (and again after 10.12 & 10.13) some used functions were
+ * deprecated:
+ *
+ * NSDragPboard -> NSPasteboardNameDrag (10.13)
+ * convertScreenToBase -> convertRectFromScreen (10.7)
+ * NSLeftMouseDragged -> NSEventTypeLeftMouseDragged (10.12)
+ * NSLeftMouseDownMask -> NSEventMaskLeftMouseDown (10.12)
+ */
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_13
+#define TKDND_NSPASTEBOARDNAMEDRAG NSPasteboardNameDrag
+#else
+#define TKDND_NSPASTEBOARDNAMEDRAG NSDragPboard
+#endif
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
+#define TKDND_NSLEFTMOUSEDRAGGED  NSEventTypeLeftMouseDragged
+#define TKDND_NSLEFTMOUSEDOWNMASK NSEventMaskLeftMouseDown
+#else
+#define TKDND_NSLEFTMOUSEDRAGGED  NSLeftMouseDragged
+#define TKDND_NSLEFTMOUSEDOWNMASK NSLeftMouseDownMask
+#endif
+
+/*
  * Here we need to wrap Cocoa methods in Cocoa class: methods for initiating,
  * tracking, and terminating drag from inside and outside the application.
  */
@@ -146,7 +173,7 @@ DNDView* TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin) {
   if (dnd_view == nil) {
     dnd_view = [[DNDView alloc] init];
     [dnd_view setTag:TkDND_Tag];
-    [dnd_view mouseDown:NULL];
+    // [dnd_view mouseDown:NULL];
     if ([dnd_view superview] != view) {
       [view addSubview:dnd_view positioned:NSWindowBelow relativeTo:nil];
     }
@@ -399,7 +426,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
 
   Tk_Window     tkwin            = TkMacOSXGetTkWindow([self window]);
   Tcl_Interp   *interp           = Tk_Interp(tkwin);
-  NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
+  // NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
   /* Get the coordinates of the cursor... */
   mouseLoc = [NSEvent mouseLocation];
 
@@ -741,10 +768,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /*
-   * Get pasteboard. Make sure it is NSDragPboard; this will make data available
+   * Get pasteboard. Make sure it is TKDND_NSPASTEBOARDNAMEDRAG; this will make data available
    * to drop targets via [sender draggingPasteboard]
    */
-  NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
+  NSPasteboard *dragpasteboard = [NSPasteboard pasteboardWithName:TKDND_NSPASTEBOARDNAMEDRAG];
   NSMutableArray *dataitems    = [[[NSMutableArray alloc] init] autorelease];
   NSMutableArray *filelist     = [[[NSMutableArray alloc] init] autorelease];
   [dragpasteboard clearContents];
@@ -817,7 +844,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           /* Place the filenames into the clipboard. */
           status = Tcl_ListObjGetElements(interp, data_elem[i],
                                           &files_elem_nu, &files_elem);
-          if ( status == TCL_OK) {
+          if (status == TCL_OK) {
             for (j = 0; j < files_elem_nu; j++) {
               /* Get string value of file name from list */
               char* filename = Tcl_GetString(files_elem[j]);
@@ -868,10 +895,17 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   /* Get the mouse coordinates, so as the icon can slide back at the correct
    * location, if the drag is cancelled. */
   NSPoint global         = [NSEvent mouseLocation];
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
   NSPoint imageLocation  = [[dragview window] convertScreenToBase:global];
-  NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseDragged
+#else
+  NSRect rect = [[dragview window] convertRectFromScreen:NSMakeRect(global.x, global.y, 0, 0)];
+  NSPoint imageLocation = rect.origin;
+#endif
+
+  NSEvent *event = [NSEvent mouseEventWithType:TKDND_NSLEFTMOUSEDRAGGED
                                       location:imageLocation
-                                 modifierFlags:NSLeftMouseDownMask
+                                 /*modifierFlags:TKDND_NSLEFTMOUSEDOWNMASK*/
+                                 modifierFlags:0
                                      timestamp:0
                                   windowNumber:[[dragview window] windowNumber]
                                        context:NULL
@@ -880,6 +914,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                       pressure:0];
 
   /* Initiate the drag operation... */
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
   [dragview dragImage:dragicon
                    at:imageLocation
                offset:dragOffset
@@ -887,6 +922,15 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
            pasteboard:dragpasteboard
                source:dragview
             slideBack:YES];
+#else
+    [dragview dragImage:dragicon
+                   at:imageLocation
+               offset:dragOffset
+                event:event
+           pasteboard:dragpasteboard
+               source:dragview
+            slideBack:YES];
+#endif /* MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_7 */
 
   /* Get the drop action... */
 

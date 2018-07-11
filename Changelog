@@ -1,3 +1,12 @@
+2018-07-11  Petasis George  <petasis@iit.demokritos.gr>
+	* tcl-conf: Added more checks, needed for macOS.
+
+	* macosx/macdnd.m: macOS 10.7/10.12/10.13 deprecated some definitions (
+	NSDragPboard, NSLeftMouseDragged, NSLeftMouseDownMask) and some
+	functions (convertScreenToBase) we use. Alternatives have been used.
+	"dragImage:at:offset:event:pasteboard:source:slideBack:" is also
+	deprecated in 10.7, but is more difficult to be replaced.
+
 2018-06-29  Petasis George  <petasis@iit.demokritos.gr>
 	* tcl-conf: Added a quick check to locate tclConfig.sh & tkConfig.sh,
 	if they have been placed in non-standard locations withing the Tcl
