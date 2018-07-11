@@ -1,4 +1,8 @@
 2018-07-12  Petasis George  <petasis@iit.demokritos.gr>
+	* macosx/macdnd.m: Temporarily disabled the new drag source code for
+	macOS 10.7+, as it does not seem to work in simple tests.
+
+2018-07-12  Petasis George  <petasis@iit.demokritos.gr>
 	* macosx/macdnd.m: Merged pull request #4:
 	* CMakeLists.txt:  Added compatibility for later OS X versions.
 	* configure.ac:    https://github.com/petasis/tkdnd/pull/4

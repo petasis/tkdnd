@@ -951,7 +951,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                       pressure:0];
 
   /* Initiate the drag operation... */
-#ifdef TKDND_LION_OR_LATER
+#ifdef TKDND_LION_OR_LATER_NO /* Disabled the new way for macOS > 10.7... */
   NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:dragicon];
   NSRect draggingRect = NSMakeRect(imageLocation.x, imageLocation.y, 0, 0);
   [dragItem setDraggingFrame:draggingRect contents:dragpasteboard];
