@@ -1,3 +1,21 @@
+2018-07-12  Petasis George  <petasis@iit.demokritos.gr>
+	* macosx/macdnd.m: Merged pull request #4:
+	* CMakeLists.txt:  Added compatibility for later OS X versions.
+	* configure.ac:    https://github.com/petasis/tkdnd/pull/4
+	Actually this pull request resolved the deprecation of 
+	"dragImage:at:offset:event:pasteboard:source:slideBack:" I failed to
+	address in the previous update of macosx/macdnd.m.
+
+	* win/Makefile: Merged pull request #5: Updated Windows version number.
+	https://github.com/petasis/tkdnd/pull/5
+
+	* demos/dndSpy.tcl: Merged pull request #10: Added executable flag to
+	demo with shebang line.
+	https://github.com/petasis/tkdnd/pull/10
+
+	* Changelog: Merged pull request #15:
+	https://github.com/petasis/tkdnd/pull/15
+
 2018-07-11  Petasis George  <petasis@iit.demokritos.gr>
 	* tcl-conf: Added more checks, needed for macOS.
 
