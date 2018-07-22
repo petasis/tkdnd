@@ -885,6 +885,9 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   NSPoint global         = [NSEvent mouseLocation];
   NSRect  imageRect      = [[dragview window] convertRectFromScreen:NSMakeRect(global.x, global.y, 0, 0)];
   NSPoint imageLocation  = imageRect.origin;
+  CGFloat iconS = 32, iconP = 2;
+  CGFloat iconX = imageLocation.x - iconS/2;
+  CGFloat iconY = imageLocation.y - iconS/2;
 
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
@@ -893,7 +896,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       switch ((enum droptypes) index) {
         case TYPE_NSPasteboardTypeString:
         case TYPE_NSPasteboardTypeHTML: {
-          
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
 #ifdef TKDND_ARC
@@ -923,7 +925,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
  
           NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:pboardItem];
           //[dragItem setDraggingFrame:(CGRect){imageLocation , dragview.frame.size } contents:image];
-          [dragItem setDraggingFrame:NSMakeRect(imageLocation.x, imageLocation.y, Tk_Width(path), Tk_Height(path)) contents:image];
+          [dragItem setDraggingFrame:NSMakeRect(iconX, iconY, Tk_Width(path), Tk_Height(path)) contents:image];
           [dataitems addObject: dragItem];
           break;
         }
@@ -934,16 +936,23 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           if (status == TCL_OK) {
             for (j = 0; j < files_elem_nu; j++) {
               /* Get string value of file name from list */
-              NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(files_elem[j])];
 #ifdef TKDND_ARC
+              NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(files_elem[j])];
               NSURL *fileURL = [NSURL fileURLWithPath: datastring];
               NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:fileURL];
+              NSImage *dragicon = [[NSWorkspace sharedWorkspace]
+                                       iconForFileType:[fileURL pathExtension]];
 #else
+              NSString *datastring = [[NSString stringWithUTF8String:Tcl_GetString(files_elem[j])] autorelease];
               NSURL *fileURL = [[NSURL fileURLWithPath: datastring] autorelease];
               NSDraggingItem *dragItem = [[[NSDraggingItem alloc] initWithPasteboardWriter:fileURL] autorelease];
+              NSImage *dragicon = [[[NSWorkspace sharedWorkspace]
+                                       iconForFileType:[fileURL pathExtension]] autorelease];
 #endif
-              [dragItem setDraggingFrame:NSMakeRect(imageLocation.x, imageLocation.y, 10, 10)];
+              [dragItem setDraggingFrame:NSMakeRect(iconX, iconY, iconS, iconS)
+                                contents:dragicon];
               [dataitems addObject: dragItem];
+              iconX += iconS + iconP;
             }
           }
           break;
