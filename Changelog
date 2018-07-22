@@ -1,3 +1,8 @@
+2018-07-22  Petasis George  <petasis@iit.demokritos.gr>
+	* macosx/macdnd.m: Updated code to use the new (10.7+) API. Possible
+	incompatibility: A file(s) drag will not start if any of the provided
+	paths is not an absolute path.
+
 2018-07-12  Petasis George  <petasis@iit.demokritos.gr>
 	* macosx/macdnd.m: Temporarily disabled the new drag source code for
 	macOS 10.7+, as it does not seem to work in simple tests.

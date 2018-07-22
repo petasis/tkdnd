@@ -122,6 +122,7 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
     #define TKDND_LION_OR_LATER
 #endif
+#define TKDND_DRAGSESSION_END_WAIT_VAR "::tkdnd::macdnd::drag_source_action"
 
 /*
  * Here we need to wrap Cocoa methods in Cocoa class: methods for initiating,
@@ -133,7 +134,15 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 //  NSPasteboard   *sourcePasteBoard;
 //  NSMutableArray *draggedtypes;
   NSInteger       tag;
+  Tcl_Interp     *wait_var_interp;
 }
+
+#ifdef TKDND_LION_OR_LATER
+- (NSDragOperation) draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context;
+- (void)            draggingSession:(NSDraggingSession *)session willBeginAtPoint:(NSPoint)screenPoint;
+- (void)            draggingSession:(NSDraggingSession *)session movedToPoint:(NSPoint)screenPoint;
+- (void)            draggingSession:(NSDraggingSession *)session endedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation;
+#endif /* TKDND_LION_OR_LATER */
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender;
@@ -142,15 +151,45 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 - (int)draggingSourceOperationMaskForLocal:(BOOL)isLocal;
 - (void)setTag:(NSInteger) t;
 - (NSInteger)tag;
+- (void)setInterp:(Tcl_Interp *) i;
 Tk_Window TkMacOSXGetTkWindow(NSWindow *w);
 DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 @end
 
 @implementation DNDView
 
+#ifdef TKDND_LION_OR_LATER
 - (NSDragOperation)draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context {
-  return NSDragOperationCopy;
-}
+  // printf("sourceOperationMaskForDraggingContext\n");
+  return NSDragOperationEvery;
+} /* sourceOperationMaskForDraggingContext */
+
+- (void)draggingSession:(NSDraggingSession *)session willBeginAtPoint:(NSPoint)screenPoint {
+  // printf("willBeginAtPoint: (%f, %f)\n", screenPoint.x, screenPoint.y); fflush(0);
+}; /* willBeginAtPoint */
+
+- (void)draggingSession:(NSDraggingSession *)session movedToPoint:(NSPoint)screenPoint {
+  // printf("movedToPoint: (%f, %f)\n", screenPoint.x, screenPoint.y); fflush(0);
+}; /* movedToPoint */
+
+- (void)draggingSession:(NSDraggingSession *)session endedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation {
+  static char *action = NULL;
+  // printf("endedAtPoint: (%f, %f), operation: %ld\n", screenPoint.x, screenPoint.y, operation); fflush(0);
+  if (!wait_var_interp) return;
+  switch (operation) {
+    case NSDragOperationNone:    action = "refuse_drop"; break;
+    case NSDragOperationCopy:    action = "copy";        break;
+    case NSDragOperationMove:    action = "move";        break;
+    case NSDragOperationLink:    action = "link";        break;
+    case NSDragOperationGeneric: action = "ask";         break;
+    case NSDragOperationPrivate: action = "private";     break;
+    case NSDragOperationDelete:  action = "move";        break;
+    default:                     action = "refuse_drop"; break;
+  }
+  Tcl_SetVar2(wait_var_interp, TKDND_DRAGSESSION_END_WAIT_VAR, NULL,
+     action, TCL_GLOBAL_ONLY|TCL_LEAVE_ERR_MSG);
+}; /* endedAtPoint */
+#endif /* TKDND_LION_OR_LATER */
 
 - (void)setTag:(NSInteger) t {
   tag = t;
@@ -159,6 +198,10 @@ DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 - (NSInteger)tag {
   return tag;
 }; /* tag */
+
+- (void)setInterp:(Tcl_Interp *) i {
+  wait_var_interp = i;
+}; /* setInterp */
 
 /*
  * Ripped from Tk-Cocoa source code to map Tk window to Cocoa window
@@ -567,6 +610,21 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
       }
     } else if ([type isEqualToString:NSFilenamesPboardType]) {
       /* Filenames array... */
+#ifdef TKDND_LION_OR_LATER
+      Tcl_Obj *element;
+      data = Tcl_NewListObj(0, NULL);
+      NSArray *classes = [NSArray arrayWithObject:[NSURL class]];
+      NSDictionary *options = [NSDictionary dictionaryWithObject:
+        [NSNumber numberWithBool:YES] forKey:NSPasteboardURLReadingFileURLsOnlyKey];
+      NSArray *fileURLs = [sourcePasteBoard readObjectsForClasses:classes options:options];
+      if (fileURLs != nil) {
+        for (NSURL *fileURL in fileURLs) {
+          element = Tcl_NewStringObj([[fileURL path] UTF8String], -1);
+          if (element == NULL) continue;
+          Tcl_ListObjAppendElement(interp, data, element);
+        }
+      }
+#else /* TKDND_LION_OR_LATER */
       NSArray *files = [sourcePasteBoard propertyListForType:NSFilenamesPboardType];
       if (files) {
         Tcl_Obj *element;
@@ -577,6 +635,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
           Tcl_ListObjAppendElement(interp, data, element);
         }
       }
+#endif /* TKDND_LION_OR_LATER */
     } else if ([type isEqualToString:NSPasteboardTypeHTML]) {
       /* HTML ... */
       for (NSPasteboardItem *item in [sourcePasteBoard pasteboardItems]) {
@@ -658,6 +717,22 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
  ******************************************************************************
  ******************************************************************************/
 
+#ifdef TKDND_LION_OR_LATER
+static char *
+TkDND_WaitVariableProc(
+    ClientData clientData,        /* Pointer to integer to set to 1. */
+    Tcl_Interp *interp,                /* Interpreter containing variable. */
+    const char *name1,                /* Name of variable. */
+    const char *name2,                /* Second part of variable name. */
+    int flags)                        /* Information about what happened. */
+{
+    int *donePtr = clientData;
+
+    *donePtr = 1;
+    return NULL;
+} /* WaitVariableProc */
+#endif /* TKDND_LION_OR_LATER */
+
 /*
  * Implements drag source in Tk windows
  */
@@ -670,7 +745,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   Drawable          d;
   NSView           *view;
   DNDView          *dragview;
-  NSImage          *dragicon = NULL;
   static char *DropTypes[] = {
     "NSPasteboardTypeString", "NSPasteboardTypeHTML", "NSFilenamesPboardType",
     (char *) NULL
@@ -725,6 +799,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   /* Get the DNDview for this view... */
   dragview = TkDND_GetDNDSubview(view, path);
   if (dragview == NULL) return TCL_ERROR;
+  [dragview setInterp:NULL];
 
   /* Process drag types. */
   status = Tcl_ListObjGetElements(interp, objv[3], &elem_nu, &elem);
@@ -738,11 +813,11 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
 
   /* Initialize array of drag types... */
-  NSMutableArray *draggedtypes;
+  // NSMutableArray *draggedtypes;
 #ifdef TKDND_ARC
-  draggedtypes=[[NSMutableArray alloc] init];
+  // draggedtypes=[[NSMutableArray alloc] init];
 #else
-  draggedtypes=[[[NSMutableArray alloc] init] autorelease];
+  // draggedtypes=[[[NSMutableArray alloc] init] autorelease];
 #endif
   /* Iterate over all data, to collect the types... */
   for (i = 0; i < elem_nu; i++) {
@@ -768,9 +843,21 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       }
       case TYPE_NSFilenamesPboardType: {
         if (!added_filenames) {
-          [draggedtypes addObject: NSFilenamesPboardType];
+          // [draggedtypes addObject: NSFilenamesPboardType];
           added_filenames = true;
           perform_drag    = true;
+        }
+        /* Ensure paths are absolute. Else, OS will not allow us to
+         * wite them to the pasteboard! */
+        status = Tcl_ListObjGetElements(interp, data_elem[i],
+                                        &files_elem_nu, &files_elem);
+        if (status != TCL_OK) return TCL_ERROR;
+        for (j = 0; j < files_elem_nu; j++) {
+          if (*Tcl_GetString(files_elem[j]) != '/') {
+            Tcl_SetResult(interp, "path is not absolute: \"", TCL_STATIC);
+            Tcl_AppendResult(interp, Tcl_GetString(files_elem[j]), "\"", (char *) NULL);
+            return TCL_ERROR;
+          }
         }
         break;
       }
@@ -781,6 +868,148 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     /* No need to start a drag, the clipboard will be empty... */
     Tcl_SetResult(interp, "refuse_drop", TCL_STATIC);
     return TCL_OK;
+  }
+
+#ifdef TKDND_LION_OR_LATER
+  /* In macOS 10.7 several of the functions we are using were deprecated.
+   * Thus, we need to adapt to what is available... */
+  NSMutableArray *dataitems;
+#ifdef TKDND_ARC
+  dataitems    = [[NSMutableArray alloc] init];
+#else
+  dataitems    = [[[NSMutableArray alloc] init] autorelease];
+#endif
+
+  /* Get the mouse coordinates, so as the icon can slide back at the correct
+   * location, if the drag is cancelled. */
+  NSPoint global         = [NSEvent mouseLocation];
+  NSRect  imageRect      = [[dragview window] convertRectFromScreen:NSMakeRect(global.x, global.y, 0, 0)];
+  NSPoint imageLocation  = imageRect.origin;
+
+  for (i = 0; i < elem_nu; i++) {
+    status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
+                                 "droptypes", 0, &index);
+    if (status == TCL_OK) {
+      switch ((enum droptypes) index) {
+        case TYPE_NSPasteboardTypeString:
+        case TYPE_NSPasteboardTypeHTML: {
+          
+          NSString *datastring =
+             [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
+#ifdef TKDND_ARC
+          NSPasteboardItem *pboardItem =  [[NSPasteboardItem alloc] init];
+#else
+          NSPasteboardItem *pboardItem = [[[NSPasteboardItem alloc] init] autorelease];
+#endif
+          switch ((enum droptypes) index) {
+            case TYPE_NSPasteboardTypeString: {
+              [pboardItem setString:datastring forType:NSPasteboardTypeString]; break;
+              //[pboardItem setPropertyList:datastring forType:NSPasteboardTypeString]; break;
+            }
+            case TYPE_NSPasteboardTypeHTML: {
+              [pboardItem setString:datastring forType:NSPasteboardTypeHTML]; break;
+              //[pboardItem setPropertyList:datastring forType:NSPasteboardTypeHTML]; break;
+            }
+            default: break;
+          }
+          /* Create a custom icon: draw dragged string into drag icon,
+           * make sure icon is large enough to contain several lines of text */
+          NSImage *image = [[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))];
+          [image lockFocus];
+          [[NSColor clearColor] set];
+          NSRectFill(NSMakeRect(0, 0, Tk_Width(path), Tk_Height(path)));
+          [datastring drawAtPoint: NSZeroPoint withAttributes: nil];
+          [image unlockFocus];
+ 
+          NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:pboardItem];
+          //[dragItem setDraggingFrame:(CGRect){imageLocation , dragview.frame.size } contents:image];
+          [dragItem setDraggingFrame:NSMakeRect(imageLocation.x, imageLocation.y, Tk_Width(path), Tk_Height(path)) contents:image];
+          [dataitems addObject: dragItem];
+          break;
+        }
+        case TYPE_NSFilenamesPboardType: {
+          /* Place the filenames into the clipboard. */
+          status = Tcl_ListObjGetElements(interp, data_elem[i],
+                                          &files_elem_nu, &files_elem);
+          if (status == TCL_OK) {
+            for (j = 0; j < files_elem_nu; j++) {
+              /* Get string value of file name from list */
+              NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(files_elem[j])];
+#ifdef TKDND_ARC
+              NSURL *fileURL = [NSURL fileURLWithPath: datastring];
+              NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:fileURL];
+#else
+              NSURL *fileURL = [[NSURL fileURLWithPath: datastring] autorelease];
+              NSDraggingItem *dragItem = [[[NSDraggingItem alloc] initWithPasteboardWriter:fileURL] autorelease];
+#endif
+              [dragItem setDraggingFrame:NSMakeRect(imageLocation.x, imageLocation.y, 10, 10)];
+              [dataitems addObject: dragItem];
+            }
+          }
+          break;
+        }
+      }
+    } else {
+      /* An unknown (or user defined) type. Silently skip it... */
+    }
+  }
+  
+  /* Generate an event. */
+  NSEvent *event = [NSEvent mouseEventWithType:TKDND_NSLEFTMOUSEDRAGGED
+                                      location:imageLocation
+                                 /*modifierFlags:TKDND_NSLEFTMOUSEDOWNMASK*/
+                                 modifierFlags:0
+                                     timestamp:0
+                                  windowNumber:[[dragview window] windowNumber]
+                                       context:NULL
+                                   eventNumber:0
+                                    clickCount:0
+                                      pressure:0];
+
+  /* Initiate the drag operation... */
+  /* Set our draggingSession end variable. */
+  if (Tcl_SetVar2(interp, TKDND_DRAGSESSION_END_WAIT_VAR, NULL,
+     "refuse_drop", TCL_GLOBAL_ONLY|TCL_LEAVE_ERR_MSG) == NULL) {
+    return TCL_ERROR;
+  }
+  int done = 0, code = TCL_OK;
+  [dragview setInterp:interp];
+  if (Tcl_TraceVar2(interp, TKDND_DRAGSESSION_END_WAIT_VAR,
+      NULL, TCL_GLOBAL_ONLY|TCL_TRACE_WRITES|TCL_TRACE_UNSETS,
+      TkDND_WaitVariableProc, &done) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  NSDraggingSession *draggingSession =
+    [dragview beginDraggingSessionWithItems:dataitems
+                                      event:event
+                                     source:dragview];
+  draggingSession.animatesToStartingPositionsOnCancelOrFail = YES;
+  draggingSession.draggingFormation = NSDraggingFormationNone;
+  /* Wait until drag operation is completed. The variable
+   * TKDND_DRAGSESSION_END_WAIT_VAR will be set by "endedAtPoint()". */
+  while (!done) {
+#ifdef TKDND_CHECK_CANCEL
+    if (Tcl_Canceled(interp, TCL_LEAVE_ERR_MSG) == TCL_ERROR) {
+      code = TCL_ERROR;
+      break;
+    }
+#endif
+    Tcl_DoOneEvent(0);
+  }
+  [dragview setInterp:NULL];
+  Tcl_UntraceVar2(interp, TKDND_DRAGSESSION_END_WAIT_VAR,
+          NULL, TCL_GLOBAL_ONLY|TCL_TRACE_WRITES|TCL_TRACE_UNSETS,
+          TkDND_WaitVariableProc, &done);
+  if (code != TCL_OK) return code;
+
+#else /* TKDND_LION_OR_LATER */
+
+  NSImage          *dragicon = NULL;
+  /* In the older API, there is no way to know the drop action.
+   * Use "copy" always... */
+  if (Tcl_SetVar2(interp, TKDND_DRAGSESSION_END_WAIT_VAR, NULL,
+     "copy", TCL_GLOBAL_ONLY|TCL_LEAVE_ERR_MSG) == NULL) {
+    return TCL_ERROR;
   }
 
   /*
@@ -878,7 +1107,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           break;
         }
         case TYPE_NSFilenamesPboardType: {
-
           /* Place the filenames into the clipboard. */
           status = Tcl_ListObjGetElements(interp, data_elem[i],
                                           &files_elem_nu, &files_elem);
@@ -931,13 +1159,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   /* Get the mouse coordinates, so as the icon can slide back at the correct
    * location, if the drag is cancelled. */
   NSPoint global         = [NSEvent mouseLocation];
-  NSPoint imageLocation;
-#ifdef TKDND_LION_OR_LATER
-  NSRect imageRect = [[dragview window] convertRectFromScreen:NSMakeRect(global.x, global.y, 0, 0)];
-  imageLocation = imageRect.origin;
-#else
-  imageLocation = [[dragview window] convertScreenToBase:global];
-#endif
+  NSPoint imageLocation  = [[dragview window] convertScreenToBase:global];
 
   NSEvent *event = [NSEvent mouseEventWithType:TKDND_NSLEFTMOUSEDRAGGED
                                       location:imageLocation
@@ -951,17 +1173,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                                       pressure:0];
 
   /* Initiate the drag operation... */
-#ifdef TKDND_LION_OR_LATER_NO /* Disabled the new way for macOS > 10.7... */
-  NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:dragicon];
-  NSRect draggingRect = NSMakeRect(imageLocation.x, imageLocation.y, 0, 0);
-  [dragItem setDraggingFrame:draggingRect contents:dragpasteboard];
-  NSDraggingSession *draggingSession =
-    [dragview beginDraggingSessionWithItems:[NSArray arrayWithObject:dragItem]
-                                      event:event
-                                     source:dragview];
-  draggingSession.animatesToStartingPositionsOnCancelOrFail = YES;
-  draggingSession.draggingFormation = NSDraggingFormationNone;
-#else
   NSSize dragOffset = NSMakeSize(0.0, 0.0);
   [dragview dragImage:dragicon
                    at:imageLocation
@@ -973,9 +1184,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 #endif /* TKDND_LION_OR_LATER */
 
   /* Get the drop action... */
-
-  /* There is no way we can know the drag action! */
-  Tcl_SetResult(interp, "copy", TCL_STATIC);
+  Tcl_Obj *action = Tcl_GetVar2Ex(interp, TKDND_DRAGSESSION_END_WAIT_VAR,
+                  NULL, TCL_GLOBAL_ONLY|TCL_LEAVE_ERR_MSG);
+  if (action == NULL) return TCL_ERROR;
+  Tcl_SetObjResult(interp, action);
   return TCL_OK;
 }; /* TkDND_DoDragDropObjCmd */
 

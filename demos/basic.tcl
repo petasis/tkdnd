@@ -11,7 +11,7 @@ if {[catch {package require tkdnd}]} {
 
 # Create a widget that will be a drag source.
 set text_data "hello from Tk! (\u20ac)"
-set file_data [list /tmp/hello\u20ac [info script]]
+set file_data [list /tmp/hello\u20ac [file normalize [info script]]]
 grid [label .text_drag_source \
   -text "Text Drag Source ($text_data)"] -sticky snew -columnspan 2
 grid [label .file_drag_source \
