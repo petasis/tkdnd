@@ -900,8 +900,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
 #ifdef TKDND_ARC
           NSPasteboardItem *pboardItem =  [[NSPasteboardItem alloc] init];
+          NSImage *image = [[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))];
 #else
           NSPasteboardItem *pboardItem = [[[NSPasteboardItem alloc] init] autorelease];
+          NSImage *image = [[[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))] autorelease];
 #endif
           switch ((enum droptypes) index) {
             case TYPE_NSPasteboardTypeString: {
@@ -916,14 +918,17 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           }
           /* Create a custom icon: draw dragged string into drag icon,
            * make sure icon is large enough to contain several lines of text */
-          NSImage *image = [[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))];
           [image lockFocus];
           [[NSColor clearColor] set];
           NSRectFill(NSMakeRect(0, 0, Tk_Width(path), Tk_Height(path)));
           [datastring drawAtPoint: NSZeroPoint withAttributes: nil];
           [image unlockFocus];
  
+#ifdef TKDND_ARC
           NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:pboardItem];
+#else
+          NSDraggingItem *dragItem = [[[NSDraggingItem alloc] initWithPasteboardWriter:pboardItem] autorelease];
+#endif
           //[dragItem setDraggingFrame:(CGRect){imageLocation , dragview.frame.size } contents:image];
           [dragItem setDraggingFrame:NSMakeRect(iconX, iconY, Tk_Width(path), Tk_Height(path)) contents:image];
           [dataitems addObject: dragItem];
