@@ -886,8 +886,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   NSRect  imageRect      = [[dragview window] convertRectFromScreen:NSMakeRect(global.x, global.y, 0, 0)];
   NSPoint imageLocation  = imageRect.origin;
   CGFloat iconS = 32, iconP = 2;
-  CGFloat iconX = imageLocation.x - iconS/2;
-  CGFloat iconY = imageLocation.y - iconS/2;
 
   for (i = 0; i < elem_nu; i++) {
     status = Tcl_GetIndexFromObj(interp, elem[i], (const char **) DropTypes,
@@ -896,13 +894,21 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       switch ((enum droptypes) index) {
         case TYPE_NSPasteboardTypeString:
         case TYPE_NSPasteboardTypeHTML: {
+#ifdef TKDND_ARC
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
-#ifdef TKDND_ARC
           NSPasteboardItem *pboardItem =  [[NSPasteboardItem alloc] init];
-          NSImage *image = [[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))];
+          NSSize icon_size = [datastring sizeWithAttributes:nil];
+          CGFloat iconX = imageLocation.x - icon_size.width/2;
+          CGFloat iconY = imageLocation.y - icon_size.height/2;
+          NSImage *image = [[NSImage alloc] initWithSize: icon_size];
 #else
+          NSString *datastring =
+             [[NSString stringWithUTF8String:Tcl_GetString(data_elem[i])] autorelease];
           NSPasteboardItem *pboardItem = [[[NSPasteboardItem alloc] init] autorelease];
+          NSSize icon_size = [datastring sizeWithAttributes:nil];
+          CGFloat iconX = imageLocation.x - icon_size.width/2;
+          CGFloat iconY = imageLocation.y - icon_size.height/2;
           NSImage *image = [[[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))] autorelease];
 #endif
           switch ((enum droptypes) index) {
@@ -920,7 +926,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
            * make sure icon is large enough to contain several lines of text */
           [image lockFocus];
           [[NSColor clearColor] set];
-          NSRectFill(NSMakeRect(0, 0, Tk_Width(path), Tk_Height(path)));
+          NSRectFill(NSMakeRect(0, 0, icon_size.width, icon_size.height));
           [datastring drawAtPoint: NSZeroPoint withAttributes: nil];
           [image unlockFocus];
  
@@ -930,11 +936,13 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           NSDraggingItem *dragItem = [[[NSDraggingItem alloc] initWithPasteboardWriter:pboardItem] autorelease];
 #endif
           //[dragItem setDraggingFrame:(CGRect){imageLocation , dragview.frame.size } contents:image];
-          [dragItem setDraggingFrame:NSMakeRect(iconX, iconY, Tk_Width(path), Tk_Height(path)) contents:image];
+          [dragItem setDraggingFrame:NSMakeRect(iconX, iconY, icon_size.width, icon_size.height) contents:image];
           [dataitems addObject: dragItem];
           break;
         }
         case TYPE_NSFilenamesPboardType: {
+          CGFloat iconX = imageLocation.x - iconS/2;
+          CGFloat iconY = imageLocation.y - iconS/2;
           /* Place the filenames into the clipboard. */
           status = Tcl_ListObjGetElements(interp, data_elem[i],
                                           &files_elem_nu, &files_elem);
