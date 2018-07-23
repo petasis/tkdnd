@@ -1,3 +1,6 @@
+2018-07-23  Petasis George  <petasis@iit.demokritos.gr>
+	* README.md: Added a small experiment about Travis CI integration.
+
 2018-07-22  Petasis George  <petasis@iit.demokritos.gr>
 	* macosx/macdnd.m: Updated code to use the new (10.7+) API. Possible
 	incompatibility: A file(s) drag will not start if any of the provided
@@ -11,7 +14,7 @@
 	* macosx/macdnd.m: Merged pull request #4:
 	* CMakeLists.txt:  Added compatibility for later OS X versions.
 	* configure.ac:    https://github.com/petasis/tkdnd/pull/4
-	Actually this pull request resolved the deprecation of 
+	Actually this pull request resolved the deprecation of
 	"dragImage:at:offset:event:pasteboard:source:slideBack:" I failed to
 	address in the previous update of macosx/macdnd.m.
 

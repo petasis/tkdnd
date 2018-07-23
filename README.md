@@ -3,6 +3,14 @@ TkDND is an extension that adds native drag & drop capabilities to the [Tk](http
 
 It can be used with any Tk version equal or greater to **8.3.3** and currently only the UNIX (X-Windows), Microsoft Windows (XP, Vista, 7, 8, 8.1, 10) and OS X (10.5+) operating systems are supported.
 
+## Current Travis-CI build status for TkDND:
+
+| OS | Master Branch | Release Branch |
+---|---|---
+| Linux 64, Tcl/Tk 8.6 | [![Build Status](https://travis-ci.org/petasis/tkdnd.svg?branch=master)](https://travis-ci.org/petasis/tkdnd) | |
+| Windows 10 | | |
+| macOS | | |
+
 ## Installation
 ### Requirements
   * An installation Tcl/Tk, with version >= 8.3.3. The Tcl/Tk installation must contain the files tclConfig.sh, tkConfig.sh and the development libraries, under Unix/Linux/OSX/Windows, if you want to use configure/make. The files tclConfig.sh, and tkConfig.sh are not required if you want to use [CMake](https://cmake.org/).
