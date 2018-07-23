@@ -29,4 +29,8 @@ install:
   - cmd: cmake -E tar xf irontcl-%DOWNLOAD_PLATFORM%-%IRONTCL_VERSION%.zip
   - cmd: set PATH=%cd%\IronTcl\bin;%PATH%
   # Generate solution...
-  - cmd: cmake .
+  - cmd: cmake -E make_directory "build"
+  - cmd: cd build && cmake ..
+
+build:
+  project: C:\projects\tkdnd\build\tkdnd.sln      # path to Visual Studio solution or project
