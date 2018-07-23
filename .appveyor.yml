@@ -20,20 +20,11 @@ matrix:
     - platform: x64
       configuration: Release
 
-for:
--
-  matrix:
-    only:
-      - platform: x86
-  environment:
-    DOWNLOAD_PLATFORM: win32
-      - platform: x64
-  environment:
-    DOWNLOAD_PLATFORM: amd64
-
 install:
   # Install Tcl/Tk
   - cmd: set IRONTCL_VERSION="8.6.7"
+  - cmd: if %platform%==x86 set DOWNLOAD_PLATFORM=win32
+  - cmd: if %platform%==x64 set DOWNLOAD_PLATFORM=amd64
   - cmd: appveyor DownloadFile https://www.irontcl.com/downloads/irontcl-%DOWNLOAD_PLATFORM%-%IRONTCL_VERSION%.zip
   - cmd: cmake -E tar xf irontcl-%DOWNLOAD_PLATFORM%-%IRONTCL_VERSION%.zip
   - cmd: set PATH=%cd%\IronTcl\bin;%PATH%
