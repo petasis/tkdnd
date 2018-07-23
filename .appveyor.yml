@@ -20,5 +20,7 @@ matrix:
     - platform: x64
       configuration: Release
 install:
+  # Install Tcl/Tk
+  - cmd: cinst install activetcl
   # Generate solution...
   - cmd: cmake .
