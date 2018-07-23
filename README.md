@@ -9,7 +9,7 @@ It can be used with any Tk version equal or greater to **8.3.3** and currently o
 ---|---|---
 | Linux 64, Tcl/Tk 8.6 | [![Build Status](https://travis-ci.org/petasis/tkdnd.svg?branch=master)](https://travis-ci.org/petasis/tkdnd) | |
 | Windows 64, Tcl/Tk 8.6 | [![Build status](https://ci.appveyor.com/api/projects/status/vfnx40w79dqsox1y/branch/master?svg=true)](https://ci.appveyor.com/project/petasis/tkdnd/branch/master) | |
-| macOS | | |
+| macOS 64 (Darwin), Tcl/Tk 8.5| [![Build Status](https://travis-ci.org/petasis/tkdnd.svg?branch=master)](https://travis-ci.org/petasis/tkdnd) | |
 
 ## Installation
 ### Requirements
