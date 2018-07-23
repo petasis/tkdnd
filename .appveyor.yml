@@ -26,15 +26,10 @@ for:
     only:
       - platform: x86
   environment:
-  DOWNLOAD_PLATFORM: win32
-
-for:
--
-  matrix:
-    only:
+    DOWNLOAD_PLATFORM: win32
       - platform: x64
   environment:
-  DOWNLOAD_PLATFORM: amd64
+    DOWNLOAD_PLATFORM: amd64
 
 install:
   # Install Tcl/Tk
