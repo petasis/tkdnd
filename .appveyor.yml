@@ -1,0 +1,24 @@
+branches:
+  only:
+    - master
+
+image:
+  - Visual Studio 2017
+
+platform:
+  - x86
+  - x64
+
+configuration:
+  - Release
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - platform: x86
+      configuration: Release
+    - platform: x64
+      configuration: Release
+install:
+  # Generate solution...
+  - cmd: cmake .
