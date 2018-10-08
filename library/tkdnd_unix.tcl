@@ -704,7 +704,7 @@ proc xdnd::_SendData {type offset bytes args} {
   set typed_data [lindex $_dodragdrop_data $index]
   set format 8
   if {$offset == 0} {
-    ## Prepare the data to be transfered...
+    ## Prepare the data to be transferred...
     switch -glob $type {
       text/plain* - UTF8_STRING - STRING - TEXT - COMPOUND_TEXT {
         binary scan [encoding convertto utf-8 $typed_data] \

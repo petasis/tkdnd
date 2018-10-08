@@ -1108,7 +1108,7 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
     Tcl_DecrRefCount(result);
     if (status == TCL_OK) return i;
   } else {
-    /* An error occured, stop the drag action... */
+    /* An error occurred, stop the drag action... */
     Tcl_SetVar(interp, "::tkdnd::xdnd::_dragging", "0", TCL_GLOBAL_ONLY);
   }
   return 0;
