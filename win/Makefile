@@ -23,7 +23,7 @@ TKDND_VERSION_NO_DOTS	= 29
 ##
 
 ##
-## No need to modify bellow this point...
+## No need to modify below this point...
 ##
 
 !if !exist("makefile.vc") && !exist("makefile")

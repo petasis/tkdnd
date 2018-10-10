@@ -69,7 +69,7 @@ proc FillData {text Data type code} {
     $text configure -state normal
     $text delete 1.0 end
     $text insert end "\n   --- Dropped Data --- (Type = \"$type\" $code)\n\n\n"
-    ## Can the text be splitted as a list?
+    ## Can the text be split as a list?
     switch -glob [tkdnd::platform_independent_type $type] {
       FileGroupDescriptor* {
         foreach item $Data {

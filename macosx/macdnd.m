@@ -488,7 +488,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   int i, index, status;
 
   /*
-   * Map the coordinates to the target window: must substract mouseLocation
+   * Map the coordinates to the target window: must subtract mouseLocation
    * from screen height because Cocoa orients to bottom of screen, Tk to
    * top...
    */
@@ -566,7 +566,7 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   int i, index, status, elem_nu;
   const NSString *type;
 
-  /* Retrieve the common types, as prefered by the drag source... */
+  /* Retrieve the common types, as preferred by the drag source... */
   objv[0] = Tcl_NewStringObj("::tkdnd::macdnd::GetDragSourceCommonTypes", -1);
   /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(1);
@@ -1066,7 +1066,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 
   /*
    * We need an icon for the drag:
-   * Interate over data types to process dragged data and display
+   * Iterate over data types to process dragged data and display
    * the correct drag icon.
    */
   for (i = 0; i < elem_nu; i++) {
@@ -1336,7 +1336,7 @@ int TkDND_Type2StringObjCmd(ClientData clientData, Tcl_Interp *interp,
 }; /* TkDND_Type2StringObjCmd */
 
 /*
- * Initalize the package in the tcl interpreter, create tcl commands...
+ * Initialize the package in the tcl interpreter, create tcl commands...
  */
 int Tkdnd_Init (Tcl_Interp *interp) {
 

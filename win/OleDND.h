@@ -751,7 +751,7 @@ class TkDND_DropTarget: public IDropTarget {
       //   b) The actions supported by the drag source.
       //   c) The state of the keyboard modifier keys.
       // And we must return:
-      //   a) The prefered action.
+      //   a) The preferred action.
 
       IEnumFORMATETC *pEF;
       FORMATETC fetc;
