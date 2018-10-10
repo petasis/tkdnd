@@ -1,3 +1,13 @@
+2018-10-10  Petasis George  <petasis@iit.demokritos.gr>
+	* demos/dndSpy.tcl:
+	* doc/tkDND.htm:
+	* library/tkdnd_unix.tcl:
+	* macosx/macdnd.m:
+	* unix/TkDND_XDND.c:
+	* win/Makefile:
+	* win/OleDND.h: Merged pull request #20 "Fix some typos.", by Github
+	user flopp.
+
 2018-07-23  Petasis George  <petasis@iit.demokritos.gr>
 	* README.md: Added a small experiment about Travis CI integration.
 
