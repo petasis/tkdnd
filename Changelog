@@ -1,4 +1,4 @@
-2018-10-10  Petasis George  <petasis@iit.demokritos.gr>
+2018-10-28  Petasis George  <petasis@iit.demokritos.gr>
 	* demos/basic.tcl: Added a drag source that sends an empty string.
 
 	* macosx/macdnd.m: Fixed bug #21
