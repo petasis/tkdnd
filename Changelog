@@ -1,4 +1,11 @@
 2018-10-10  Petasis George  <petasis@iit.demokritos.gr>
+	* demos/basic.tcl: Added a drag source that sends an empty string.
+
+	* macosx/macdnd.m: Fixed bug #21
+	(https://github.com/petasis/tkdnd/issues/21), where an image of size
+	(0, 0) was created, if the data to be pasted was an empty string.
+
+2018-10-10  Petasis George  <petasis@iit.demokritos.gr>
 	* demos/dndSpy.tcl:
 	* doc/tkDND.htm:
 	* library/tkdnd_unix.tcl:

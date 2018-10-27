@@ -14,14 +14,21 @@ set text_data "hello from Tk! (\u20ac)"
 set file_data [list /tmp/hello\u20ac [file normalize [info script]]]
 grid [label .text_drag_source \
   -text "Text Drag Source ($text_data)"] -sticky snew -columnspan 2
+grid [label .text_drag_source_empty \
+  -text "Text Drag Source (empty string)"] -sticky snew -columnspan 2
 grid [label .file_drag_source \
   -text "File Drag Source ($file_data)"] -sticky snew -columnspan 2
 tkdnd::drag_source register .text_drag_source
+tkdnd::drag_source register .text_drag_source_empty
 tkdnd::drag_source register .file_drag_source
 bind .text_drag_source <<DragInitCmd>> \
   [list drag_source DND_Text $text_data %e %W %s %X %Y %A]
 bind .text_drag_source <<DragEndCmd>>  \
   [list drag_source DND_Text $text_data %e %W %s %X %Y %A]
+bind .text_drag_source_empty <<DragInitCmd>> \
+  [list drag_source DND_Text {} %e %W %s %X %Y %A]
+bind .text_drag_source_empty <<DragEndCmd>>  \
+  [list drag_source DND_Text {} %e %W %s %X %Y %A]
 bind .file_drag_source <<DragInitCmd>> \
   [list drag_source DND_Files $file_data %e %W %s %X %Y %A]
 bind .file_drag_source <<DragEndCmd>> \

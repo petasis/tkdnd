@@ -894,23 +894,17 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       switch ((enum droptypes) index) {
         case TYPE_NSPasteboardTypeString:
         case TYPE_NSPasteboardTypeHTML: {
+          NSImage *image = nil;
 #ifdef TKDND_ARC
           NSString *datastring =
              [NSString stringWithUTF8String:Tcl_GetString(data_elem[i])];
           NSPasteboardItem *pboardItem =  [[NSPasteboardItem alloc] init];
-          NSSize icon_size = [datastring sizeWithAttributes:nil];
-          CGFloat iconX = imageLocation.x - icon_size.width/2;
-          CGFloat iconY = imageLocation.y - icon_size.height/2;
-          NSImage *image = [[NSImage alloc] initWithSize: icon_size];
-#else
+#else /* TKDND_ARC */
           NSString *datastring =
              [[NSString stringWithUTF8String:Tcl_GetString(data_elem[i])] autorelease];
           NSPasteboardItem *pboardItem = [[[NSPasteboardItem alloc] init] autorelease];
-          NSSize icon_size = [datastring sizeWithAttributes:nil];
-          CGFloat iconX = imageLocation.x - icon_size.width/2;
-          CGFloat iconY = imageLocation.y - icon_size.height/2;
-          NSImage *image = [[[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))] autorelease];
-#endif
+#endif /* TKDND_ARC */
+          NSSize  icon_size = [datastring sizeWithAttributes:nil];
           switch ((enum droptypes) index) {
             case TYPE_NSPasteboardTypeString: {
               [pboardItem setString:datastring forType:NSPasteboardTypeString]; break;
@@ -924,11 +918,21 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           }
           /* Create a custom icon: draw dragged string into drag icon,
            * make sure icon is large enough to contain several lines of text */
-          [image lockFocus];
-          [[NSColor clearColor] set];
-          NSRectFill(NSMakeRect(0, 0, icon_size.width, icon_size.height));
-          [datastring drawAtPoint: NSZeroPoint withAttributes: nil];
-          [image unlockFocus];
+          if (icon_size.width && icon_size.height) {
+#ifdef TKDND_ARC
+            image = [[NSImage alloc] initWithSize: icon_size];
+#else /* TKDND_ARC */
+            image = [[[NSImage alloc] initWithSize: NSMakeSize(Tk_Width(path), Tk_Height(path))] autorelease];
+#endif /* TKDND_ARC */
+            [image lockFocus];
+            [[NSColor clearColor] set];
+            NSRectFill(NSMakeRect(0, 0, icon_size.width, icon_size.height));
+            [datastring drawAtPoint: NSZeroPoint withAttributes: nil];
+            [image unlockFocus];
+          } else {
+            icon_size = NSMakeSize(32.0, 32.0);
+            image     = [NSImage imageNamed:NSImageNameMultipleDocuments];
+          }
  
 #ifdef TKDND_ARC
           NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:pboardItem];
@@ -936,6 +940,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           NSDraggingItem *dragItem = [[[NSDraggingItem alloc] initWithPasteboardWriter:pboardItem] autorelease];
 #endif
           //[dragItem setDraggingFrame:(CGRect){imageLocation , dragview.frame.size } contents:image];
+          CGFloat iconX     = imageLocation.x - icon_size.width/2;
+          CGFloat iconY     = imageLocation.y - icon_size.height/2;
           [dragItem setDraggingFrame:NSMakeRect(iconX, iconY, icon_size.width, icon_size.height) contents:image];
           [dataitems addObject: dragItem];
           break;
