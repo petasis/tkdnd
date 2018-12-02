@@ -1,6 +1,6 @@
 /*
  * OleDND.h --
- * 
+ *
  *    This file implements the windows portion of the drag&drop mechanism
  *    for the Tk toolkit. The protocol in use under windows is the
  *    OLE protocol. Based on code wrote by Gordon Chafee.
@@ -24,13 +24,13 @@
  * and need not follow the licensing terms described here, provided that
  * the new terms are clearly indicated on the first page of each file where
  * they apply.
- * 
+ *
  * IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY
  * FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
  * ARISING OUT OF THE USE OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY
  * DERIVATIVES THEREOF, EVEN IF THE AUTHORS HAVE BEEN ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE
@@ -66,7 +66,7 @@
 struct __declspec(uuid("{4657278B-411B-11d2-839A-00C04FD918D0}"))
   IDropTargetHelper;
 #endif /* DND_ENABLE_DROP_TARGET_HELPER */
- 
+
 #include <tcl.h>
 #include <tk.h>
 #ifdef __cplusplus
@@ -183,12 +183,12 @@ public:
         return E_NOINTERFACE;
       }
     }; /* QueryInterface */
-    
+
     ULONG __stdcall AddRef(void) {
       // increment object reference count
       return InterlockedIncrement(&m_lRefCount);
     }; /* AddRef */
-    
+
     ULONG __stdcall Release (void) {
       // decrement object reference count
       LONG count = InterlockedDecrement(&m_lRefCount);
@@ -199,7 +199,7 @@ public:
         return count;
       }
     }; /* Release */
-    
+
     // IEnumFormatEtc members
     HRESULT __stdcall Next(ULONG celt, FORMATETC *pFormatEtc,
                            ULONG *pceltFetched) {
@@ -216,13 +216,13 @@ public:
       // did we copy all that was requested?
       return (copied == celt) ? S_OK : S_FALSE;
     }; /* Next */
-    
+
     HRESULT __stdcall Skip(ULONG celt) {
       if ((m_nIndex + celt) >= m_nNumFormats) return S_FALSE;
       m_nIndex += celt;
       return S_OK;
     }; /* Skip */
-    
+
     HRESULT __stdcall Reset(void) {
       m_nIndex = 0;
       return S_OK;
@@ -239,16 +239,16 @@ public:
       }
       return hResult;
     }; /* Clone */
-    
+
     // Construction / Destruction
     TkDND_FormatEtc(FORMATETC *pFormatEtc, int nNumFormats) {
       m_lRefCount   = 1;
       m_nIndex      = 0;
       m_nNumFormats = nNumFormats;
       m_pFormatEtc  = new FORMATETC[nNumFormats];
-      
+
       // copy the FORMATETC structures
-      for (int i = 0; i < nNumFormats; i++) {        
+      for (int i = 0; i < nNumFormats; i++) {
         DeepCopyFormatEtc(&m_pFormatEtc[i], &pFormatEtc[i]);
       }
     }; /* TkDND_FormatEtc */
@@ -293,12 +293,12 @@ public:
         return E_NOINTERFACE;
       }
     }; /* QueryInterface */
-    
+
     ULONG __stdcall AddRef(void) {
       // increment object reference count
       return InterlockedIncrement(&m_lRefCount);
     }; /* AddRef */
-    
+
     ULONG __stdcall Release(void) {
       // decrement object reference count
       LONG count = InterlockedDecrement(&m_lRefCount);
@@ -308,7 +308,7 @@ public:
          return count;
       }
     }; /* Release */
-        
+
     // IDataObject members
     HRESULT __stdcall GetData(FORMATETC *pFormatEtc, STGMEDIUM *pMedium) {
       int idx;
@@ -318,7 +318,7 @@ public:
       // found a match - transfer data into supplied storage medium
       pMedium->tymed           = m_pFormatEtc[idx].tymed;
       pMedium->pUnkForRelease  = 0;
-          
+
       // copy the data into the caller's storage medium
       switch(m_pFormatEtc[idx].tymed) {
         case TYMED_HGLOBAL:
@@ -329,16 +329,16 @@ public:
       }
       return S_OK;
     }; /* GetData */
-    
+
     HRESULT __stdcall GetDataHere(FORMATETC *pFormatEtc, STGMEDIUM *pmedium) {
       return DATA_E_FORMATETC;
     }; /* GetDataHere */
-            
-    
+
+
     HRESULT __stdcall QueryGetData(FORMATETC *pFormatEtc) {
       return (LookupFormatEtc(pFormatEtc) == -1) ? DV_E_FORMATETC : S_OK;
     };
-    
+
     HRESULT __stdcall GetCanonicalFormatEtc(FORMATETC *pFormatEct,
                       FORMATETC *pFormatEtcOut) {
       // Apparently we have to set this field to NULL even though we don't do
@@ -346,12 +346,12 @@ public:
       pFormatEtcOut->ptd = NULL;
       return E_NOTIMPL;
     }; /* GetCanonicalFormatEtc */
-    
+
     HRESULT __stdcall SetData(FORMATETC *pFormatEtc, STGMEDIUM *pMedium,
                               BOOL fRelease) {
       return E_NOTIMPL;
     }; /* SetData */
-    
+
     HRESULT __stdcall EnumFormatEtc(DWORD dwDirection,
                                     IEnumFORMATETC **ppEnumFormatEtc) {
       // only the get direction is supported for OLE
@@ -365,20 +365,20 @@ public:
         return E_NOTIMPL;
       }
     }; /* EnumFormatEtc */
-    
+
     HRESULT __stdcall DAdvise(FORMATETC *pFormatEtc,  DWORD advf,
                               IAdviseSink *, DWORD *) {
       return OLE_E_ADVISENOTSUPPORTED;
     }; /* DAdvise */
-    
+
     HRESULT __stdcall DUnadvise(DWORD dwConnection) {
       return OLE_E_ADVISENOTSUPPORTED;
     }; /* DUnadvise */
-    
+
     HRESULT __stdcall EnumDAdvise(IEnumSTATDATA **ppEnumAdvise) {
       return OLE_E_ADVISENOTSUPPORTED;
     }; /* EnumDAdvise */;
-        
+
     // Constructor / Destructor
     TkDND_DataObject(FORMATETC *fmtetc, STGMEDIUM *stgmed, int count) {
       // reference count must ALWAYS start at 1
@@ -395,7 +395,7 @@ public:
       }
       currentFormat = 0;
     }; /* TkDND_DataObject */
-    
+
     virtual ~TkDND_DataObject() {
       // cleanup
       if(m_pFormatEtc) delete[] m_pFormatEtc;
@@ -455,7 +455,7 @@ private:
       GlobalUnlock(hMem);
       return dest;
     }; /* DupGlobalMem */
-    
+
 }; /* TkDND_DataObject */
 
 
@@ -477,13 +477,13 @@ class TkDND_DropTarget: public IDropTarget {
 #endif
 
 #ifdef DND_DRAGOVER_SKIP_EVENTS
-    DWORD		 last_keyState;
-    LONG		 last_X, last_Y;
+    DWORD                 last_keyState;
+    LONG                 last_X, last_Y;
     DWORD                last_effect;
-    bool	 	 skip_if_unchanged;
+    bool                  skip_if_unchanged;
 #endif /* DND_DRAGOVER_SKIP_EVENTS */
-    
-    
+
+
     const TCHAR * FormatName(UINT cfFormat) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
         if (ClipboardFormatBook[i].cfFormat == cfFormat)
@@ -500,18 +500,18 @@ class TkDND_DropTarget: public IDropTarget {
       drop_active(false),
 #endif
       typelist(NULL), actionlist(NULL), codelist(NULL)
-#ifdef DND_DRAGOVER_SKIP_EVENTS	      
+#ifdef DND_DRAGOVER_SKIP_EVENTS
       , last_effect(DROPEFFECT_NONE), last_X(0), last_Y(0), last_keyState(0),
       skip_if_unchanged(false)
 #endif /* DND_DRAGOVER_SKIP_EVENTS */
     { }; /* TkDND_DropTarget */
-   
+
     virtual ~TkDND_DropTarget(void) {
       if (typelist   != NULL) Tcl_DecrRefCount(typelist);
       if (actionlist != NULL) Tcl_DecrRefCount(actionlist);
       if (codelist   != NULL) Tcl_DecrRefCount(codelist);
     }; /* ~TkDND_DropTarget */
-   
+
     /* IUnknown interface members */
     HRESULT __stdcall QueryInterface(REFIID iid, void ** ppvObject) {
       // check to see what interface has been requested
@@ -524,12 +524,12 @@ class TkDND_DropTarget: public IDropTarget {
         return E_NOINTERFACE;
       }
     }; /* QueryInterface */
-    
+
     ULONG __stdcall AddRef(void) {
       // increment object reference count
       return InterlockedIncrement(&m_lRefCount);
     }; /* AddRef */
-    
+
     ULONG __stdcall Release(void) {
       // decrement object reference count
       LONG count = InterlockedDecrement(&m_lRefCount);
@@ -566,7 +566,7 @@ class TkDND_DropTarget: public IDropTarget {
       DWORD effect = DROPEFFECT_NONE;
       static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
-        "default", 
+        "default",
         (char *) NULL
       };
       enum dropactions {
@@ -617,7 +617,7 @@ class TkDND_DropTarget: public IDropTarget {
       DWORD effect = DROPEFFECT_NONE;
       static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
-        "default", 
+        "default",
         (char *) NULL
       };
       enum dropactions {
@@ -637,9 +637,9 @@ class TkDND_DropTarget: public IDropTarget {
        * respond as fast as possible... */
       if (skip_if_unchanged &&
           (pt.x == last_X) && (pt.y == last_Y) &&
-	  (grfKeyState == last_keyState)) {
+          (grfKeyState == last_keyState)) {
         skip_if_unchanged = false;
-	return last_effect;
+        return last_effect;
       }
 
       skip_if_unchanged = false;
@@ -660,7 +660,7 @@ class TkDND_DropTarget: public IDropTarget {
         Tcl_DecrRefCount(result);
         if (status != TCL_OK) index = (enum dropactions) ActionDefault;
 #ifdef DND_DRAGOVER_SKIP_EVENTS
-	skip_if_unchanged = true;
+        skip_if_unchanged = true;
 #endif /* DND_DRAGOVER_SKIP_EVENTS */
       }
       switch ((enum dropactions) index) {
@@ -683,7 +683,7 @@ class TkDND_DropTarget: public IDropTarget {
       DWORD effect = DROPEFFECT_NONE;
       static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
-        "default", 
+        "default",
         (char *) NULL
       };
       enum dropactions {
@@ -744,7 +744,7 @@ class TkDND_DropTarget: public IDropTarget {
      * IDropTarget interface members.
      */
 
-    STDMETHODIMP DragEnter(IDataObject *pDataObject, DWORD grfKeyState, 
+    STDMETHODIMP DragEnter(IDataObject *pDataObject, DWORD grfKeyState,
                            POINTL pt, DWORD *pdwEffect) {
       // We want to get:
       //   a) The types supported by the drag source.
@@ -806,7 +806,7 @@ class TkDND_DropTarget: public IDropTarget {
       *pdwEffect = SendDragEnter(pt, grfKeyState);
       return S_OK;
     }; /* DragEnter */
-    
+
     STDMETHODIMP DragOver(DWORD grfKeyState, POINTL pt, DWORD *pdwEffect) {
       /*
        * This event will be delivered when the mouse is over tkwin. Ensure that
@@ -825,7 +825,7 @@ class TkDND_DropTarget: public IDropTarget {
 #endif
       return S_OK;
     }; /* DragOver */
-    
+
     STDMETHODIMP DragLeave(void) {
       SendDragLeave();
       if (typelist   != NULL) {Tcl_DecrRefCount(typelist);   typelist   = NULL;}
@@ -833,8 +833,8 @@ class TkDND_DropTarget: public IDropTarget {
       if (codelist   != NULL) {Tcl_DecrRefCount(codelist);   codelist   = NULL;}
       return S_OK;
     }; /* DragLeave */
-    
-    STDMETHODIMP Drop(IDataObject *pDataObject, DWORD grfKeyState, 
+
+    STDMETHODIMP Drop(IDataObject *pDataObject, DWORD grfKeyState,
                       POINTL pt, DWORD *pdwEffect) {
       Tcl_Obj *objv[7], *result, **typeObj, *data = NULL, *type = NULL;
       int i, type_index, status, index, typeObjc;
@@ -920,12 +920,12 @@ class TkDND_DropTarget: public IDropTarget {
         data = GetData_Bytearray(pDataObject, type);
       }
       Tcl_DecrRefCount(result);
-      
+
       // We are ready to pass the info to the Tcl level, and get the desired
       // action.
       Tcl_IncrRefCount(data);
       *pdwEffect = SendDrop(pt, grfKeyState, type, data);
-      Tcl_DecrRefCount(type); Tcl_IncrRefCount(data);
+      Tcl_DecrRefCount(type); Tcl_DecrRefCount(data);
       return S_OK;
     }; /* Drop */
 
@@ -954,7 +954,7 @@ private:
       STGMEDIUM StgMed;
       FORMATETC fmte = { CF_UNICODETEXT, (DVTARGETDEVICE FAR *)NULL,
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-      
+
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
           Tcl_DString ds;
@@ -989,7 +989,7 @@ private:
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       FORMATETC fmte_locale = { CF_LOCALE, (DVTARGETDEVICE FAR *)NULL,
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-      
+
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         // Determine the encoding to use to convert this text.
         Tcl_Encoding encoding = NULL;
@@ -1011,18 +1011,18 @@ private:
             GlobalUnlock(StgMed.hGlobal);
             encoding = Tcl_GetEncoding(NULL, Tcl_DStringValue(&ds));
             Tcl_DStringFree(&ds);
-          } 
+          }
         }
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
           Tcl_DString ds;
-          
+
           data = (char *) GlobalLock(StgMed.hGlobal);
           Tcl_DStringInit(&ds);
           Tcl_ExternalToUtfDString(encoding, data, -1, &ds);
           GlobalUnlock(StgMed.hGlobal);
           ReleaseStgMedium(&StgMed);
           if (encoding) Tcl_FreeEncoding(encoding);
-          
+
           /*  Translate CR/LF to LF.  */
           data = destPtr = Tcl_DStringValue(&ds);
           while (*data) {
@@ -1040,7 +1040,7 @@ private:
       }
       return NULL;
     }; /* GetData_CF_TEXT */
-    
+
     Tcl_Obj *GetData_CF_HDROP(IDataObject *pDataObject) {
 #if defined(UNICODE)
       Tcl_DString ds;
@@ -1110,7 +1110,7 @@ private:
       int bytes_written = 0;
       int new_file;
       HRESULT hr = S_OK;
-    
+
       new_file = _sopen(file_name, O_RDWR | O_BINARY | O_CREAT,
                                   SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
@@ -1169,7 +1169,7 @@ private:
           GlobalUnlock(StgMed.hGlobal);
           encoding = Tcl_GetEncoding(NULL, Tcl_DStringValue(&ds));
           Tcl_DStringFree(&ds);
-        } 
+        }
       }
       Tcl_Obj *result = Tcl_NewListObj(0, NULL);
       // For each file, get the name and copy the stream to a file
@@ -1209,7 +1209,7 @@ private:
       int bytes_written = 0;
       int new_file;
       HRESULT hr = S_OK;
-    
+
       new_file = _wsopen((wchar_t *) file_name, O_RDWR | O_BINARY | O_CREAT,
                                                SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
@@ -1269,7 +1269,7 @@ private:
 #if 0
           } else {
             LPVOID lpMsgBuf;
-            if (!FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+            if (!FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER |
                 FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL, GetLastError(),
                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
@@ -1297,7 +1297,7 @@ private:
       FORMATETC fmte = { (CLIPFORMAT)
         RegisterClipboardFormat( _TEXT("UniformResourceLocator") ),
         (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-      
+
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
           Tcl_DString ds;
@@ -1331,7 +1331,7 @@ private:
       FORMATETC fmte = { (CLIPFORMAT)
         RegisterClipboardFormat( _TEXT("UniformResourceLocatorW") ),
         (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-      
+
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
           Tcl_DString ds;
@@ -1381,26 +1381,26 @@ public:
           return E_NOINTERFACE;
       }
     }; /* QueryInterface */
-    
+
     ULONG   __stdcall AddRef(void) {
       // increment object reference count
       return InterlockedIncrement(&m_lRefCount);
     }; /* AddRef */
-    
+
     ULONG   __stdcall Release(void) {
       // decrement object reference count
       LONG count = InterlockedDecrement(&m_lRefCount);
       if (count == 0) { delete this; return 0; }
       else { return count; };
     }; /* Release */
-                
+
     // IDropSource members
 
     //  Called by OLE whenever Escape/Control/Shift/Mouse buttons have changed
     HRESULT __stdcall QueryContinueDrag(BOOL fEscapePressed, DWORD grfKeyState){
       // if the <Escape> key has been pressed since the last call,
       // cancel the drop
-      if(fEscapePressed == TRUE) return DRAGDROP_S_CANCEL;        
+      if(fEscapePressed == TRUE) return DRAGDROP_S_CANCEL;
 
       switch (button) {
         case 1: {
@@ -1433,7 +1433,7 @@ public:
     HRESULT __stdcall GiveFeedback(DWORD dwEffect) {
       return DRAGDROP_S_USEDEFAULTCURSORS;
     }; /* GiveFeedback */
-        
+
     // Constructor / Destructor
     TkDND_DropSource() {
       m_lRefCount = 1;
@@ -1444,9 +1444,9 @@ public:
       m_lRefCount = 1;
       button = b;
     }; /* TkDND_DropSource */
-    
+
     virtual ~TkDND_DropSource() {};
-        
+
 private:
     LONG   m_lRefCount;
 }; /* TkDND_DropSource */

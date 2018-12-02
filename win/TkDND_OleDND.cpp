@@ -389,10 +389,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       case DROPEFFECT_MOVE: std::strncpy(msg, "move", 20); break;
       case DROPEFFECT_LINK: std::strncpy(msg, "link", 20); break;
     }
-    Tcl_SetResult(interp, msg, TCL_STATIC);
+    Tcl_SetObjResult(interp, Tcl_NewStringObj(msg, -1));
   } else {
     char msg[24]; std::strncpy(msg, "refuse_drop", 20);
-    Tcl_SetResult(interp, msg, TCL_STATIC);
+    Tcl_SetObjResult(interp, Tcl_NewStringObj(msg, -1));
   }
   return TCL_OK;
 error:
