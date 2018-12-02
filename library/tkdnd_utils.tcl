@@ -41,13 +41,17 @@ namespace eval ::tkdnd {
   namespace eval utils {
   };# namespace ::tkdnd::utils
   namespace eval text {
-    variable _state    {}
-    variable _drag_tag tkdnd::drag::selection::tag
+    variable _drag_tag           tkdnd::drag::selection::tag
+    variable _state              {}
+    variable _drag_source_widget {}
+    variable _drop_target_widget {}
+    variable _now_dragging       0
   };# namespace ::tkdnd::text
 };# namespace ::tkdnd
 
 bind TkDND_Drag_Text1 <ButtonPress-1>   {tkdnd::text::_begin_drag clear  1 %W %s %X %Y %x %y}
 bind TkDND_Drag_Text1 <B1-Motion>       {tkdnd::text::_begin_drag motion 1 %W %s %X %Y %x %y}
+bind TkDND_Drag_Text1 <B1-Leave>        {tkdnd::text::_TextAutoScan %W %x %y}
 bind TkDND_Drag_Text1 <ButtonRelease-1> {tkdnd::text::_begin_drag reset  1 %W %s %X %Y %x %y}
 bind TkDND_Drag_Text2 <ButtonPress-2>   {tkdnd::text::_begin_drag clear  2 %W %s %X %Y %x %y}
 bind TkDND_Drag_Text2 <B2-Motion>       {tkdnd::text::_begin_drag motion 2 %W %s %X %Y %x %y}
@@ -102,6 +106,10 @@ proc ::tkdnd::text::drop_target { mode path { types DND_Text } } {
 # ----------------------------------------------------------------------------
 proc ::tkdnd::text::DragInitCmd { path { types DND_Text } { tag sel } { actions { copy move } } } {
   ## Save the selection indices...
+  variable _drag_source_widget
+  variable _drop_target_widget
+  set _drag_source_widget $path
+  set _drop_target_widget {}
   _save_selection $path $tag
   list $actions $types [$path get $tag.first $tag.last]
 };# ::tkdnd::text::DragInitCmd
@@ -110,12 +118,18 @@ proc ::tkdnd::text::DragInitCmd { path { types DND_Text } { tag sel } { actions 
 #  Command tkdnd::text::DragEndCmd
 # ----------------------------------------------------------------------------
 proc ::tkdnd::text::DragEndCmd { path action { tag sel } } {
-  variable _selection_first
-  variable _selection_last
-  puts "END ACTION: =$action="
+  variable _drag_source_widget
+  variable _drop_target_widget
+  set _drag_source_widget {}
+  set _drop_target_widget {}
   _restore_selection $path $tag
   switch -exact -- $action {
-    default {}
+    move {
+      ## Delete the original selected text...
+      variable _selection_first
+      variable _selection_last
+      $path delete $_selection_first $_selection_last
+    }
   }
 };# ::tkdnd::text::DragEndCmd
 
@@ -123,12 +137,17 @@ proc ::tkdnd::text::DragEndCmd { path action { tag sel } } {
 #  Command tkdnd::text::DropPosition
 # ----------------------------------------------------------------------------
 proc ::tkdnd::text::DropPosition { path X Y action actions keys} {
+  variable _drag_source_widget
+  variable _drop_target_widget
+  set _drop_target_widget $path
+  ## This check is primitive, a more accurate one is needed!
+  if {$path eq $_drag_source_widget} {
+    ## This is a drag within the same widget! Set action to move...
+    if {"move" in $actions} {set action move}
+  }
   incr X -[winfo rootx $path]
   incr Y -[winfo rooty $path]
   $path mark set insert @$X,$Y; update
-  switch -exact -- $action {
-    default {}
-  }
   return $action
 };# ::tkdnd::text::DropPosition
 
@@ -140,9 +159,6 @@ proc ::tkdnd::text::Drop { path data X Y action actions keys } {
   incr Y -[winfo rooty $path]
   $path mark set insert @$X,$Y
   $path insert [$path index insert] $data
-  switch -exact -- $action {
-    default {}
-  }
   return $action
 };# ::tkdnd::text::Drop
 
@@ -178,8 +194,7 @@ proc ::tkdnd::text::_restore_selection { path tag} {
 #  Command tkdnd::text::_begin_drag
 # ----------------------------------------------------------------------------
 proc ::tkdnd::text::_begin_drag { event button source state X Y x y } {
-  variable _x0
-  variable _y0
+  variable _drop_target_widget
   variable _state
   # puts "::tkdnd::text::_begin_drag $event $button $source $state $X $Y $x $y"
 
@@ -194,12 +209,19 @@ proc ::tkdnd::text::_begin_drag { event button source state X Y x y } {
       set _state clear
     }
     motion {
+      variable _now_dragging
+      if {$_now_dragging} {return -code break}
       if { [string equal $_state "press"] } {
+        variable _x0; variable _y0
         if { abs($_x0-$X) > ${::tkdnd::_dx} || abs($_y0-$Y) > ${::tkdnd::_dy} } {
           set _state "done"
+          set _drop_target_widget {}
+          set _now_dragging       1
           set code [catch {
             ::tkdnd::_init_drag $button $source $state $X $Y $x $y
           } info options]
+          set _drop_target_widget {}
+          set _now_dragging       0
           if {$code != 0} {
             ## Something strange occurred...
             return -options $options $info
@@ -210,6 +232,7 @@ proc ::tkdnd::text::_begin_drag { event button source state X Y x y } {
       set _state clear
     }
     press {
+      variable _x0; variable _y0
       set _x0    $X
       set _y0    $Y
       set _state "press"
@@ -218,6 +241,12 @@ proc ::tkdnd::text::_begin_drag { event button source state X Y x y } {
       set _state {}
     }
   }
+  if {$source eq $_drop_target_widget} {return -code break}
   return -code continue
 };# tkdnd::text::_begin_drag
 
+proc tkdnd::text::_TextAutoScan {w x y} {
+  variable _now_dragging
+  if {$_now_dragging} {return -code break}
+  return -code continue
+};# tkdnd::text::_TextAutoScan

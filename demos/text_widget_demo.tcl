@@ -17,7 +17,6 @@ package require tkdnd::utils
 
 ## This requires tklib...
 package require widget::scrolledwindow
-console show
 
 set sample_text {Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent tempus aliquet velit in fringilla. Quisque fermentum lobortis mi, at mattis lorem. Proin vitae tortor ipsum. Suspendisse id enim est. Nullam vitae magna libero. Nunc vestibulum, ante id convallis porttitor, nisi diam tincidunt mi, sed scelerisque felis sapien vel metus. Nunc fermentum rutrum gravida.
 
@@ -39,17 +38,20 @@ set parent(targets.sw.text) $parent(targets.sw).text
 ttk::labelframe $parent(sources) -text {Drag Sources}
 pack [widget::scrolledwindow $parent(sources.sw)] \
    -padx 2 -pady 2 -fill both -expand true
-text $parent(sources.sw.text) -width 80 -height 24
+text $parent(sources.sw.text) -width 60 -height 24
 $parent(sources.sw) setwidget $parent(sources.sw.text)
 
 ttk::labelframe $parent(targets) -text {Drop targets}
 pack [widget::scrolledwindow $parent(targets.sw)] \
    -padx 2 -pady 2 -fill both -expand true
-text $parent(targets.sw.text) -width 80 -height 24
+text $parent(targets.sw.text) -width 60 -height 24
 $parent(targets.sw) setwidget $parent(targets.sw.text)
 
 grid $parent(sources) $parent(targets) \
   -padx 2 -pady 2 -sticky snew
+grid columnconfigure . 0 -weight 1
+grid columnconfigure . 1 -weight 1
+grid rowconfigure    . 0 -weight 1
 
 
 $parent(sources.sw.text) insert end $sample_text
@@ -58,5 +60,6 @@ $parent(targets.sw.text) insert end [join [lrepeat 30 \
 ------------------------------------------------------------ ] \n]
 
 tkdnd::text::drag_source register $parent(sources.sw.text) DND_Text
-# tkdnd::text::drop_target register $parent(sources.sw.text) DND_Text
+tkdnd::text::drop_target register $parent(sources.sw.text) DND_Text
 tkdnd::text::drop_target register $parent(targets.sw.text) DND_Text
+catch {console show}
