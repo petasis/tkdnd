@@ -47,7 +47,6 @@ pack [widget::scrolledwindow $parent(targets.sw)] \
    -padx 2 -pady 2 -fill both -expand true
 text $parent(targets.sw.text) -width 80 -height 24
 $parent(targets.sw) setwidget $parent(targets.sw.text)
-tkdnd::text::drop_target register $parent(targets.sw.text) DND_Text
 
 grid $parent(sources) $parent(targets) \
   -padx 2 -pady 2 -sticky snew
@@ -59,3 +58,5 @@ $parent(targets.sw.text) insert end [join [lrepeat 30 \
 ------------------------------------------------------------ ] \n]
 
 tkdnd::text::drag_source register $parent(sources.sw.text) DND_Text
+# tkdnd::text::drop_target register $parent(sources.sw.text) DND_Text
+tkdnd::text::drop_target register $parent(targets.sw.text) DND_Text
