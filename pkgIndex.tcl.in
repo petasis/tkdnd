@@ -4,3 +4,7 @@
 package ifneeded tkdnd @PACKAGE_VERSION@ \
   "source \{$dir/tkdnd.tcl\} ; \
    tkdnd::initialise \{$dir\} @PKG_LIB_FILE@ @PACKAGE_NAME@"
+
+package ifneeded tkdnd::utils @PACKAGE_VERSION@ \
+  "source \{$dir/tkdnd_utils.tcl\} ; \
+   package provide tkdnd::utils @PACKAGE_VERSION@"

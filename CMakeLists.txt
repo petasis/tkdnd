@@ -224,7 +224,11 @@ ADD_LIBRARY ( ${PKG_TARGET_LIB_NAME} SHARED ${PKG_SOURCES} )
 FILE ( WRITE library/pkgIndex.tcl 
 "package ifneeded ${PKG_NAME} ${PKG_VERSION} \\
   \"source \\{$dir/tkdnd.tcl\\} ; \\
-   tkdnd::initialise \\{$dir\\} lib${PKG_TARGET_LIB_NAME}[info sharedlibextension] ${PKG_NAME}\"" )
+   tkdnd::initialise \\{$dir\\} lib${PKG_TARGET_LIB_NAME}[info sharedlibextension] ${PKG_NAME}\"
+   
+package ifneeded tkdnd::utils ${PKG_VERSION} \\
+  \"source \\{$dir/tkdnd_utils.tcl\\} ; \\
+   package provide tkdnd::utils ${PKG_VERSION}\"" )
 
 ## ===========================================================================
 ##  Declare the package install targets...
@@ -240,4 +244,5 @@ INSTALL ( FILES library/pkgIndex.tcl
                 library/tkdnd_macosx.tcl
                 library/tkdnd_unix.tcl
                 library/tkdnd_windows.tcl
+                library/tkdnd_utils.tcl
           DESTINATION ${PKG_TARGET_LIB_NAME} )

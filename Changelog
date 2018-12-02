@@ -1,3 +1,29 @@
+2018-12-02  Petasis George  <petasis@iit.demokritos.gr>
+	* demos/text_widget_demo.tcl: New demo, demonstrating tkdnd::utils for
+	the text widget.
+
+	* library/tkdnd_utils.tcl: Added a new package (tkdnd::utils) with
+	utility functions (i.e. ::tkdnd::text::drag_source/
+	::tkdnd::text::drop_target that can be used for text widgets,
+	to facilitate drag/drop in such widgets).
+
+	* library/tkdnd.tcl: Fixes in ::tkdnd::drag_source(): The TkDND_Drag
+	binding tag is now placed before the widget class.
+	**** POTENTIAL INCOMPATIBILITY **** for applications relying on the
+	previous behaviour (the tag was added as the last one).
+
+	* library/tkdnd_compat.tcl: Fixes for the TkDND 1.x compatibility layer.
+	
+	* library/tkdnd_windows.tcl: Fixed two typos.
+	
+	* win/TkDND_OleDND.cpp: Fixed a bug in TkDND_DoDragDropObjCmd(), where
+	Tcl_SetResult() was not used correctly. Calles changed to
+	Tcl_SetObjResult().
+
+	* win/TkDND_OleDND.h: Fixed a memory leak in Drop(), where
+	Tcl_IncrRefCount() was called instead of the correct
+	Tcl_DecrRefCount().
+
 2018-10-28  Petasis George  <petasis@iit.demokritos.gr>
 	* demos/basic.tcl: Added a drag source that sends an empty string.
 
