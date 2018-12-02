@@ -99,7 +99,7 @@ proc olednd::HandleDragLeave { drop_target } {
 };# olednd::HandleDragLeave
 
 # ----------------------------------------------------------------------------
-#  Command olednd::HandleXdndDrop
+#  Command olednd::HandleDrop
 # ----------------------------------------------------------------------------
 proc olednd::HandleDrop { drop_target pressedkeys rootX rootY type data } {
   ::tkdnd::generic::SetDroppedData [normalise_data $type $data]
@@ -107,7 +107,7 @@ proc olednd::HandleDrop { drop_target pressedkeys rootX rootY type data } {
                                            $pressedkeys $rootX $rootY 0]
   if {$::tkdnd::_auto_update} {update idletasks}
   return $action
-};# olednd::HandleXdndDrop
+};# olednd::HandleDrop
 
 # ----------------------------------------------------------------------------
 #  Command olednd::GetDragSourceCommonTypes

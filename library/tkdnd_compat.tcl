@@ -74,7 +74,7 @@ proc ::dnd {method window args} {
       return [tkdnd::compat::clearsource $window]
     }
     drag {
-      return [tkdnd::_init_drag $window "press" 0 0]
+      return [tkdnd::_init_drag 1 $window "press" 0 0 0 0]
     }
   }
   error "invalid number of arguments!"
@@ -138,8 +138,9 @@ proc compat::bindsource1 {window type} {
 };# compat::bindsource1
 
 proc compat::bindsource2 {window type script} {
+  set type [normalise_type $type]
   ::tkdnd::drag_source register $window $type
-  bind $window <<DragInitCmd>> "list {copy} %t \[$script\]"
+  bind $window <<DragInitCmd>> "list {copy} {%t} \[$script\]"
 };# compat::bindsource2
 
 proc compat::bindsource3 {window type script priority} {

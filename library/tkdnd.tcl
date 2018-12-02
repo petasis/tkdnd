@@ -47,6 +47,8 @@ namespace eval ::tkdnd {
   variable _platform_namespace
   variable _drop_file_temp_dir
   variable _auto_update 1
+  variable _dx 3 ;# The difference in pixels before a drag is initiated.
+  variable _dy 3 ;# The difference in pixels before a drag is initiated.
 
   variable _windowingsystem
 
@@ -168,28 +170,25 @@ namespace eval ::tkdnd {
     variable _drop_file_temp_dir
     set _drop_file_temp_dir $dir
   }
- 
+
 };# namespace ::tkdnd
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::drag_source
 # ----------------------------------------------------------------------------
-proc ::tkdnd::drag_source { mode path { types {} } { event 1 } } {
+proc ::tkdnd::drag_source { mode path { types {} } { event 1 }
+                                      { tagprefix TkDND_Drag } } {
   set tags [bindtags $path]
-  set idx  [lsearch $tags "TkDND_Drag*"]
+  set idx  [lsearch $tags ${tagprefix}$event]
   switch -- $mode {
     register {
       if { $idx != -1 } {
-        bindtags $path [lreplace $tags $idx $idx TkDND_Drag$event]
+        ## No need to do anything!
+        # bindtags $path [lreplace $tags $idx $idx ${tagprefix}$event]
       } else {
-        bindtags $path [concat $tags TkDND_Drag$event]
+        bindtags $path [linsert $tags 1 ${tagprefix}$event]
       }
-      set types [platform_specific_types $types]
-      set old_types [bind $path <<DragSourceTypes>>]
-      foreach type $types {
-        if {[lsearch $old_types $type] < 0} {lappend old_types $type}
-      }
-      bind $path <<DragSourceTypes>> $old_types
+      _drag_source_update_types $path $types
     }
     unregister {
       if { $idx != -1 } {
@@ -198,6 +197,15 @@ proc ::tkdnd::drag_source { mode path { types {} } { event 1 } } {
     }
   }
 };# tkdnd::drag_source
+
+proc ::tkdnd::_drag_source_update_types { path types } {
+  set types [platform_specific_types $types]
+  set old_types [bind $path <<DragSourceTypes>>]
+  foreach type $types {
+    if {[lsearch $old_types $type] < 0} {lappend old_types $type}
+  }
+  bind $path <<DragSourceTypes>> $old_types
+};# ::tkdnd::_drag_source_update_types
 
 # ----------------------------------------------------------------------------
 #  Command tkdnd::drop_target
@@ -273,7 +281,9 @@ proc ::tkdnd::_begin_drag { event button source state X Y x y } {
         return
       }
       if { [string equal $_state "press"] } {
-        if { abs($_x0-$X) > 3 || abs($_y0-$Y) > 3 } {
+        variable _dx
+        variable _dy
+        if { abs($_x0-$X) > ${_dx} || abs($_y0-$Y) > ${_dy} } {
           set _state "done"
           _init_drag $button $source $state $X $Y $x $y
         }
@@ -288,11 +298,13 @@ proc ::tkdnd::_begin_drag { event button source state X Y x y } {
 proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
   # Call the <<DragInitCmd>> binding.
   set cmd [bind $source <<DragInitCmd>>]
+  # puts "CMD: $cmd"
   if {[string length $cmd]} {
     set cmd [string map [list %W $source %X $rootX %Y $rootY %x $X %y $Y \
                               %S $state  %e <<DragInitCmd>> %A \{\} %% % \
                               %t [bind $source <<DragSourceTypes>>]] $cmd]
     set code [catch {uplevel \#0 $cmd} info options]
+    # puts "CODE: $code ---- $info"
     switch -exact -- $code {
       0 {}
       3 - 4 {
@@ -327,10 +339,16 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
         return
       }
       error "not enough items in the result of the <<DragInitCmd>>\
-             event binding. Either 2 or 3 items are expected."
+             event binding. Either 2 or 3 items are expected. The command
+             executed was: \"$cmd\"\nResult was: \"$info\""
     }
     set action refuse_drop
     variable _windowingsystem
+    # puts "Source:   \"$source\""
+    # puts "Types:    \"[join $types {", "}]\""
+    # puts "Actions:  \"[join $actions {", "}]\""
+    # puts "Button:   \"$button\""
+    # puts "Data:     \"[string range $data 0 100]\""
     switch $_windowingsystem {
       x11 {
         set action [xdnd::_dodragdrop $source $actions $types $data $button]
