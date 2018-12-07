@@ -12,6 +12,7 @@ set tcl_includepath $root/include
 set tk_includepath  $root/include
 set tcl_libpath $libpath
 set tk_libpath  $libpath
+set tk_includepath_int $tk_includepath
 catch {file delete -force config.cache}
 
 # puts "ROOT: $root"
@@ -19,16 +20,31 @@ catch {file delete -force config.cache}
 catch {
   switch -nocase -- $::tcl_platform(os) {
     darwin {
+      set sdk {}
+      catch {
+        set sdk [exec xcodebuild -version -sdk macosx Path]
+      }
       foreach dir [list \
          $root/Headers \
          [string map {Tcl Tk} $root]/Headers \
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Tcl.framework/Versions/Current \
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Tcl.framework/Versions/Current/Headers \
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Tk.framework/Versions/Current \
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Tk.framework/Versions/Current/Headers \
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Tk.framework/Versions/Current/Headers/tk-private \
+         $sdk/System/Library/Frameworks/Tcl.framework/Versions/Current \
+         $sdk/System/Library/Frameworks/Tcl.framework/Versions/Current/Headers \
+         $sdk/System/Library/Frameworks/Tk.framework/Versions/Current \
+         $sdk/System/Library/Frameworks/Tk.framework/Versions/Current/Headers \
+         $sdk/System/Library/Frameworks/Tk.framework/Versions/Current/Headers/tk-private \
          /System/Library/Frameworks/Tcl.framework \
          /System/Library/Frameworks/Tk.framework \
       ] {
-        if {[file exists $dir/tclConfig.sh]} {set tcl_libpath     $dir}
-        if {[file exists $dir/tkConfig.sh]}  {set tk_libpath      $dir}
-        if {[file exists $dir/tcl.h]}        {set tcl_includepath $dir}
-        if {[file exists $dir/tk.h]}         {set tk_includepath  $dir}
+        if {[file exists $dir/tclConfig.sh]} {set tcl_libpath         $dir}
+        if {[file exists $dir/tkConfig.sh]}  {set tk_libpath          $dir}
+        if {[file exists $dir/tcl.h]}        {set tcl_includepath     $dir}
+        if {[file exists $dir/tk.h]}         {set tk_includepath      $dir}
+        if {[file exists $dir/tkInt.h]}      {set tk_includepath_int  $dir}
       }
     }
   }
@@ -110,7 +126,26 @@ puts "Found \"tk.h\"  in \"$tk_includepath\"."
 
 puts {}
 
-puts "+++ Running 'bash configure -srcdir=$srcdir\n\
+if {$tk_includepath_int ne $tk_includepath} {
+  puts "+++ Running 'bash configure -srcdir=$srcdir\n\
+      \                 --prefix=$srcdir/cmake/runtime\n\
+      \                 --exec-prefix=$srcdir/cmake/runtime\n\
+      \                 --with-tcl=$tcl_libpath\n\
+      \                 --with-tk=$tk_libpath\n\
+      \                 --with-tclinclude=$tcl_includepath\n\
+      \                 --with-tkinclude=$tk_includepath\n\
+      \                 PKG_INCLUDES=-I\"$tk_includepath_int\"\n\
+      \                 $bits'\n\
+      \            in directory [pwd]..."
+  catch {exec bash configure -srcdir=$srcdir --prefix=$srcdir/cmake/runtime \
+            --exec-prefix=$srcdir/cmake/runtime \
+            --with-tcl=$tcl_libpath --with-tk=$tk_libpath \
+            --with-tclinclude=$tcl_includepath \
+            --with-tkinclude=$tk_includepath \
+            PKG_INCLUDES=-I"$tk_includepath_int" \
+            $bits >@stdout 2>@stderr}
+} else {
+  puts "+++ Running 'bash configure -srcdir=$srcdir\n\
       \                 --prefix=$srcdir/cmake/runtime\n\
       \                 --exec-prefix=$srcdir/cmake/runtime\n\
       \                 --with-tcl=$tcl_libpath\n\
@@ -119,9 +154,11 @@ puts "+++ Running 'bash configure -srcdir=$srcdir\n\
       \                 --with-tkinclude=$tk_includepath\n\
       \                 $bits'\n\
       \            in directory [pwd]..."
-catch {exec bash configure -srcdir=$srcdir --prefix=$srcdir/cmake/runtime \
+  catch {exec bash configure -srcdir=$srcdir --prefix=$srcdir/cmake/runtime \
             --exec-prefix=$srcdir/cmake/runtime \
             --with-tcl=$tcl_libpath --with-tk=$tk_libpath \
             --with-tclinclude=$tcl_includepath \
-            --with-tkinclude=$tk_includepath $bits >@stdout 2>@stderr}
+            --with-tkinclude=$tk_includepath \
+            $bits >@stdout 2>@stderr}
+}
 exit 0

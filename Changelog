@@ -1,3 +1,7 @@
+2018-12-07  Petasis George  <petasis@iit.demokritos.gr>
+	* tcl-conf: More tweaks for finding tcl config and header files in
+	OS X 10.14.
+
 2018-12-02  Petasis George  <petasis@iit.demokritos.gr>
 	* demos/text_widget_demo.tcl: New demo, demonstrating tkdnd::utils for
 	the text widget.
