@@ -33,4 +33,6 @@ install:
 
 build:
   project: C:\projects\tkdnd\build\tkdnd.sln      # path to Visual Studio solution or project
+
+after_build:
   - cmd: msbuild INSTALL.vcxproj
