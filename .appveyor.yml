@@ -7,6 +7,7 @@ image:
 
 platform:
   - x64
+  - x86
 
 configuration:
   - Release
@@ -37,7 +38,7 @@ build:
 after_build:
   - cmd: msbuild INSTALL.vcxproj
   - cmd: echo %cd%
-  - cmd: cd runtime && 7z a tkdnd-%platform%.zip *
+  - cmd: cd runtime && 7z a -tzip tkdnd-%platform%.zip *
 
 artifacts:
   - path: '\build\runtime\*.zip'
