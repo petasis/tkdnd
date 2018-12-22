@@ -29,7 +29,8 @@ install:
   - cmd: set PATH=%cd%\IronTcl\bin;%PATH%
   # Generate solution...
   - cmd: cmake -E make_directory "build"
-  - cmd: cd build && cmake -G %CMAKE_GENERATOR% ..
+  - cmd: cd build && cmake -G %CMAKE_GENERATOR% -D CMAKE_INSTALL_PREFIX=runtime ..
 
 build:
   project: C:\projects\tkdnd\build\tkdnd.sln      # path to Visual Studio solution or project
+  - cmd: msbuild INSTALL.vcxproj
