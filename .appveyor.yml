@@ -36,3 +36,8 @@ build:
 
 after_build:
   - cmd: msbuild INSTALL.vcxproj
+
+artifacts:
+  - path: 'runtime/*'
+    type: zip
+    name: tkdnd-%platform%
