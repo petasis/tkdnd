@@ -37,9 +37,9 @@ build:
 after_build:
   - cmd: msbuild INSTALL.vcxproj
   - cmd: echo %cd%
-  - cmd: cd build\runtime && 7z a tkdnd-%platform%.zip *
+  - cmd: cd runtime && 7z a tkdnd-%platform%.zip *
 
 artifacts:
   - path: '\build\runtime\*.zip'
     type: zip
-    name: tkdnd-%platform%
+    name: tkdnd-%platform%.zip
