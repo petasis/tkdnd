@@ -59,7 +59,7 @@ artifacts:
     name: tkdnd-%TKDND_VERSION%-windows-%platform%.zip
 
 # https://github.com/forexample/github-binary-release
-# git tag tkdnd-bin-win-v2.9
+# git tag tkdnd-release-test-v2.9.2
 # git push --tags
 deploy:
   provider: GitHub
@@ -69,7 +69,7 @@ deploy:
   # release: $(APPVEYOR_REPO_TAG_NAME)-%platform%-v$(appveyor_build_version)
   # release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
   release: $(APPVEYOR_REPO_TAG_NAME)
-  description: 'Windows binaries'
+  description: 'TkDND binaries'
   artifact: tkdnd-%TKDND_VERSION%-windows-%platform%.zip
   draft: false
   prerelease: false

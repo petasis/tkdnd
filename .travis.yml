@@ -11,11 +11,10 @@ script:
   - export TKDND_HOME=`pwd`
   - export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
   - ./configure --prefix=${TKDND_RUNTIME} --exec-prefix=${TKDND_RUNTIME} && make && make test
-
-after_script:
   - make install
 
 before_deploy:
+  - make install
   - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
   - cd ${TKDND_RUNTIME}/lib && tar -czvf ${FILE_TO_UPLOAD} tkdnd${TKDND_VERSION}
   - cd ${TKDND_HOME}
