@@ -5309,7 +5309,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
 
 
-    vars="library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_generic.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl library/tkdnd_macosx.tcl"
+    vars="library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_generic.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl library/tkdnd_macosx.tcl library/tkdnd_utils.tcl"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
