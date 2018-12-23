@@ -1,3 +1,6 @@
+# version format
+version: 2.9.{build}
+
 branches:
   only:
     - master
@@ -53,3 +56,14 @@ artifacts:
   - path: '\build\runtime\*.zip'
     type: zip
     name: tkdnd-windows-%platform%.zip
+
+deploy:
+  release: tkdnd-v$(appveyor_build_version)
+  description: 'Windows binaries'
+  provider: GitHub
+  artifact: tkdnd-windows-%platform%.zip
+  draft: false
+  prerelease: true
+  on:
+    branch: master                 # release from master branch only
+    APPVEYOR_REPO_TAG: true        # deploy on tag push only
