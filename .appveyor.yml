@@ -64,8 +64,9 @@ deploy:
   provider: GitHub
   auth_token:
     secure: "7kNH4z5bvgLYlqwlYjfauWmAdruv4cWrAIX6xCW6fVAWckFS8GbaajRO017EhDc0"
-  tag: $(APPVEYOR_REPO_TAG_NAME)-%platform%
-  release: tkdnd-v$(appveyor_build_version)
+  tag: $(APPVEYOR_REPO_TAG_NAME)
+  # release: $(APPVEYOR_REPO_TAG_NAME)-%platform%-v$(appveyor_build_version)
+  release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
   description: 'Windows binaries'
   artifact: tkdnd-windows-%platform%.zip
   draft: false
