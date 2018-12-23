@@ -7,15 +7,19 @@ env:
     secure: HiwhQwIxhXHHdd7Hp2VKhilspc+cvG05MwHyhvLEnRA10OrwW4qIK0EVUkT2b9M28nPZU5SBlA8IvAL76erSSpF44Uz23P6L4Q0BDPPYCGSggQiTQE8qGw8ECt6cOdJrkUFzYzOtct6qWtUdHG0GUBOh2ap42qUzSz4Rzh1Pqwelv8rIyoOAdEsg1EYWIZMfmzx2U2WOD4wOmQpc//D3ONNewKnYHCT3TZ8IjvxivLzaQaKY3ds0eXvI18tYUcZqfL1Y55Nv7YjQE0ywUzqbVN95L48PQBnYKYI7liFFCgpCIkxq0BWwxuwzhV0KhcVifyXPeUveNIGHTF3pRPw8WKLl7zlcQNYK1SKRoDj8yHGTNDzOW3JHSy+QYF4E6XEz9jYJ1ZI5Y+/caq5JhQiSTlsroVZljyi0eCqamDZ1me8oX/wib+N5N6tjJne0afd2m/Kjw/h38sF+Xbrpn3D3CGV/BdoPFXp1sKgv2m/KfAnjE14ouPI6MpxVQOX8i2aFctbhuj7IW63ZDhG9gDIFFE58vwP330+BJuuwnrMhVXQMYP2+6Xh9G4+tZ0By1U3Ni51XmRnTioSa0uPg6gn34fV4Q+cmRjRO2Vji0vqXhdnU0FpqGVp0M88pgJVZNFm7O6xoutwRbLMBKWtB5lTiM58GPqj0rrV8DH0OLN95Axc=
 
 script:
-  - ./configure --prefix=`pwd`/cmake/runtime --exec-prefix=`pwd`/cmake/runtime && make && make test
+  - export TKDND_VERSION="2.9"
+  - export TKDND_HOME=`pwd`
+  - export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
+  - ./configure --prefix=${TKDND_RUNTIME} --exec-prefix=${TKDND_RUNTIME} && make && make test
 
 after_script:
   - make install
-  - pwd
-  - ls
 
 before_deploy:
-  - export FILE_TO_UPLOAD=$(ls _builds/*/Foo-*.tar.gz)
+  - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
+  - cd ${TKDND_RUNTIME}/lib && tar -cvfz ${FILE_TO_UPLOAD} tkdnd${TKDND_VERSION}
+  - pwd
+  - ls
 
 deploy:
   provider: releases

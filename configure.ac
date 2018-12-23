@@ -77,7 +77,7 @@ TEA_ADD_INCLUDES([])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
-TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_generic.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl library/tkdnd_macosx.tcl])
+TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_generic.tcl library/tkdnd_unix.tcl library/tkdnd_windows.tcl library/tkdnd_macosx.tcl library/tkdnd_utils.tcl])
 
 #--------------------------------------------------------------------
 # __CHANGE__
