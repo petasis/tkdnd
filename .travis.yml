@@ -16,14 +16,14 @@ after_script:
   - make install
   - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
   - cd ${TKDND_RUNTIME}/lib && tar -czvf ${FILE_TO_UPLOAD} tkdnd${TKDND_VERSION}
-  - pwd
+  - cd ${TKDND_HOME}
   - ls
 
 
 before_deploy:
   - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
   - cd ${TKDND_RUNTIME}/lib && tar -czvf ${FILE_TO_UPLOAD} tkdnd${TKDND_VERSION}
-  - pwd
+  - cd ${TKDND_HOME}
   - ls
 
 deploy:
