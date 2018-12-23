@@ -51,12 +51,12 @@ build_script:
 
 after_build:
   - cmd: echo %cd%
-  - cmd: cd runtime && 7z a -tzip tkdnd-${TKDND_VERSION}-windows-%platform%.zip *
+  - cmd: cd runtime && 7z a -tzip tkdnd-%TKDND_VERSION%-windows-%platform%.zip *
 
 artifacts:
   - path: '\build\runtime\*.zip'
     type: zip
-    name: tkdnd-${TKDND_VERSION}-windows-%platform%.zip
+    name: tkdnd-%TKDND_VERSION%-windows-%platform%.zip
 
 # https://github.com/forexample/github-binary-release
 # git tag tkdnd-bin-win-v2.9
@@ -69,7 +69,7 @@ deploy:
   # release: $(APPVEYOR_REPO_TAG_NAME)-%platform%-v$(appveyor_build_version)
   release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
   description: 'Windows binaries'
-  artifact: tkdnd-${TKDND_VERSION}-windows-%platform%.zip
+  artifact: tkdnd-%TKDND_VERSION%-windows-%platform%.zip
   draft: false
   prerelease: false
   on:
