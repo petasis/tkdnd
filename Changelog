@@ -1,5 +1,7 @@
 2018-12-23  Petasis George  <petasis@iit.demokritos.gr>
-	* .appveyor.yml: Set tclsh for IronTcl.
+	* .travis.yml: make install & deployment to GitHub.
+
+	* .appveyor.yml: Set tclsh for IronTcl. Deployment to GitHub.
 
 2018-12-22  Petasis George  <petasis@iit.demokritos.gr>
 	* .appveyor.yml: Added a command to install project after build.
