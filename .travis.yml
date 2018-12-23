@@ -7,7 +7,7 @@ env:
     secure: HiwhQwIxhXHHdd7Hp2VKhilspc+cvG05MwHyhvLEnRA10OrwW4qIK0EVUkT2b9M28nPZU5SBlA8IvAL76erSSpF44Uz23P6L4Q0BDPPYCGSggQiTQE8qGw8ECt6cOdJrkUFzYzOtct6qWtUdHG0GUBOh2ap42qUzSz4Rzh1Pqwelv8rIyoOAdEsg1EYWIZMfmzx2U2WOD4wOmQpc//D3ONNewKnYHCT3TZ8IjvxivLzaQaKY3ds0eXvI18tYUcZqfL1Y55Nv7YjQE0ywUzqbVN95L48PQBnYKYI7liFFCgpCIkxq0BWwxuwzhV0KhcVifyXPeUveNIGHTF3pRPw8WKLl7zlcQNYK1SKRoDj8yHGTNDzOW3JHSy+QYF4E6XEz9jYJ1ZI5Y+/caq5JhQiSTlsroVZljyi0eCqamDZ1me8oX/wib+N5N6tjJne0afd2m/Kjw/h38sF+Xbrpn3D3CGV/BdoPFXp1sKgv2m/KfAnjE14ouPI6MpxVQOX8i2aFctbhuj7IW63ZDhG9gDIFFE58vwP330+BJuuwnrMhVXQMYP2+6Xh9G4+tZ0By1U3Ni51XmRnTioSa0uPg6gn34fV4Q+cmRjRO2Vji0vqXhdnU0FpqGVp0M88pgJVZNFm7O6xoutwRbLMBKWtB5lTiM58GPqj0rrV8DH0OLN95Axc=
 
 script:
-  - ./configure && make && make test
+  - ./configure --prefix=cmake/runtime --exec-prefix=cmake/runtime && make && make test
 
 after_script:
   - make install
