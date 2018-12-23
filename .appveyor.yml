@@ -27,9 +27,11 @@ install:
   - cmd: appveyor DownloadFile https://www.irontcl.com/downloads/irontcl-%DOWNLOAD_PLATFORM%-%IRONTCL_VERSION%.zip
   - cmd: cmake -E tar xf irontcl-%DOWNLOAD_PLATFORM%-%IRONTCL_VERSION%.zip
   - cmd: set PATH=%cd%\IronTcl\bin;%PATH%
+  - cmd: set TCL_TCLSH=%cd%\IronTcl\bin\tclsh86t.exe
+  - cmd: set TCL_WISH=%cd%\IronTcl\bin\wish86t.exe
   # Generate solution...
   - cmd: cmake -E make_directory "build"
-  - cmd: cd build && cmake -G %CMAKE_GENERATOR% -DTCL_TCLSH=%cd%\IronTcl\bin\tclsh86t.exe -D CMAKE_INSTALL_PREFIX=runtime ..
+  - cmd: cd build && cmake -G %CMAKE_GENERATOR% -DTCL_TCLSH=%TCL_TCLSH% -DTCL_WISH=%TCL_WISH% -D CMAKE_INSTALL_PREFIX=runtime ..
 
 build:
   project: C:\projects\tkdnd\build\tkdnd.sln      # path to Visual Studio solution or project
