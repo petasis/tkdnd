@@ -23,9 +23,9 @@ set(with-tcl   "" CACHE PATH "directory containing tcl configuration (tclConfig.
 
 ## Ensure that the variable PKG_OS_ARCH exists! If undefined, define it with
 ## the value "x86_32"
-IF ( NOT PKG_OS_ARCH )
-  SET ( PKG_OS_ARCH x86_32 )
-ENDIF ( NOT PKG_OS_ARCH )
+# IF ( NOT PKG_OS_ARCH )
+#   SET ( PKG_OS_ARCH x86_32 )
+# ENDIF ( NOT PKG_OS_ARCH )
 
 IF ( POLICY CMP0042 )
   CMAKE_POLICY ( SET CMP0042 NEW )

@@ -31,10 +31,13 @@ install:
   - cmd: set TK_WISH=%cd%\IronTcl\bin\wish86t.exe
   # Generate solution...
   - cmd: cmake -E make_directory "build"
-  - cmd: cd build && cmake -G %CMAKE_GENERATOR% -DTCL_TCLSH=%TCL_TCLSH% -DTK_WISH=%TK_WISH% -D CMAKE_INSTALL_PREFIX=runtime ..
+  - cmd: cd build && cmake -G %CMAKE_GENERATOR% -DTCL_TCLSH=%TCL_TCLSH% -DTK_WISH=%TK_WISH% -DCMAKE_INSTALL_PREFIX=runtime ..
 
 build:
   project: C:\projects\tkdnd\build\tkdnd.sln      # path to Visual Studio solution or project
+
+before_build:
+  - cmd: if %platform%==x86 set PLATFORM=Win32 # If value is x86, msbuild fails
 
 after_build:
   - cmd: msbuild INSTALL.vcxproj
