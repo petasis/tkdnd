@@ -39,7 +39,7 @@ build:
 
 before_build:
   - cmd: if %platform%==x86 set TKDND_PLATFORM=Win32
-  - cmd: if %platform%==x64 set TKDND_PLATFORM=Win64
+  - cmd: if %platform%==x64 set TKDND_PLATFORM=x64
 
 build_script:
   - cmd: msbuild tkdnd.sln /p:Platform=%TKDND_PLATFORM% /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
