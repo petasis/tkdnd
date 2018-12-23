@@ -67,7 +67,8 @@ deploy:
     secure: "u2sUa4ovDQsL08AQjtmcIIVmHw6pFqIsT8JSBkMA2Ciebku0slhbTCGDZ19sp0Xt"
   tag: $(APPVEYOR_REPO_TAG_NAME)
   # release: $(APPVEYOR_REPO_TAG_NAME)-%platform%-v$(appveyor_build_version)
-  release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
+  # release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
+  release: $(APPVEYOR_REPO_TAG_NAME)
   description: 'Windows binaries'
   artifact: tkdnd-%TKDND_VERSION%-windows-%platform%.zip
   draft: false
