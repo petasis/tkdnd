@@ -6,7 +6,6 @@ image:
   - Visual Studio 2017
 
 platform:
-  - x64
   - x86
 
 configuration:
@@ -30,7 +29,7 @@ install:
   - cmd: set PATH=%cd%\IronTcl\bin;%PATH%
   # Generate solution...
   - cmd: cmake -E make_directory "build"
-  - cmd: cd build && cmake -G %CMAKE_GENERATOR% -D CMAKE_INSTALL_PREFIX=runtime ..
+  - cmd: cd build && cmake -G %CMAKE_GENERATOR% -DTCL_TCLSH=%cd%\IronTcl\bin\tclsh86t.exe -D CMAKE_INSTALL_PREFIX=runtime ..
 
 build:
   project: C:\projects\tkdnd\build\tkdnd.sln      # path to Visual Studio solution or project
@@ -38,9 +37,9 @@ build:
 after_build:
   - cmd: msbuild INSTALL.vcxproj
   - cmd: echo %cd%
-  - cmd: cd runtime && 7z a -tzip tkdnd-%platform%.zip *
+  - cmd: cd runtime && 7z a -tzip tkdnd-windows-%platform%.zip *
 
 artifacts:
   - path: '\build\runtime\*.zip'
     type: zip
-    name: tkdnd-%platform%.zip
+    name: tkdnd-windows-%platform%.zip
