@@ -64,7 +64,7 @@ artifacts:
 deploy:
   provider: GitHub
   auth_token:
-    secure: "7kNH4z5bvgLYlqwlYjfauWmAdruv4cWrAIX6xCW6fVAWckFS8GbaajRO017EhDc0"
+    secure: "u2sUa4ovDQsL08AQjtmcIIVmHw6pFqIsT8JSBkMA2Ciebku0slhbTCGDZ19sp0Xt"
   tag: $(APPVEYOR_REPO_TAG_NAME)
   # release: $(APPVEYOR_REPO_TAG_NAME)-%platform%-v$(appveyor_build_version)
   release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
