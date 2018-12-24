@@ -61,6 +61,10 @@ artifacts:
 # https://github.com/forexample/github-binary-release
 # git tag tkdnd-release-test-v2.9.2
 # git push --tags
+#
+# Delete tag:
+# git push --delete origin tkdnd-release-test-v2.9.1
+# git tag -d tkdnd-release-test-v2.9.1
 deploy:
   provider: GitHub
   auth_token:
