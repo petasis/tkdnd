@@ -477,10 +477,10 @@ class TkDND_DropTarget: public IDropTarget {
 #endif
 
 #ifdef DND_DRAGOVER_SKIP_EVENTS
-    DWORD                 last_keyState;
+    DWORD                last_keyState;
     LONG                 last_X, last_Y;
     DWORD                last_effect;
-    bool                  skip_if_unchanged;
+    bool                 skip_if_unchanged;
 #endif /* DND_DRAGOVER_SKIP_EVENTS */
 
 
@@ -504,7 +504,8 @@ class TkDND_DropTarget: public IDropTarget {
       , last_effect(DROPEFFECT_NONE), last_X(0), last_Y(0), last_keyState(0),
       skip_if_unchanged(false)
 #endif /* DND_DRAGOVER_SKIP_EVENTS */
-    { }; /* TkDND_DropTarget */
+    {
+    }; /* TkDND_DropTarget */
 
     virtual ~TkDND_DropTarget(void) {
       if (typelist   != NULL) Tcl_DecrRefCount(typelist);
@@ -561,8 +562,76 @@ class TkDND_DropTarget: public IDropTarget {
       return pressedkeys;
     }; /* GetPressedKeys */
 
-    DWORD SendDragEnter(POINTL pt, DWORD grfKeyState) {
-      Tcl_Obj *objv[8], *result;
+    /* Returns a new Tcl_Obj, or NULL. Returned object must be freed! */
+    Tcl_Obj *GetData(IDataObject *pDataObject, Tcl_Obj* typeObj) {
+      Tcl_Obj *data = NULL;
+      int i, status, index;
+      static const char *DropTypes[] = {
+        "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
+        "CF_HTML", "HTML Format",
+        "CF_RTF", "CF_RTFTEXT", "Rich Text Format",
+        "FileGroupDescriptorW", "FileGroupDescriptor",
+        "UniformResourceLocator", "UniformResourceLocatorW",
+        (char *) NULL
+      };
+      enum droptypes {
+        TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP,
+        TYPE_CF_HTML, TYPE_CF_HTMLFORMAT,
+        TYPE_CF_RTF, TYPE_CF_RTFTEXT, TYPE_CF_RICHTEXTFORMAT,
+        TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR,
+        TYPE_UNIFORMRESOURCELOCATOR, TYPE_UNIFORMRESOURCELOCATORW
+      };
+      status = Tcl_GetIndexFromObj(interp, typeObj,
+                           (const char **)DropTypes, "droptypes", 0, &index);
+      if (status == TCL_OK) {
+        switch ((enum droptypes) index) {
+          case TYPE_CF_UNICODETEXT:
+            data = GetData_CF_UNICODETEXT(pDataObject); break;
+          case TYPE_CF_HTML:
+          case TYPE_CF_HTMLFORMAT:
+          case TYPE_CF_RTF:
+          case TYPE_CF_RTFTEXT:
+          case TYPE_CF_RICHTEXTFORMAT:
+            data = GetData_Bytearray(pDataObject, typeObj);
+            break;
+          case TYPE_CF_TEXT:
+            data = GetData_CF_TEXT(pDataObject); break;
+          case TYPE_CF_HDROP:
+            data = GetData_CF_HDROP(pDataObject); break;
+          case TYPE_UNIFORMRESOURCELOCATORW:
+            data = GetData_UniformResourceLocator(pDataObject); break;
+          case TYPE_UNIFORMRESOURCELOCATOR:
+            data = GetData_UniformResourceLocatorW(pDataObject); break;
+          case TYPE_FILEGROUPDESCRIPTORW: {
+            // Get a directory where we can store files...
+            Tcl_Obj *objv[1];
+            objv[0]=Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
+            TkDND_Status_Eval(1);
+            if (status == TCL_OK) {
+              strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
+              data = GetData_FileGroupDescriptorW(pDataObject);
+            }
+            break;
+          }
+          case TYPE_FILEGROUPDESCRIPTOR: {
+            // Get a directory where we can store files...
+            Tcl_Obj *objv[1];
+            objv[0] = Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
+            TkDND_Status_Eval(1);
+            if (status == TCL_OK) {
+              strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
+              data = GetData_FileGroupDescriptor(pDataObject);
+            }
+            break;
+          }
+        }
+      }
+      return data;
+    }; /* GetData */
+
+    DWORD SendDragEnter(IDataObject *pDataObject,
+                        POINTL pt, DWORD grfKeyState) {
+      Tcl_Obj *objv[9], *result, *data = NULL;
       DWORD effect = DROPEFFECT_NONE;
       static const char *DropActions[] = {
         "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -579,7 +648,18 @@ class TkDND_DropTarget: public IDropTarget {
         return DROPEFFECT_COPY;
       }
 #endif
-
+      /* Get a type to convert data... */
+      objv[0] = Tcl_NewStringObj("::tkdnd::olednd::GetDataType", -1);
+      objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
+      objv[2] = typelist;
+      TkDND_Status_Eval(3);
+      if (status == TCL_OK) {
+        /* Get the returned type... */
+        result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
+        data = GetData(pDataObject, result);
+        Tcl_DecrRefCount(result);
+      }
+      if (data == NULL) data = Tcl_NewStringObj("", 0);
       objv[0] = Tcl_NewStringObj("::tkdnd::olednd::HandleDragEnter", -1);
       objv[1] = Tcl_NewStringObj(Tk_PathName(tkwin), -1);
       objv[2] = typelist;
@@ -588,7 +668,8 @@ class TkDND_DropTarget: public IDropTarget {
       objv[5] = Tcl_NewLongObj(pt.x);
       objv[6] = Tcl_NewLongObj(pt.y);
       objv[7] = codelist;
-      TkDND_Status_Eval(8);
+      objv[8] = data;
+      TkDND_Status_Eval(9);
       if (status == TCL_OK) {
         /* Get the returned action... */
         result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
@@ -803,7 +884,7 @@ class TkDND_DropTarget: public IDropTarget {
 
       // We are ready to pass the info to the Tcl level, and get the desired
       // action.
-      *pdwEffect = SendDragEnter(pt, grfKeyState);
+      *pdwEffect = SendDragEnter(pDataObject, pt, grfKeyState);
       return S_OK;
     }; /* DragEnter */
 
@@ -837,22 +918,7 @@ class TkDND_DropTarget: public IDropTarget {
     STDMETHODIMP Drop(IDataObject *pDataObject, DWORD grfKeyState,
                       POINTL pt, DWORD *pdwEffect) {
       Tcl_Obj *objv[7], *result, **typeObj, *data = NULL, *type = NULL;
-      int i, type_index, status, index, typeObjc;
-      static const char *DropTypes[] = {
-        "CF_UNICODETEXT", "CF_TEXT", "CF_HDROP",
-        "CF_HTML", "HTML Format",
-        "CF_RTF", "CF_RTFTEXT", "Rich Text Format",
-        "FileGroupDescriptorW", "FileGroupDescriptor",
-        "UniformResourceLocator", "UniformResourceLocatorW",
-        (char *) NULL
-      };
-      enum droptypes {
-        TYPE_CF_UNICODETEXT, TYPE_CF_TEXT, TYPE_CF_HDROP,
-        TYPE_CF_HTML, TYPE_CF_HTMLFORMAT,
-        TYPE_CF_RTF, TYPE_CF_RTFTEXT, TYPE_CF_RICHTEXTFORMAT,
-        TYPE_FILEGROUPDESCRIPTORW, TYPE_FILEGROUPDESCRIPTOR,
-        TYPE_UNIFORMRESOURCELOCATOR, TYPE_UNIFORMRESOURCELOCATORW
-      };
+      int i, type_index, status, typeObjc;
       *pdwEffect = DROPEFFECT_NONE;
 #ifdef DND_USE_ACTIVE
       if (!drop_active) return S_OK;
@@ -867,47 +933,7 @@ class TkDND_DropTarget: public IDropTarget {
       if (status != TCL_OK) {Tcl_DecrRefCount(result); return S_OK;}
       // Try to get the data.
       for (type_index = 0; type_index < typeObjc; ++type_index) {
-        status = Tcl_GetIndexFromObj(interp, typeObj[type_index],
-                             (const char **)DropTypes, "droptypes", 0, &index);
-        if (status == TCL_OK) {
-          switch ((enum droptypes) index) {
-            case TYPE_CF_UNICODETEXT:
-              data = GetData_CF_UNICODETEXT(pDataObject); break;
-            case TYPE_CF_HTML:
-            case TYPE_CF_HTMLFORMAT:
-            case TYPE_CF_RTF:
-            case TYPE_CF_RTFTEXT:
-            case TYPE_CF_RICHTEXTFORMAT:
-              data = GetData_Bytearray(pDataObject, typeObj[type_index]);
-              break;
-            case TYPE_CF_TEXT:
-              data = GetData_CF_TEXT(pDataObject); break;
-            case TYPE_CF_HDROP:
-              data = GetData_CF_HDROP(pDataObject); break;
-            case TYPE_UNIFORMRESOURCELOCATORW:
-              data = GetData_UniformResourceLocator(pDataObject); break;
-            case TYPE_UNIFORMRESOURCELOCATOR:
-              data = GetData_UniformResourceLocatorW(pDataObject); break;
-            case TYPE_FILEGROUPDESCRIPTORW:
-              // Get a directory where we can store files...
-              objv[0]=Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
-              TkDND_Status_Eval(1);
-              if (status == TCL_OK) {
-                strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
-                data = GetData_FileGroupDescriptorW(pDataObject);
-              }
-              break;
-            case TYPE_FILEGROUPDESCRIPTOR:
-              // Get a directory where we can store files...
-              objv[0] = Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
-              TkDND_Status_Eval(1);
-              if (status == TCL_OK) {
-                strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
-                data = GetData_FileGroupDescriptor(pDataObject);
-              }
-              break;
-          }
-        }
+        data = GetData(pDataObject, typeObj[type_index]);
         if (data != NULL) {
           type = typeObj[type_index]; Tcl_IncrRefCount(type);
           break; // We have got the data!

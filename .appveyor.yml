@@ -22,6 +22,7 @@ matrix:
       configuration: Release
 
 install:
+  - cmd: set TKDND_HOME=%cd%
   - cmd: set TKDND_VERSION="2.9"
   # Install Tcl/Tk
   - cmd: set IRONTCL_VERSION="8.6.7"
@@ -31,6 +32,7 @@ install:
   - cmd: if %platform%==x64 set CMAKE_GENERATOR="Visual Studio 15 Win64"
   - cmd: appveyor DownloadFile https://www.irontcl.com/downloads/irontcl-%DOWNLOAD_PLATFORM%-%IRONTCL_VERSION%.zip
   - cmd: cmake -E tar xf irontcl-%DOWNLOAD_PLATFORM%-%IRONTCL_VERSION%.zip
+  - cmd: set TCL_ROOT=%cd%\IronTcl
   - cmd: set PATH=%cd%\IronTcl\bin;%PATH%
   - cmd: set TCL_TCLSH=%cd%\IronTcl\bin\tclsh86t.exe
   - cmd: set TK_WISH=%cd%\IronTcl\bin\wish86t.exe
@@ -39,7 +41,7 @@ install:
   - cmd: cd build && cmake -G %CMAKE_GENERATOR% -DTCL_TCLSH=%TCL_TCLSH% -DTK_WISH=%TK_WISH% -DCMAKE_INSTALL_PREFIX=runtime ..
 
 build:
-  project: C:\projects\tkdnd\build\tkdnd.sln      # path to Visual Studio solution or project
+  project: build\tkdnd.sln      # path to Visual Studio solution or project
 
 before_build:
   - cmd: if %platform%==x86 set TKDND_PLATFORM=Win32

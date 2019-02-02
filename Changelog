@@ -1,3 +1,10 @@
+2019-02-03  Petasis George  <petasis@iit.demokritos.gr>
+	* win/OleDND.h:
+	* library/tkdnd_generic.tcl:
+	* library/tkdnd_windows.tcl: Provided a solution for bug #25.
+	Under Windows, the dropped data is available for the <<DropEnter>> and
+	<<DropPosition>> events.
+
 2018-12-23  Petasis George  <petasis@iit.demokritos.gr>
 	* .travis.yml: make install & deployment to GitHub.
 

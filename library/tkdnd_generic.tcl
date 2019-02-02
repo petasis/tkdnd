@@ -108,7 +108,7 @@ proc generic::HandleEnter { drop_target drag_source typelist codelist
 #  Command generic::HandlePosition
 # ----------------------------------------------------------------------------
 proc generic::HandlePosition { drop_target drag_source pressedkeys
-                               rootX rootY } {
+                               rootX rootY { time 0 } } {
   variable _types
   variable _typelist
   variable _codelist
@@ -145,6 +145,7 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
   #         [GetWindowCommonTypes $drop_target $_typelist] {break}
   foreach {drop_target common_drag_source_types common_drop_target_types} \
           [FindWindowWithCommonTypes $drop_target $_typelist] {break}
+  set data [GetDroppedData $time]
 
   # debug "\t($_drop_target) -> ($drop_target)"
   if {$drop_target != $_drop_target} {
@@ -187,7 +188,7 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
           %ST  \{$_typelist\}    %TT \{$_types\} \
           %A   $_action          %a  \{$_actionlist\} \
           %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
-          %D   \{\}              %e  <<DropEnter>> \
+          %D   [list $data]      %e  <<DropEnter>> \
           %L   \{$_typelist\}    %%  % \
           %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
           %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \
@@ -216,7 +217,7 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
         %ST  \{$_typelist\}    %TT \{$_types\} \
         %A   $_action          %a  \{$_actionlist\} \
         %b   \{$_pressedkeys\} %m  \{$_pressedkeys\} \
-        %D   \{\}              %e  <<DropPosition>> \
+        %D   [list $data]      %e  <<DropPosition>> \
         %L   \{$_typelist\}    %%  % \
         %t   \{$_typelist\}    %T  \{[lindex $_common_drag_source_types 0]\} \
         %c   \{$_codelist\}    %C  \{[lindex $_codelist 0]\} \

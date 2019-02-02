@@ -70,7 +70,8 @@ namespace eval olednd {
 #  Command olednd::HandleDragEnter
 # ----------------------------------------------------------------------------
 proc olednd::HandleDragEnter { drop_target typelist actionlist pressedkeys
-                               rootX rootY codelist } {
+                               rootX rootY codelist { data {} } } {
+  ::tkdnd::generic::SetDroppedData $data
   focus $drop_target
   ::tkdnd::generic::HandleEnter $drop_target 0 $typelist \
                                 $codelist $actionlist $pressedkeys
@@ -108,6 +109,15 @@ proc olednd::HandleDrop { drop_target pressedkeys rootX rootY type data } {
   if {$::tkdnd::_auto_update} {update idletasks}
   return $action
 };# olednd::HandleDrop
+
+# ----------------------------------------------------------------------------
+#  Command olednd::GetDataType
+# ----------------------------------------------------------------------------
+proc olednd::GetDataType { drop_target typelist } {
+  foreach {drop_target common_drag_source_types common_drop_target_types} \
+    [::tkdnd::generic::FindWindowWithCommonTypes $drop_target $typelist] {break}
+  lindex $common_drag_source_types 0
+};# olednd::GetDataType
 
 # ----------------------------------------------------------------------------
 #  Command olednd::GetDragSourceCommonTypes
