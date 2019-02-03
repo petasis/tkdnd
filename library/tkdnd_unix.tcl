@@ -219,7 +219,7 @@ proc xdnd::normalise_data { type data } {
     }
     text/uri-list* {
       if {[catch {
-            encoding convertfrom utf-8 [tkdnd::bytes_to_string $data
+            encoding convertfrom utf-8 [tkdnd::bytes_to_string $data]
           } string]} {
         set string $data
       }
@@ -229,6 +229,7 @@ proc xdnd::normalise_data { type data } {
       foreach quoted_file [split $string] {
         set file [tkdnd::urn_unquote $quoted_file]
         switch -glob $file {
+          \#*       {}
           file://*  {lappend files [string range $file 7 end]}
           ftp://*   -
           https://* -

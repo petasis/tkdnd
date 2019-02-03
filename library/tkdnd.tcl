@@ -465,5 +465,5 @@ proc ::tkdnd::urn_unquote {url} {
     set start [incr last]
   }
   append result [string range $url $start end]
-  return $result
+  return [encoding convertfrom utf-8 $result]
 };# tkdnd::urn_unquote

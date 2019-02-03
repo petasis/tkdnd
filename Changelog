@@ -1,4 +1,10 @@
 2019-02-03  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd.tcl: Added conversion from utf-8 in
+	::tkdnd::urn_unquote.
+
+	* library/tkdnd_unix.tcl: Added support for comments in
+	xdnd::normalise_data for the "text/uri-list" media type.
+
 	* demos/dndSpy.tcl: Modified demo to also show data to be dropped
 	during drag.
 
