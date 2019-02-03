@@ -1,11 +1,15 @@
 2019-02-03  Petasis George  <petasis@iit.demokritos.gr>
+	* demos/dndSpy.tcl: Modified demo to also show data to be dropped
+	during drag.
+
 	* win/OleDND.h:
+	* unix/TkDND_XDND.c
 	* library/tkdnd_generic.tcl:
 	* library/tkdnd_macosx.tcl:
 	* library/tkdnd_unix.tcl:
 	* library/tkdnd_windows.tcl: Provided a solution for bug #25.
-	Under Windows, the dropped data is available for the <<DropEnter>> and
-	<<DropPosition>> events.
+	Under Windows and Unix, the dropped data is available for the
+	<<DropEnter>> and <<DropPosition>> events (%D specifier).
 
 2018-12-23  Petasis George  <petasis@iit.demokritos.gr>
 	* .travis.yml: make install & deployment to GitHub.

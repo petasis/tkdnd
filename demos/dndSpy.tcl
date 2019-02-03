@@ -32,13 +32,17 @@ if {[catch {package require tkdnd} version]} {
 
 ## Place a listbox. This will be our drop target, which will also display the
 ## types supported by the drag source...
-pack [listbox .typeList -height 25 -width 50] -side left -padx 2 -pady 2 \
-        -fill y -expand 0
+listbox .typeList -height 20 -width 50
 ## A text widget to display the dropped data...
-pack [text .data -height 25 -width 80] -side left -padx 2 -pady 2 -fill both \
-        -expand 1
+text .data -height 20 -width 60
 .data insert end $package_info
-pack [button .exit -text {  Exit  } -command exit] -side bottom -pady 5 -padx 5
+text .position -height 5 -width 50
+button .exit -text {  Exit  } -command exit
+
+grid .typeList .data - -sticky snew -padx 2 -pady 2
+grid columnconfigure . 1 -weight 1
+grid columnconfigure . 2 -weight 1
+grid .position - .exit -sticky snew -padx 2 -pady 2
 
 proc FillTypeListbox {listbox types type codes code actions action mods} {
     $listbox delete 0 end
@@ -65,6 +69,13 @@ proc FillTypeListbox {listbox types type codes code actions action mods} {
     $listbox insert end " * Modifiers: \"$mods\""
     $listbox itemconfigure end -foreground brown -background $::bg
 }
+proc FillPosition {text X Y data} {
+  $text configure -state normal
+  $text delete 1.0 end
+  $text insert end "Position: (x=$X, y=$Y) Data Preview:\n"
+  $text insert end \"$data\"
+  $text configure -state disabled
+};# FillPosition
 proc FillData {text Data type code} {
     $text configure -state normal
     $text delete 1.0 end
@@ -102,6 +113,7 @@ set abg #8fbc8f
 set type *
 dnd bindtarget .typeList $type <DragEnter> ".typeList configure -bg $abg
 FillTypeListbox .typeList %t %T %c %C %a %A %m
+FillPosition    .position %X %Y %D
 return \[lindex %a 0\]"
 dnd bindtarget .typeList $type <Drag> \
         [dnd bindtarget .typeList $type <DragEnter>]

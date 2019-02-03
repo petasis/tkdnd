@@ -60,11 +60,14 @@ namespace eval xdnd {
 # ----------------------------------------------------------------------------
 #  Command xdnd::HandleXdndEnter
 # ----------------------------------------------------------------------------
-proc xdnd::HandleXdndEnter { path drag_source typelist { data {} } } {
+proc xdnd::HandleXdndEnter { path drag_source typelist time { data {} } } {
   variable _pressedkeys
   variable _actionlist
+  variable _typelist
   set _pressedkeys 1
   set _actionlist  { copy move link ask private }
+  set _typelist    $typelist
+  # puts "xdnd::HandleXdndEnter: $time"
   ::tkdnd::generic::SetDroppedData $data
   ::tkdnd::generic::HandleEnter $path $drag_source $typelist $typelist \
            $_actionlist $_pressedkeys
@@ -73,10 +76,16 @@ proc xdnd::HandleXdndEnter { path drag_source typelist { data {} } } {
 # ----------------------------------------------------------------------------
 #  Command xdnd::HandleXdndPosition
 # ----------------------------------------------------------------------------
-proc xdnd::HandleXdndPosition { drop_target rootX rootY {drag_source {}} } {
+proc xdnd::HandleXdndPosition { drop_target rootX rootY time {drag_source {}} } {
   variable _pressedkeys
+  variable _typelist
   variable _last_mouse_root_x; set _last_mouse_root_x $rootX
   variable _last_mouse_root_y; set _last_mouse_root_y $rootY
+  # puts "xdnd::HandleXdndPosition: $time"
+  ## Get the dropped data...
+  catch {
+    ::tkdnd::generic::SetDroppedData [GetPositionData $drop_target $_typelist $time]
+  }
   ::tkdnd::generic::HandlePosition $drop_target $drag_source \
                                    $_pressedkeys $rootX $rootY
 };# xdnd::HandleXdndPosition
@@ -96,18 +105,27 @@ proc xdnd::HandleXdndDrop { time } {
   variable _last_mouse_root_x
   variable _last_mouse_root_y
   ## Get the dropped data...
-  ::tkdnd::generic::SetDroppedData [GetDroppedData $time]
+  ::tkdnd::generic::SetDroppedData [GetDroppedData \
+    [::tkdnd::generic::GetDragSource] [::tkdnd::generic::GetDropTarget] \
+    [::tkdnd::generic::GetDragSourceCommonTypes] $time]
   ::tkdnd::generic::HandleDrop {} {} $_pressedkeys \
                                $_last_mouse_root_x $_last_mouse_root_y $time
 };# xdnd::HandleXdndDrop
 
 # ----------------------------------------------------------------------------
-#  Command xdnd::_GetDroppedData
+#  Command xdnd::GetPositionData
 # ----------------------------------------------------------------------------
-proc xdnd::GetDroppedData { time } {
-  set _drag_source              [::tkdnd::generic::GetDragSource]
-  set _drop_target              [::tkdnd::generic::GetDropTarget]
-  set _common_drag_source_types [::tkdnd::generic::GetDragSourceCommonTypes]
+proc xdnd::GetPositionData { drop_target typelist time } {
+  foreach {drop_target common_drag_source_types common_drop_target_types} \
+    [::tkdnd::generic::FindWindowWithCommonTypes $drop_target $typelist] {break}
+  GetDroppedData [::tkdnd::generic::GetDragSource] $drop_target \
+    $common_drag_source_types $time
+};# xdnd::GetPositionData
+
+# ----------------------------------------------------------------------------
+#  Command xdnd::GetDroppedData
+# ----------------------------------------------------------------------------
+proc xdnd::GetDroppedData { _drag_source _drop_target _common_drag_source_types time } {
   if {![llength $_common_drag_source_types]} {
     error "no common data types between the drag source and drop target widgets"
   }
