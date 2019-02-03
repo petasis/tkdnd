@@ -67,11 +67,12 @@ namespace eval macdnd {
 # ----------------------------------------------------------------------------
 #  Command macdnd::HandleEnter
 # ----------------------------------------------------------------------------
-proc macdnd::HandleEnter { path drag_source typelist } {
+proc macdnd::HandleEnter { path drag_source typelist { data {} } } {
   variable _pressedkeys
   variable _actionlist
   set _pressedkeys 1
   set _actionlist  { copy move link ask private }
+  ::tkdnd::generic::SetDroppedData $data
   ::tkdnd::generic::HandleEnter $path $drag_source $typelist $typelist \
            $_actionlist $_pressedkeys
 };# macdnd::HandleEnter

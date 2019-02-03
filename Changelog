@@ -1,6 +1,8 @@
 2019-02-03  Petasis George  <petasis@iit.demokritos.gr>
 	* win/OleDND.h:
 	* library/tkdnd_generic.tcl:
+	* library/tkdnd_macosx.tcl:
+	* library/tkdnd_unix.tcl:
 	* library/tkdnd_windows.tcl: Provided a solution for bug #25.
 	Under Windows, the dropped data is available for the <<DropEnter>> and
 	<<DropPosition>> events.
