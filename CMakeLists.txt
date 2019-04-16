@@ -3,15 +3,26 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+SET ( TKDND_TOP_DIR "${CMAKE_CURRENT_SOURCE_DIR}" )
+
 ## ===========================================================================
 ##  Project Information
 ## ===========================================================================
 PROJECT ( tkdnd )
 ## Package version information:
 SET ( PKG_NAME          ${PROJECT_NAME} )
-SET ( PKG_MAJOR_VERSION 2 )
-SET ( PKG_MINOR_VERSION 9 )
-SET ( PKG_BUILD_VERSION 0 )
+
+# Read the file named VERSION from the top TKDND directory...
+FILE ( READ "${TKDND_TOP_DIR}/VERSION" TKDND_VERSION_FROM_FILE )
+STRING ( REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" _ ${TKDND_VERSION_FROM_FILE} )
+SET ( TKDND_MAJOR_VERSION ${CMAKE_MATCH_1} )
+SET ( TKDND_MINOR_VERSION ${CMAKE_MATCH_2} )
+SET ( TKDND_PATCH_VERSION ${CMAKE_MATCH_3} )
+MESSAGE ( STATUS "TKDND version: ${TKDND_MAJOR_VERSION}.${TKDND_MINOR_VERSION}.${TKDND_PATCH_VERSION}" )
+
+SET ( PKG_MAJOR_VERSION ${TKDND_MAJOR_VERSION} )
+SET ( PKG_MINOR_VERSION ${TKDND_MINOR_VERSION} )
+SET ( PKG_BUILD_VERSION ${TKDND_PATCH_VERSION} )
 ## Author:
 SET ( PKG_VENDOR        "Georgios Petasis" )
 
@@ -224,11 +235,11 @@ ADD_LIBRARY ( ${PKG_TARGET_LIB_NAME} SHARED ${PKG_SOURCES} )
 ## ===========================================================================
 ##  Generate the pkgIndex.tcl file...
 ## ===========================================================================
-FILE ( WRITE library/pkgIndex.tcl 
+FILE ( WRITE library/pkgIndex.tcl
 "package ifneeded ${PKG_NAME} ${PKG_VERSION} \\
   \"source \\{$dir/tkdnd.tcl\\} ; \\
    tkdnd::initialise \\{$dir\\} lib${PKG_TARGET_LIB_NAME}[info sharedlibextension] ${PKG_NAME}\"
-   
+
 package ifneeded tkdnd::utils ${PKG_VERSION} \\
   \"source \\{$dir/tkdnd_utils.tcl\\} ; \\
    package provide tkdnd::utils ${PKG_VERSION}\"" )

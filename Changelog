@@ -1,3 +1,8 @@
+2019-04-16  Petasis George  <petasis@iit.demokritos.gr>
+	* VERSION:
+	* CMakeLists.txt: Added a VERSION file. CMake reads version from this
+	file.
+
 2019-02-03  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd.tcl: Added conversion from utf-8 in
 	::tkdnd::urn_unquote.
