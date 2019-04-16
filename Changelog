@@ -1,7 +1,12 @@
 2019-04-16  Petasis George  <petasis@iit.demokritos.gr>
+	* configure.ac: configure reads version from VERSION. Added
+	TEA_PATH_X, to link with the X11 library. Fixed bug #27.
+	(https://github.com/petasis/tkdnd/issues/27)
+
 	* VERSION:
 	* CMakeLists.txt: Added a VERSION file. CMake reads version from this
-	file.
+	file. Merged pull request #28.
+	(Fixes bug #26 https://github.com/petasis/tkdnd/issues/26).
 
 2019-02-03  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd.tcl: Added conversion from utf-8 in
@@ -49,9 +54,9 @@
 	previous behaviour (the tag was added as the last one).
 
 	* library/tkdnd_compat.tcl: Fixes for the TkDND 1.x compatibility layer.
-	
+
 	* library/tkdnd_windows.tcl: Fixed two typos.
-	
+
 	* win/TkDND_OleDND.cpp: Fixed a bug in TkDND_DoDragDropObjCmd(), where
 	Tcl_SetResult() was not used correctly. Calles changed to
 	Tcl_SetObjResult().

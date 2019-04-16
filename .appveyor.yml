@@ -23,7 +23,8 @@ matrix:
 
 install:
   - cmd: set TKDND_HOME=%cd%
-  - cmd: set TKDND_VERSION="2.9"
+  - cmd: set /p TKDND_VERSION=<VERSION
+  - cmd: echo %TKDND_VERSION%
   # Install Tcl/Tk
   - cmd: set IRONTCL_VERSION="8.6.7"
   - cmd: if %platform%==x86 set DOWNLOAD_PLATFORM=win32

@@ -1,7 +1,7 @@
 #!/bin/bash -norc
-dnl	This file is an input file used by the GNU "autoconf" program to
-dnl	generate the file "configure", which is run during Tcl installation
-dnl	to configure the system for the local environment.
+dnl        This file is an input file used by the GNU "autoconf" program to
+dnl        generate the file "configure", which is run during Tcl installation
+dnl        to configure the system for the local environment.
 #
 # RCS: @(#) $Id: configure.in,v 1.47 2007/02/09 19:06:47 hobbs Exp $
 
@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so you can encode the package version directly into the source files.
 #-----------------------------------------------------------------------
 
-AC_INIT([tkdnd], [2.9])
+AC_INIT([tkdnd], [m4_esyscmd_s([cat VERSION])])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -116,9 +116,9 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
           CFLAGS=$hold_cflags])
     ], [
         ## We are under Windows but not using GCC. MS Visual Studio?
-	CFLAGS_OPTIMIZE=""
-	CFLAGS_WARNING=""
-	AC_CHECK_TOOL(LINK, link.exe)
+        CFLAGS_OPTIMIZE=""
+        CFLAGS_WARNING=""
+        AC_CHECK_TOOL(LINK, link.exe)
         STLIB_LD='${LINK}'
     ])
 
@@ -189,6 +189,7 @@ TEA_ENABLE_SHARED
 #--------------------------------------------------------------------
 
 TEA_CONFIG_CFLAGS
+TEA_PATH_X
 
 #--------------------------------------------------------------------
 # Set the default compiler switches based on the --enable-symbols option.
@@ -242,31 +243,31 @@ AC_CHECK_TYPE([intptr_t], [
     AC_DEFINE([HAVE_INTPTR_T], 1, [Do we have the intptr_t type?])], [
     AC_CACHE_CHECK([for pointer-size signed integer type], tcl_cv_intptr_t, [
     for tcl_cv_intptr_t in "int" "long" "long long" none; do
-	if test "$tcl_cv_intptr_t" != none; then
-	    AC_COMPILE_IFELSE([AC_LANG_BOOL_COMPILE_TRY([AC_INCLUDES_DEFAULT],
-		    [[sizeof (void *) <= sizeof ($tcl_cv_intptr_t)]])],
-		[tcl_ok=yes], [tcl_ok=no])
-	    test "$tcl_ok" = yes && break; fi
+        if test "$tcl_cv_intptr_t" != none; then
+            AC_COMPILE_IFELSE([AC_LANG_BOOL_COMPILE_TRY([AC_INCLUDES_DEFAULT],
+                    [[sizeof (void *) <= sizeof ($tcl_cv_intptr_t)]])],
+                [tcl_ok=yes], [tcl_ok=no])
+            test "$tcl_ok" = yes && break; fi
     done])
     if test "$tcl_cv_intptr_t" != none; then
-	AC_DEFINE_UNQUOTED([intptr_t], [$tcl_cv_intptr_t], [Signed integer
-	   type wide enough to hold a pointer.])
+        AC_DEFINE_UNQUOTED([intptr_t], [$tcl_cv_intptr_t], [Signed integer
+           type wide enough to hold a pointer.])
     fi
 ])
 AC_CHECK_TYPE([uintptr_t], [
     AC_DEFINE([HAVE_UINTPTR_T], 1, [Do we have the uintptr_t type?])], [
     AC_CACHE_CHECK([for pointer-size unsigned integer type], tcl_cv_uintptr_t, [
     for tcl_cv_uintptr_t in "unsigned int" "unsigned long" "unsigned long long" \
-	    none; do
-	if test "$tcl_cv_uintptr_t" != none; then
-	    AC_COMPILE_IFELSE([AC_LANG_BOOL_COMPILE_TRY([AC_INCLUDES_DEFAULT],
-		    [[sizeof (void *) <= sizeof ($tcl_cv_uintptr_t)]])],
-		[tcl_ok=yes], [tcl_ok=no])
-	    test "$tcl_ok" = yes && break; fi
+            none; do
+        if test "$tcl_cv_uintptr_t" != none; then
+            AC_COMPILE_IFELSE([AC_LANG_BOOL_COMPILE_TRY([AC_INCLUDES_DEFAULT],
+                    [[sizeof (void *) <= sizeof ($tcl_cv_uintptr_t)]])],
+                [tcl_ok=yes], [tcl_ok=no])
+            test "$tcl_ok" = yes && break; fi
     done])
     if test "$tcl_cv_uintptr_t" != none; then
-	AC_DEFINE_UNQUOTED([uintptr_t], [$tcl_cv_uintptr_t], [Unsigned integer
-	   type wide enough to hold a pointer.])
+        AC_DEFINE_UNQUOTED([uintptr_t], [$tcl_cv_uintptr_t], [Unsigned integer
+           type wide enough to hold a pointer.])
     fi
 ])
 
