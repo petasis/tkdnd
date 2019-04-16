@@ -1,9 +1,6 @@
 language: cpp
 os:
   - linux
-    env: ARCH=arm
-    env: ARCH=arm64
-    env: ARCH=amd64
   - osx
 
 script:
@@ -11,7 +8,7 @@ script:
   - export TKDND_HOME=`pwd`
   - export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
   - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
-  - echo "File to deploy: " ${FILE_TO_UPLOAD}
+  - echo ${FILE_TO_UPLOAD}
   - ./configure --prefix=${TKDND_RUNTIME} --exec-prefix=${TKDND_RUNTIME} && make && make test
   - make install
 
@@ -20,7 +17,7 @@ before_deploy:
   - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
   - cd ${TKDND_RUNTIME}/lib && tar -czvf ${FILE_TO_UPLOAD} tkdnd${TKDND_VERSION}
   - cd ${TKDND_HOME}
-  - echo "File to deploy: " ${FILE_TO_UPLOAD}
+  - echo ${FILE_TO_UPLOAD}
 
 deploy:
   provider: releases
