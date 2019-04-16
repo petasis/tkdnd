@@ -1,4 +1,7 @@
 2019-04-16  Petasis George  <petasis@iit.demokritos.gr>
+	* demos/basic.tcl: Merged pull request #29.
+	(https://github.com/petasis/tkdnd/pull/29)
+
 	* configure.ac: configure reads version from VERSION. Added
 	TEA_PATH_X, to link with the X11 library. Fixed bug #27.
 	(https://github.com/petasis/tkdnd/issues/27)
