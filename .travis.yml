@@ -1,9 +1,9 @@
 language: cpp
 os:
   - linux
-    - ARCH=arm
-    - ARCH=arm64
-    - ARCH=amd64
+    env: ARCH=arm
+    env: ARCH=arm64
+    env: ARCH=amd64
   - osx
 
 script:
