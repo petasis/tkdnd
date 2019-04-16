@@ -1,4 +1,6 @@
 2019-04-16  Petasis George  <petasis@iit.demokritos.gr>
+	* Version 2.9.2 released.
+
 	* demos/basic.tcl: Merged pull request #29.
 	(https://github.com/petasis/tkdnd/pull/29)
 
