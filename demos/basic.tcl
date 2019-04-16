@@ -72,7 +72,7 @@ bind .drop_target <<DropEnter>>      $cmd
 bind .drop_target <<DropPosition>>   $cmd
 bind .drop_target <<DropLeave>>      $cmd
 
-# Add the generic <<Drop>> event. This will be called when more specilised
+# Add the generic <<Drop>> event. This will be called when more specialised
 # drop event is not found for the drop.
 bind .drop_target <<Drop>>           $cmd
 
