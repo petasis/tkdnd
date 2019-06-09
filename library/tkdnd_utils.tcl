@@ -67,7 +67,7 @@ proc ::tkdnd::text::drag_source { mode path { types DND_Text } { event 1 } { tag
   switch -exact -- $mode {
     register {
       $path tag bind $tag <ButtonPress-${event}> \
-        "tkdnd::text::_begin_drag press ${event} %W %s %X %Y %x %y"
+        [list tkdnd::text::_begin_drag press ${event} %W %s %X %Y %x %y]
       ## Set a binding to the widget, to put selection as data...
       bind $path <<DragInitCmd>> \
         [list ::tkdnd::text::DragInitCmd $path %t $tag]
