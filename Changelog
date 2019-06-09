@@ -1,6 +1,12 @@
 2019-06-09  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd_utils.tcl:
+	* library/tkdnd_generic.tcl: Fixed bug #33:
+	(https://github.com/petasis/tkdnd/issues/33)
+
 	* library/tkdnd.tcl: Fixed bug #30:
 	(https://github.com/petasis/tkdnd/issues/30)
+	Fixed bug #32:
+	(https://github.com/petasis/tkdnd/issues/32)
 
 2019-04-16  Petasis George  <petasis@iit.demokritos.gr>
 	* Version 2.9.2 released.

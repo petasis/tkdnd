@@ -300,9 +300,10 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
   set cmd [bind $source <<DragInitCmd>>]
   # puts "CMD: $cmd"
   if {[string length $cmd]} {
-    set cmd [string map [list %W $source %X $rootX %Y $rootY %x $X %y $Y \
+    set cmd [string map [list %W [list $source] \
+                              %X $rootX %Y $rootY %x $X %y $Y \
                               %S $state  %e <<DragInitCmd>> %A \{\} %% % \
-                              %t [bind $source <<DragSourceTypes>>]] $cmd]
+                              %t \{[bind $source <<DragSourceTypes>>]\}] $cmd]
     set code [catch {uplevel \#0 $cmd} info options]
     # puts "CODE: $code ---- $info"
     switch -exact -- $code {
@@ -381,7 +382,8 @@ proc ::tkdnd::_end_drag { button source target action type data result
   # Call the <<DragEndCmd>> binding.
   set cmd [bind $source <<DragEndCmd>>]
   if {[string length $cmd]} {
-    set cmd [string map [list %W $source %X $rootX %Y $rootY %x $X %y $Y %% % \
+    set cmd [string map [list %W [list $source] \
+                              %X $rootX %Y $rootY %x $X %y $Y %% % \
                               %S $state %e <<DragEndCmd>> %A \{$action\}] $cmd]
     set info [uplevel \#0 $cmd]
     # if { $info != "" } {
