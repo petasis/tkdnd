@@ -1,4 +1,9 @@
 2019-06-09  Petasis George  <petasis@iit.demokritos.gr>
+	* doc/tkDND.n: Documented %x, %y binding keywords.
+
+	* library/tkdnd_generic.tcl: Added feature request #31:
+	(https://github.com/petasis/tkdnd/issues/31)
+
 	* library/tkdnd_utils.tcl:
 	* library/tkdnd_generic.tcl: Fixed bug #33:
 	(https://github.com/petasis/tkdnd/issues/33)

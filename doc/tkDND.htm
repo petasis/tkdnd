@@ -1,8 +1,10 @@
-<HTML><HEAD><TITLE>Manpage of tkdnd</TITLE>
+Content-type: text/html
+
+<HTML><HEAD><TITLE>Manpage of TkDND</TITLE>
 </HEAD><BODY>
-<H1>tkdnd</H1>
+<H1>TkDND</H1>
 Section: Tk Built-In Commands (n)<BR>Updated: 8.4<BR><A HREF="#index">Index</A>
-<A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+<A HREF="../index.html">Return to Main Contents</A><HR>
 
 
 <BR>
@@ -19,7 +21,7 @@ Section: Tk Built-In Commands (n)<BR>Updated: 8.4<BR><A HREF="#index">Index</A>
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
 
-tkdnd - Tk Drag and Drop Interface
+TkDND - Tk Drag and Drop Interface
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
 
@@ -49,25 +51,25 @@ tkdnd - Tk Drag and Drop Interface
 <A NAME="lbAD">&nbsp;</A>
 <H2>INTRODUCTION</H2>
 
-The <B>tkdnd</B> family commands provide a Tcl interface to native,
+The <B>TkDND</B> family commands provide a Tcl interface to native,
 platform specific drag and drop mechanism.
-Under unix the drag &amp; drop protocol in use is the XDND protocol version 5
-(also used by the Qt toolkit, and the KDE and GNOME desktops).
+Under Unix the drag &amp; drop protocol in use is the XDND protocol version 5
+(also used by the Qt toolkit, and the KDE and GNOME desktops). 
 Under Windows, the OLE2 drag &amp; drop interfaces are used.
-Under Macintosh, the Cocoa drag &amp; drop interfaces are used.
+Under Macintosh, the Cocoa drag and drop interfaces are used.
 <P>
 
-The <B>tkdnd</B> family can be built from source code using the standard configure; make; make install procedure. Cmake is also supported. Some binary package are available from the SourceForge download site, from ActiveState's ActiveTcl distribution, and elsewhere.
+The TkDND family can be built from source code using the standard configure; make; make install procedure. Cmake is also supported. Some binary package are available from the SourceForge download site, from ActiveState's ActiveTcl distribution, and elsewhere.
 <P>
 
-With the <B>tkdnd</B> family commands the user is able to register existing Tk
+With the <B>TkDND</B> family commands the user is able to register existing Tk
 widgets as drag sources or drop targets, that are able to send or receive data
 during drag and drop operations, encoded in specific types.
 These types can be platform independent types like DND_Text and DND_Files or
 platform specific types, like CF_UNICODETEXT or text/plain.
 <P>
 
-The legal forms for the <B>tkdnd</B> commands are:
+The legal forms for the <B>TkDND</B> commands are:
 <DL COMPACT>
 <DT><B>tkdnd::drop_target register</B><I> window ?type-list?</I><DD>
 This command will register <I>window</I> as a drop target. A drop target is a
@@ -137,13 +139,13 @@ temporary files to <I>directory</I>.
 
 In order to declare the format that the data that will transferred during
 a drag and drop operation, all drag and drop protocols use the notion of types.
-Unfortunately, each protocol defines its own, usually platform specific, types. Tkdnd, trying to maintain portability among different platforms, offers some
+Unfortunately, each protocol defines its own, usually platform specific, types. TkDND, trying to maintain portability among different platforms, offers some
 predefined types for some basic kinds of data, like text, and filenames.
 Currently, the following predefined cross-platform values are available:
 <DL COMPACT>
 <DT><B>DND_Text</B>:<DD>
-This type can be used for transferring textual data. Internally, it is translated
-to the following platform specific formats:
+This type can be used for transferring textual data. Internally, it is
+translated to the following platform specific formats:
 <BR>
 
 Windows: <B>CF_UNICODETEXT</B>, <B>CF_TEXT</B>.
@@ -152,8 +154,7 @@ Windows: <B>CF_UNICODETEXT</B>, <B>CF_TEXT</B>.
 Unix: <B>text/plain;charset=UTF-8</B>, <B>text/plain</B>.
 <BR>
 
-Mac: <B>NSStringPboardType</B>
-  <BR>
+Mac: <B>NSStringPboardType</B>.
 <DT><B>DND_Files</B>:<DD>
 This type can be used for transferring a list of file names.
 Internally, it is translated to the following platform specific formats:
@@ -163,12 +164,12 @@ Windows: <B>CF_HDROP</B>.
 <BR>
 
 Unix: <B>text/uri-list</B>.
-  <BR>
+<BR>
 
 Mac: <B>NSFilenamesPboardType</B>.
-<DT>Additionally to the platform independent types, tkdnd supports the following platform specific types:<DD>
+<DT>Additionally to the platform independent types, TkDND supports the following platform specific types:<DD>
 <DT><B>Windows</B>:<DD>
-<B>CF_UNICODETEXT</B>: Text transfer encoded in unicode.
+<B>CF_UNICODETEXT</B>: Text transfer encoded in Unicode.
 <BR>
 
 <B>CF_TEXT</B>: Text transfer with application dependent encoding. If an encoding
@@ -179,20 +180,20 @@ used for the conversion.
 <B>FileGroupDescriptor - FileContents</B>: These two types are used for
 transferring a set of files that do not appear physically on disk, like files
 from compressed folders or Outlook e-mail messages. File names are transferred as
-in the CF_TEXT type, while file contents are transferred in binary. Tkdnd
+in the CF_TEXT type, while file contents are transferred in binary. TkDND
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
-files in the temporary folder are returned. Note that tkdnd support this type
+files in the temporary folder are returned. Note that TkDND support this type
 pair only as drop targets and not as drag sources.
 <BR>
 
 <B>FileGroupDescriptorW - FileContents</B>: These two types are used for
 transferring a set of files that do not appear physically on disk, like files
 from compressed folders or Outlook e-mail messages. File names are transferred as
-in the CF_UNICODETEXT type, while file contents are transferred in binary. Tkdnd
+in the CF_UNICODETEXT type, while file contents are transferred in binary. TkDND
 retrieves both the file names and the file contents, and saves then in a
 temporary directory. When the transfer is complete, the file names of the saved
-files in the temporary folder are returned. Note that tkdnd support this type
+files in the temporary folder are returned. Note that TkDND support this type
 pair only as drop targets and not as drag sources.
 <BR>
 
@@ -215,17 +216,17 @@ exist), while others are not. However, it is a good practice to define bindings
 for all events, so as the application will behave as expected during drag and
 drop operations.
 <P>
-The tkdnd package defines a set of virtual events, that correspond to various
+The TkDND package defines a set of virtual events, that correspond to various
 phases of a drag and drop operation. All windows that are either a drop target
 or a drag source are expected to have bindings for (all) these events, created
 with the <B>bind</B> Tk command. While these event bindings are regular Tk
 events, they have a small difference from plain Tk events: most of them are
-expected to return a value. Since Tk bindings cannot return a value, tkdnd does
+expected to return a value. Since Tk bindings cannot return a value, TkDND does
 not actually generate these events (i.e. through &quot;event generate&quot;). Instead,
-tkdnd locates the script that has been bound to the virtual event, and directly
+TkDND locates the script that has been bound to the virtual event, and directly
 executes it, as a script. Apart from this small difference in how the events are
-triggered, the events required by tkdnd can be viewed as regular events. In the
-following two sections all virtual events defined by the tkdnd package are
+triggered, the events required by TkDND can be viewed as regular events. In the
+following two sections all virtual events defined by the TkDND package are
 presented.
 <A NAME="lbAG">&nbsp;</A>
 <H2>DROP TARGET EVENTS</H2>
@@ -310,9 +311,9 @@ bind .drag_source &lt;&lt;DragInitCmd&gt;&gt; \
 
 <DT><B>&lt;&lt;DragEndCmd&gt;&gt;</B>:<DD>
 This event is triggered when the drag action has finished (either when the drop
-was successful or not). Its main purpose is to process the dropped data according
-to the drop action returned by the drop target. Binding for such an event
-is not mandatory, and the binding is not expected to return a value.
+was successful or not). Its main purpose is to process the dropped data
+according to the drop action returned by the drop target. Binding for such an
+event is not mandatory, and the binding is not expected to return a value.
 </DL>
 <A NAME="lbAI">&nbsp;</A>
 <H2>BINDING SCRIPTS AND SUBSTITUTIONS</H2>
@@ -377,6 +378,11 @@ The window that the event is delivered to.
 The mouse pointer x coordinate, relative to the root window.
 <DT><B>%Y</B><DD>
 The mouse pointer y coordinate, relative to the root window.
+<DT><B>%x</B><DD>
+The mouse pointer x coordinate, relative to the drop target window.
+<DT><B>%y</B><DD>
+The mouse pointer y coordinate, relative to the drop target window.
+<P>
 </DL>
 <A NAME="lbAJ">&nbsp;</A>
 <H2>SPECIFYING DROP TARGETS</H2>
@@ -461,19 +467,34 @@ bind .text_drag_source &lt;&lt;DragInitCmd&gt;&gt; \
 </DL>
 
 
-And that was all!
+Please note that all specified format types must be compatible to each other, as
+they all characterise the same data.
 <A NAME="lbAL">&nbsp;</A>
+<H2>SPECIFYING DRAG SOURCES WITH MULTIPLE DATA TYPES</H2>
+
+In the case the drag source wants to send a set of (incompatible) data types,
+the result of the &lt;&lt;DragInitCmd&gt;&gt; event binding must be slightly different, as
+it must return two items (instead of three described in the previous paragraph).
+The first element is again a list of allowable actions. However, the second item
+is a list of &quot;format type&quot; and &quot;data&quot; pairs:
+bind .text_drag_source &lt;&lt;DragInitCmd&gt;&gt; \
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{list&nbsp;{copy&nbsp;move}&nbsp;{DND_Text&nbsp;{Hello&nbsp;from&nbsp;Tk!}&nbsp;DND_Files&nbsp;{/tmp}}}
+
+
+
+
+And that was all!
+<A NAME="lbAM">&nbsp;</A>
 <H2>BUGS</H2>
 
 <B>Unix:</B>
 Dragging from Tk windows has not yet been implemented.
-<BR>
 <B>OS X:</B>
 TkDND under OS X is built on top of the Cocoa framework. Thus, it is compatible
 with Tk version &gt;= 8.6
 <BR>
 
-<A NAME="lbAM">&nbsp;</A>
+<A NAME="lbAN">&nbsp;</A>
 <H2>KEYWORDS</H2>
 
 dnd, drag and drop
@@ -492,13 +513,14 @@ dnd, drag and drop
 <DT><A HREF="#lbAI">BINDING SCRIPTS AND SUBSTITUTIONS</A><DD>
 <DT><A HREF="#lbAJ">SPECIFYING DROP TARGETS</A><DD>
 <DT><A HREF="#lbAK">SPECIFYING DRAG SOURCES</A><DD>
-<DT><A HREF="#lbAL">BUGS</A><DD>
-<DT><A HREF="#lbAM">KEYWORDS</A><DD>
+<DT><A HREF="#lbAL">SPECIFYING DRAG SOURCES WITH MULTIPLE DATA TYPES</A><DD>
+<DT><A HREF="#lbAM">BUGS</A><DD>
+<DT><A HREF="#lbAN">KEYWORDS</A><DD>
 </DL>
 <HR>
 This document was created by
-<A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
+<A HREF="/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 23:51:03 GMT, January 03, 2010
+Time: 10:32:30 GMT, June 09, 2019
 </BODY>
 </HTML>

@@ -154,7 +154,11 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
       # debug "\t<<DropLeave>> on $_drop_target"
       set cmd [bind $_drop_target <<DropLeave>>]
       if {[string length $cmd]} {
-        set cmd [string map [list %W [list $_drop_target] %X $rootX %Y $rootY \
+        set widgetX 0; set widgetY 0
+        catch {set widgetX [expr {$rootX - [winfo rootx $_drop_target]}]}
+        catch {set widgetY [expr {$rootY - [winfo rooty $_drop_target]}]}
+        set cmd [string map [list %W [list $_drop_target] \
+          %X $rootX %Y $rootY %x $widgetX %y $widgetY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
           %CPT \{[lindex [platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
@@ -180,8 +184,12 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
       # puts "<<DropEnter>> -> $drop_target"
       set cmd [bind $drop_target <<DropEnter>>]
       if {[string length $cmd]} {
+        set widgetX 0; set widgetY 0
+        catch {set widgetX [expr {$rootX - [winfo rootx $drop_target]}]}
+        catch {set widgetY [expr {$rootY - [winfo rooty $drop_target]}]}
         focus $drop_target
-        set cmd [string map [list %W [list $drop_target] %X $rootX %Y $rootY \
+        set cmd [string map [list %W [list $drop_target] \
+          %X $rootX %Y $rootY %x $widgetX %y $widgetY \
           %CST \{$_common_drag_source_types\} \
           %CTT \{$_common_drop_target_types\} \
           %CPT \{[lindex [platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
@@ -210,7 +218,11 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
     ## Drop target supports at least one type. Send a <<DropPosition>>.
     set cmd [bind $drop_target <<DropPosition>>]
     if {[string length $cmd]} {
-      set cmd [string map [list %W [list $drop_target] %X $rootX %Y $rootY \
+      set widgetX 0; set widgetY 0
+      catch {set widgetX [expr {$rootX - [winfo rootx $drop_target]}]}
+      catch {set widgetY [expr {$rootY - [winfo rooty $drop_target]}]}
+      set cmd [string map [list %W [list $drop_target] \
+        %X $rootX %Y $rootY %x $widgetX %y $widgetY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
         %CPT \{[lindex [platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
@@ -255,8 +267,11 @@ proc generic::HandleLeave { } {
   if {[info exists _drop_target] && [string length $_drop_target]} {
     set cmd [bind $_drop_target <<DropLeave>>]
     if {[string length $cmd]} {
+      set widgetX 0; set widgetY 0
+      catch {set widgetX [expr {$_last_mouse_root_x - [winfo rootx $_drop_target]}]}
+      catch {set widgetY [expr {$_last_mouse_root_y - [winfo rooty $_drop_target]}]}
       set cmd [string map [list %W [list $_drop_target] \
-        %X $_last_mouse_root_x %Y $_last_mouse_root_y \
+        %X $_last_mouse_root_x %Y $_last_mouse_root_y %x $widgetX %y $widgetY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
         %CPT \{[lindex [platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
@@ -315,7 +330,11 @@ proc generic::HandleDrop {drop_target drag_source pressedkeys rootX rootY time }
     set type [platform_independent_type $type]
     set cmd [bind $_drop_target <<Drop:$type>>]
     if {[string length $cmd]} {
-      set cmd [string map [list %W [list $_drop_target] %X $rootX %Y $rootY \
+      set widgetX 0; set widgetY 0
+      catch {set widgetX [expr {$rootX - [winfo rootx $_drop_target]}]}
+      catch {set widgetY [expr {$rootY - [winfo rooty $_drop_target]}]}
+      set cmd [string map [list %W [list $_drop_target] \
+        %X $rootX %Y $rootY %x $widgetX %y $widgetY \
         %CST \{$_common_drag_source_types\} \
         %CTT \{$_common_drop_target_types\} \
         %CPT \{[lindex [platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \
@@ -338,7 +357,11 @@ proc generic::HandleDrop {drop_target drag_source pressedkeys rootX rootY time }
   }
   set cmd [bind $_drop_target <<Drop>>]
   if {[string length $cmd]} {
-    set cmd [string map [list %W [list $_drop_target] %X $rootX %Y $rootY \
+    set widgetX 0; set widgetY 0
+    catch {set widgetX [expr {$rootX - [winfo rootx $_drop_target]}]}
+    catch {set widgetY [expr {$rootY - [winfo rooty $_drop_target]}]}
+    set cmd [string map [list %W [list $_drop_target] \
+      %X $rootX %Y $rootY %x $widgetX %y $widgetY \
       %CST \{$_common_drag_source_types\} \
       %CTT \{$_common_drop_target_types\} \
       %CPT \{[lindex [platform_independent_type [lindex $_common_drag_source_types 0]] 0]\} \

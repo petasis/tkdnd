@@ -593,6 +593,11 @@ The window that the event is delivered to.
 The mouse pointer x coordinate, relative to the root window.
 .IP  \fB%Y\fR 5
 The mouse pointer y coordinate, relative to the root window.
+.IP  \fB%x\fR 5
+The mouse pointer x coordinate, relative to the drop target window.
+.IP  \fB%y\fR 5
+The mouse pointer y coordinate, relative to the drop target window.
+
 .SH SPECIFYING DROP TARGETS
 Creating drop targets is easy: we have to only register a window as a drop
 target with the list of format types it can accept, and add a few bindings. For
