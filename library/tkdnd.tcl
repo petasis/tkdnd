@@ -335,6 +335,7 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
       }
       unset _data t d
     } else {
+      foreach { actions } $info { break }
       if {$len == 1 && [string equal [lindex $actions 0] "refuse_drop"]} {
         return
       }
