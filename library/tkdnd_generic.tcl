@@ -64,7 +64,11 @@ namespace eval generic {
   proc initialise_platform_to_tkdnd_types { types } {
     variable _platform2tkdnd
     variable _tkdnd2platform
-    set _platform2tkdnd [dict create {*}$types]
+    # set _platform2tkdnd [dict create {*}$types] ;# {*} not available in 8.4
+    set _platform2tkdnd [dict create]
+    foreach {p t} $types {
+      dict set _platform2tkdnd $p $t
+    }
     set _tkdnd2platform [dict create]
     foreach type [dict keys $_platform2tkdnd] {
       dict lappend _tkdnd2platform [dict get $_platform2tkdnd $type] $type
@@ -73,7 +77,11 @@ namespace eval generic {
 
   proc initialise_tkdnd_to_platform_types { types } {
     variable _tkdnd2platform
-    set _tkdnd2platform [dict create {*}$types]
+    # set _tkdnd2platform [dict create {*}$types] ;# {*} not available in 8.4
+    set _tkdnd2platform [dict create]
+    foreach {t p} $types {
+      dict set _tkdnd2platform $t $p
+    }
   };# initialise_tkdnd_to_platform_types
 
 };# namespace generic
