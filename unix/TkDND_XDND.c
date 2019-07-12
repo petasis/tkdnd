@@ -266,7 +266,13 @@ Tk_Window TkDND_GetToplevelFromWrapper(Tk_Window tkwin) {
            &root_return, &parent,
            &children_return, &nchildren_return);
   if (nchildren_return == 1) {
+    /* We have a wrapper window with one child: Tk's "toplevel" window. */
     toplevel = Tk_IdToWindow(Tk_Display(tkwin), children_return[0]);
+  }
+  if (nchildren_return == 2) {
+    /* We have a wrapper window with two children:
+     * A menu, and Tk's "toplevel" window. Return the second... */
+    toplevel = Tk_IdToWindow(Tk_Display(tkwin), children_return[1]);
   }
   if (children_return) XFree(children_return);
   return toplevel;

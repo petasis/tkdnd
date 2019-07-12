@@ -1,3 +1,5 @@
+2019-07-12  Petasis George  <petasis@iit.demokritos.gr>
+	* 
 2019-06-13  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd_generic.tcl: Removed usage of "{*}" for better Tcl 8.4
 	compatibility.
