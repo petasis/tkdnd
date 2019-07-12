@@ -1,5 +1,15 @@
 2019-07-12  Petasis George  <petasis@iit.demokritos.gr>
-	* 
+	* library/tkdnd_unix.tcl:
+	* library/tkdnd_generic.tcl: Added a new parameter for drag source
+	action on HandlePosition.
+
+	* unix/TkDND_XDND.c: TkDND_HandleXdndEnter() also passes the action
+	requested by the drag source to tkdnd::xdnd::HandleXdndEnter.
+
+	* unix/TkDND_XDND.c: Fix in TkDND_GetToplevelFromWrapper(), to take
+	into account a menu, if it exists. Fixed bug #34:
+	(https://github.com/petasis/tkdnd/issues/34)
+
 2019-06-13  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd_generic.tcl: Removed usage of "{*}" for better Tcl 8.4
 	compatibility.

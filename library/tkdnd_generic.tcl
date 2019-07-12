@@ -116,7 +116,7 @@ proc generic::HandleEnter { drop_target drag_source typelist codelist
 #  Command generic::HandlePosition
 # ----------------------------------------------------------------------------
 proc generic::HandlePosition { drop_target drag_source pressedkeys
-                               rootX rootY { time 0 } } {
+                               rootX rootY { action {} } { time 0 } } {
   variable _types
   variable _typelist
   variable _codelist
@@ -185,7 +185,10 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
     set _action      refuse_drop
 
     if {[llength $common_drag_source_types]} {
-      set _action [lindex $_actionlist 0]
+      switch -exact -- $action {
+        default - {} { set _action [lindex $_actionlist 0] }
+        default      { set _action $action }
+      }
       set _common_drag_source_types $common_drag_source_types
       set _common_drop_target_types $common_drop_target_types
       ## Drop target supports at least one type. Send a <<DropEnter>>.
@@ -226,6 +229,10 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
     ## Drop target supports at least one type. Send a <<DropPosition>>.
     set cmd [bind $drop_target <<DropPosition>>]
     if {[string length $cmd]} {
+      switch -exact -- $action {
+        default - {} { set _action [lindex $_actionlist 0] }
+        default      { set _action $action }
+      }
       set widgetX 0; set widgetY 0
       catch {set widgetX [expr {$rootX - [winfo rootx $drop_target]}]}
       catch {set widgetY [expr {$rootY - [winfo rooty $drop_target]}]}

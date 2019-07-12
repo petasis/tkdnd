@@ -331,6 +331,21 @@ Window TkDND_GetVirtualRootWindowOfScreen(Tk_Window tkwin) {
   return root;
 }; /* TkDND_GetVirtualRootWindowOfScreen */
 
+Tcl_Obj *TkDND_ActionToString(Tk_Window tkwin, Atom action) {
+  if (action == Tk_InternAtom(tkwin, "XdndActionCopy")) {
+    return Tcl_NewStringObj("copy", 4);
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionMove")) {
+    return Tcl_NewStringObj("move", 4);
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionLink")) {
+    return Tcl_NewStringObj("link", 4);
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionAsk")) {
+    return Tcl_NewStringObj("ask", 3);
+  } else if (action == Tk_InternAtom(tkwin, "XdndActionPrivate")) {
+    return Tcl_NewStringObj("private", 7);
+  }
+  return Tcl_NewStringObj("default", 7);
+}; /* TkDND_ActionToString */
+
 int TkDND_HandleXdndEnter(Tk_Window tkwin, XEvent *xevent) {
   Tcl_Interp *interp = Tk_Interp(tkwin);
   Tk_Window toplevel;
@@ -405,7 +420,7 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   Tk_Window mouse_tkwin = NULL, toplevel;
   Window drag_source, virtual_root, src_w, dest_w, child;
   Tcl_Obj* result;
-  Tcl_Obj* objv[6];
+  Tcl_Obj* objv[7];
   int rootX, rootY, dx = 0, dy = 0, src_x, src_y, dest_x, dest_y, i, index, status, w, h;
   XEvent response;
   Display *display;
@@ -419,8 +434,7 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     refuse_drop, ActionDefault
   };
   Time time = CurrentTime;
-/*Time time;
-  Atom action;*/
+  Atom action;
 
   if (interp == NULL || tkwin == NULL) return False;
   if (XDND_POSITION_TIME(xevent) != 0) {
@@ -433,10 +447,8 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
   /* Get the coordinates from the event... */
   rootX  = XDND_POSITION_ROOT_X(xevent);
   rootY  = XDND_POSITION_ROOT_Y(xevent);
-  /* Get the time from the event... */
-  /* time   = XDND_POSITION_TIME(xevent); */
   /* Get the user action from the event... */
-  /* action = XDND_POSITION_ACTION(xevent); */
+  action = XDND_POSITION_ACTION(xevent);
 
   /* The event may have been delivered to the toplevel wrapper.
    * Try to find the toplevel window... */
@@ -479,7 +491,8 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     objv[3] = Tcl_NewIntObj(rootY);
     objv[4] = Tcl_NewLongObj(time);
     objv[5] = Tcl_NewLongObj(drag_source);
-    TkDND_Status_Eval(6);
+    objv[6] = TkDND_ActionToString(tkwin, action);
+    TkDND_Status_Eval(7);
     if (status == TCL_OK) {
       /* Get the returned action... */
       result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
@@ -523,6 +536,7 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
       break;
     case refuse_drop: {
       XDND_STATUS_WILL_ACCEPT_SET(&response, 0); /* Refuse drop. */
+      XDND_STATUS_ACTION(&response) = None;
     }
   }
   XSendEvent(response.xany.display, response.xclient.window,

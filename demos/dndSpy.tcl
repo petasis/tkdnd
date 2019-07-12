@@ -69,10 +69,10 @@ proc FillTypeListbox {listbox types type codes code actions action mods} {
     $listbox insert end " * Modifiers: \"$mods\""
     $listbox itemconfigure end -foreground brown -background $::bg
 }
-proc FillPosition {text X Y data} {
+proc FillPosition {text action X Y data} {
   $text configure -state normal
   $text delete 1.0 end
-  $text insert end "Position: (x=$X, y=$Y) Data Preview:\n"
+  $text insert end "Position: (x=$X, y=$Y), Action: $action, Data Preview:\n"
   $text insert end \"$data\"
   $text configure -state disabled
 };# FillPosition
@@ -113,8 +113,8 @@ set abg #8fbc8f
 set type *
 dnd bindtarget .typeList $type <DragEnter> ".typeList configure -bg $abg
 FillTypeListbox .typeList %t %T %c %C %a %A %m
-FillPosition    .position %X %Y %D
-return \[lindex %a 0\]"
+FillPosition    .position %A %X %Y %D
+return %Α"
 dnd bindtarget .typeList $type <Drag> \
         [dnd bindtarget .typeList $type <DragEnter>]
 dnd bindtarget .typeList $type <Drop> \

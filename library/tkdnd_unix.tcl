@@ -76,7 +76,8 @@ proc xdnd::HandleXdndEnter { path drag_source typelist time { data {} } } {
 # ----------------------------------------------------------------------------
 #  Command xdnd::HandleXdndPosition
 # ----------------------------------------------------------------------------
-proc xdnd::HandleXdndPosition { drop_target rootX rootY time {drag_source {}} } {
+proc xdnd::HandleXdndPosition { drop_target rootX rootY time
+                               { drag_source {} } { action default } } {
   variable _pressedkeys
   variable _typelist
   variable _last_mouse_root_x; set _last_mouse_root_x $rootX
@@ -87,7 +88,7 @@ proc xdnd::HandleXdndPosition { drop_target rootX rootY time {drag_source {}} } 
     ::tkdnd::generic::SetDroppedData [GetPositionData $drop_target $_typelist $time]
   }
   ::tkdnd::generic::HandlePosition $drop_target $drag_source \
-                                   $_pressedkeys $rootX $rootY
+                                   $_pressedkeys $rootX $rootY $action
 };# xdnd::HandleXdndPosition
 
 # ----------------------------------------------------------------------------
