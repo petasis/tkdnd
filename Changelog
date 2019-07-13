@@ -1,3 +1,8 @@
+2019-07-14  Petasis George  <petasis@iit.demokritos.gr>
+	* doc/tkDND.n:
+	* doc/tkDND.htm: Updated documentation to reflect the changes in the
+	%b and %m binding substitutions.
+
 2019-07-13  Petasis George  <petasis@iit.demokritos.gr>
 	* CMakeLists.txt:
 	* configure.ac: Added checks for X11/XKBlib.h, defining

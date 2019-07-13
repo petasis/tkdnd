@@ -548,9 +548,11 @@ The current action of the drag/drop operation.
 .IP  \fB%a\fR 5
 The action list supported by the drag source. 
 .IP  \fB%b\fR 5
-The mouse button that is pressed during a drag/drop operation. Note that 
-always a single mouse button is reported as pressed, even if more than one 
-mouse buttons are actually pressed.
+The mouse buttons that are pressed during a drag/drop operation. Note that
+typically a single mouse button is reported as pressed, even if more than one
+mouse buttons are actually pressed. Under Unix though, all pressed mouse
+buttons will be reported (if the XKeyboard extension is available - else only
+"1" will always be reported).
 .IP  \fB%c\fR 5
 The codes of the list of types supported by the drag source. All codes are in
 octal format and have the same order as the list of types obtained through the
@@ -575,10 +577,16 @@ The list of types supported by the drag source.
 .IP  \fB%m\fR 5
 The list of modifier keyboard keys that are pressed. 
 Modifier keys are some special keys, like Shift, Control or Alt. 
-Valid modifiers are "shift", "ctrl" and "alt". It is useful for
-binding scripts of drop target events to examine this list of modifiers, as it
-is quite usual to change the action according to the state of some modifier
-keys.
+Valid modifiers are "shift", "ctrl" and "alt" (under all operating systems),
+and "mod1" to "mod5" under Unix. Please note that the usefulness of modifiers
+may differ across operating systems. For example, under Windows the drop target
+must examine the modifiers, and decide upon the drop action that must be
+performed (by selecting an action from the list of actions supported by the
+drag source). However, under Unix, the drag source is expected to decide on the
+drop action, not the drop target. The drop target is expected to either accept
+the action selected by the drag source (and return it back), or select "copy",
+"default", or "ask". So, under Unix examining the pressed modifier keys
+fulfills only informative purposes.
 .IP  \fB%ST\fR 5
 The list of types supported by the drag source.
 .IP  \fB%t\fR 5
@@ -658,8 +666,6 @@ bind .text_drag_source <<DragInitCmd>> \\
 .CE
 And that was all!
 .SH BUGS
-\fBUnix:\fR
-Dragging from Tk windows has not yet been implemented.
 \fBOS X:\fR
 TkDND under OS X is built on top of the Cocoa framework. Thus, it is compatible
 with Tk version >= 8.6
