@@ -1,3 +1,28 @@
+2019-07-13  Petasis George  <petasis@iit.demokritos.gr>
+	* CMakeLists.txt:
+	* configure.ac: Added checks for X11/XKBlib.h, defining
+	HAVE_X11_EXTENSIONS_XKB_H if found.
+
+	* demos/dndSpy.tcl: Updated the demo code to show pressed mouse buttons
+	and modifier keys.
+
+	* library/tkdnd_generic.tcl: Fixed Bug #35, where mouse buttons were
+	reported together with modifier keys:
+	(https://github.com/petasis/tkdnd/issues/35)
+
+	* library/tkdnd_unix.tcl: Fixes for using the new
+	"_keyboard_get_state", and correctly report the pressed mouse keys and
+	modifiers.
+
+	* unix/TkDND_XDND.c: Added support for the Xkb extension, and added
+	support (and a new Tcl-level command, "_keyboard_get_state") for
+	getting the pressed mouse buttons/modifiers under Unix. This relates
+	to Bug #35 (https://github.com/petasis/tkdnd/issues/35). However,
+	under Unix, the drop target is not supposed to decide on the action:
+	it is the drag source that takes this decision. The drop target must
+	either accept the action provided by the drag source, or replay with
+	"copy" or "ask". This must be reflected in the documentation.
+
 2019-07-12  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd_unix.tcl:
 	* library/tkdnd_generic.tcl: Added a new parameter for drag source

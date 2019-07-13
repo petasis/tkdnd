@@ -44,7 +44,7 @@ grid columnconfigure . 1 -weight 1
 grid columnconfigure . 2 -weight 1
 grid .position - .exit -sticky snew -padx 2 -pady 2
 
-proc FillTypeListbox {listbox types type codes code actions action mods} {
+proc FillTypeListbox {listbox types type codes code actions action mods btns} {
     $listbox delete 0 end
     $listbox insert end {}
     $listbox insert end {        --- Types ---}
@@ -66,7 +66,7 @@ proc FillTypeListbox {listbox types type codes code actions action mods} {
     $listbox itemconfigure end -foreground blue -background $::bg
 
     $listbox insert end {}
-    $listbox insert end " * Modifiers: \"$mods\""
+    $listbox insert end " * Modifiers: \"$mods\", Mouse buttons: \"$btns\""
     $listbox itemconfigure end -foreground brown -background $::bg
 }
 proc FillPosition {text action X Y data} {
@@ -112,7 +112,7 @@ set abg #8fbc8f
 
 set type *
 dnd bindtarget .typeList $type <DragEnter> ".typeList configure -bg $abg
-FillTypeListbox .typeList %t %T %c %C %a %A %m
+FillTypeListbox .typeList %t %T %c %C %a %A %m %b
 FillPosition    .position %A %X %Y %D
 return %Α"
 dnd bindtarget .typeList $type <Drag> \

@@ -44,6 +44,10 @@
 #include <X11/Xatom.h>
 #include <X11/keysym.h>
 
+#ifdef HAVE_X11_EXTENSIONS_XKB_H
+#include <X11/XKBlib.h>
+#endif /* HAVE_X11_EXTENSIONS_XKB_H */
+
 #ifdef HAVE_LIMITS_H
 #include "limits.h"
 #else
@@ -193,6 +197,46 @@ extern int TkDND_GetSelection(Tcl_Interp *interp, Tk_Window tkwin,
 extern void TkDND_InitialiseCursors(Tcl_Interp *interp);
 extern Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name);
 
+static int TkDND_HaveXkb(Tk_Window tkwin) {
+  static int have_xkb = -1;
+
+  if (have_xkb == -1) {
+#ifdef HAVE_X11_EXTENSIONS_XKB_H
+   int opcode, error_base, major, minor, xkb_event_base;
+
+   have_xkb = XkbQueryExtension(Tk_Display(tkwin),
+                                 &opcode,
+                                 &xkb_event_base,
+                                 &error_base,
+                                 &major,
+                                 &minor)
+              && XkbUseExtension(Tk_Display(tkwin), &major, &minor);
+#else
+    have_xkb = 0;
+#endif
+  }
+
+  return have_xkb;
+}; /* TkDND_HaveXkb */
+
+#if 0
+static void TkDND_PrintBits(size_t const size, void const * const ptr) {
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+
+    for (i=size-1;i>=0;i--)
+    {
+        for (j=7;j>=0;j--)
+        {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
+    puts("");
+}; /* TkDND_PrintBits */
+#endif
+
 /*
  * Support for getting the wrapper window for our top-level...
  */
@@ -227,8 +271,8 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
 #endif
 
   /*
-   * We must make the toplevel that holds this widget is XDND aware. This means
-   * that we have to set the XdndAware property on our toplevel.
+   * We must make the toplevel that holds this widget is XDND aware.
+   * This means that we have to set the XdndAware property on our toplevel.
    */
 #ifdef TKDND_SET_XDND_PROPERTY_ON_TARGET
   XChangeProperty(Tk_Display(path), Tk_WindowId(path),
@@ -462,13 +506,15 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     dest_w  = Tk_WindowId(toplevel);
     src_x   = rootX;
     src_y   = rootY;
-    XTranslateCoordinates(display, src_w, dest_w, src_x, src_y, &dest_x, &dest_y, &child);
+    XTranslateCoordinates(display, src_w, dest_w, src_x, src_y,
+                          &dest_x, &dest_y, &child);
     while (child != None) {
       src_w  = dest_w;
       dest_w = child;
       src_x  = dest_x;
       src_y  = dest_y;
-      XTranslateCoordinates(display, src_w, dest_w, src_x, src_y, &dest_x, &dest_y, &child);
+      XTranslateCoordinates(display, src_w, dest_w, src_x, src_y,
+                            &dest_x, &dest_y, &child);
     }
     mouse_tkwin = Tk_IdToWindow(display, dest_w);
   }
@@ -476,7 +522,8 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     Tk_GetVRootGeometry(toplevel, &dx, &dy, &w, &h);
     mouse_tkwin = Tk_CoordsToWindow(rootX, rootY, toplevel);
   }
-  if (!mouse_tkwin) mouse_tkwin = Tk_CoordsToWindow(rootX + dx, rootY + dy, tkwin);
+  if (!mouse_tkwin) mouse_tkwin =
+                    Tk_CoordsToWindow(rootX + dx, rootY + dy, tkwin);
 #if 0
   printf("mouse_win: %p (%s) (%d, %d %p %s) i=%p\n", mouse_tkwin,
           mouse_tkwin?Tk_PathName(mouse_tkwin):"",
@@ -496,7 +543,8 @@ int TkDND_HandleXdndPosition(Tk_Window tkwin, XEvent *xevent) {
     if (status == TCL_OK) {
       /* Get the returned action... */
       result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
-      status = Tcl_GetIndexFromObj(interp, result, (const char **) DropActions,
+      status = Tcl_GetIndexFromObj(interp, result,
+                              (const char **) DropActions,
                               "dropactions", 0, &index);
       Tcl_DecrRefCount(result);
       if (status != TCL_OK) index = refuse_drop;
@@ -1117,11 +1165,11 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
       TkDND_Dict_PutLong(dict, "requestor",
                                 eventPtr->xselectionrequest.requestor);
       TkDND_Dict_Put(dict,     "selection",
-            Tk_GetAtomName(main_window, eventPtr->xselectionrequest.selection));
+        Tk_GetAtomName(main_window, eventPtr->xselectionrequest.selection));
       TkDND_Dict_Put(dict,     "target",
-            Tk_GetAtomName(main_window, eventPtr->xselectionrequest.target));
+        Tk_GetAtomName(main_window, eventPtr->xselectionrequest.target));
       TkDND_Dict_Put(dict,     "property",
-            Tk_GetAtomName(main_window, eventPtr->xselectionrequest.property));
+        Tk_GetAtomName(main_window, eventPtr->xselectionrequest.property));
       break;
     default:
       Tcl_DecrRefCount(dict);
@@ -1144,7 +1192,7 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
 }; /* TkDND_HandleGenericEvent */
 
 int TkDND_RegisterGenericEventHandlerObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   if (objc != 1) {
     Tcl_WrongNumArgs(interp, 1, objv, "");
     return TCL_ERROR;
@@ -1154,7 +1202,7 @@ int TkDND_RegisterGenericEventHandlerObjCmd(ClientData clientData,
 }; /* TkDND_RegisterGenericEventHandlerObjCmd */
 
 int TkDND_UnregisterGenericEventHandlerObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                    Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   if (objc != 1) {
     Tcl_WrongNumArgs(interp, 1, objv, "");
     return TCL_ERROR;
@@ -1164,7 +1212,7 @@ int TkDND_UnregisterGenericEventHandlerObjCmd(ClientData clientData,
 }; /* TkDND_UnegisterGenericEventHandlerObjCmd */
 
 int TkDND_FindDropTargetWindowObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   int rootx, rooty;
   Tk_Window path;
   Window root, src, t;
@@ -1204,7 +1252,8 @@ int TkDND_FindDropTargetWindowObjCmd(ClientData clientData,
     if (data) XFree(data);
     if (type) break; /* We have found a target! */
     /* Find child at the coordinates... */
-    if (!XTranslateCoordinates(display, src, src, lx, ly, &lx2, &ly2, &target)){
+    if (!XTranslateCoordinates(display, src, src, lx, ly,
+                               &lx2, &ly2, &target)){
       target = 0; break; /* Error */
     }
   }
@@ -1218,7 +1267,7 @@ int TkDND_FindDropTargetWindowObjCmd(ClientData clientData,
 }; /* TkDND_FindDropTargetWindowObjCmd */
 
 int TkDND_FindDropTargetProxyObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   Window target, proxy, *proxy_ptr;
   Atom type = None;
   int f;
@@ -1260,8 +1309,81 @@ int TkDND_FindDropTargetProxyObjCmd(ClientData clientData,
   return TCL_OK;
 }; /* TkDND_FindDropTargetProxyObjCmd */
 
+unsigned int TkDND_KeyboardGetKey(Display *display, KeySym key ) {
+  /* Function adapted from:
+   * https://github.com/naelstrof/slop/blob/master/src/keyboard.cpp */
+  KeyCode keycode = XKeysymToKeycode(display, key);
+  if (keycode != 0) {
+    /* Get the whole keyboard state */
+    char keys[32];
+    XQueryKeymap(display, keys);
+    /* Check our keycode */
+    return ( keys[ keycode / 8 ] & ( 1 << ( keycode % 8 ) ) ) != 0;
+  } else {
+    return 0;
+  }
+} /* TkDND_KeyboardGetKey */
+
+unsigned int TkDND_KeyboardGetState(Tk_Window tkwin) {
+  unsigned int state = 0;
+  Display *display;
+  if (!tkwin) return state;
+  display = Tk_Display(tkwin);
+
+#ifdef HAVE_X11_EXTENSIONS_XKB_H
+  if (TkDND_HaveXkb(tkwin)) {
+    XkbStateRec xkb_state;
+    XkbGetState(display, XkbUseCoreKbd, &xkb_state);
+    state = xkb_state.ptr_buttons;
+    /* The following is not needed, bits already in correct positions... */
+    /* state = state << 8; Shift mouse buttons from bit 9 onwards... */
+    state |= xkb_state.compat_state;
+    /* TkDND_PrintBits(sizeof(state), &state); fflush(0); */
+    return state;
+  }
+#endif
+  state = 0;
+  /* During a drag ,the pointer is grabed by the source. There is no way to
+   * query about the pressed mouse buttons. Set that button "1" is always
+   * pressed. */
+  state |= Button1Mask;
+  if (TkDND_KeyboardGetKey(display, XK_Shift_L) ||
+      TkDND_KeyboardGetKey(display, XK_Shift_R)) {
+    state |= ShiftMask;
+  }
+  if (TkDND_KeyboardGetKey(display, XK_Control_L) ||
+      TkDND_KeyboardGetKey(display, XK_Control_R)) {
+    state |= ControlMask;
+  }
+  if (TkDND_KeyboardGetKey(display, XK_Alt_L) ||
+      TkDND_KeyboardGetKey(display, XK_Alt_R)) {
+    state |= Mod1Mask;
+  }
+  if (TkDND_KeyboardGetKey(display, XK_Caps_Lock)) {
+    state |= LockMask;
+  }
+  return state;
+}; /* TkDND_KeyboardGetState */
+
+int TkDND_KeyboardGetStateObjCmd(ClientData clientData,
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+  Tk_Window tkwin;
+  Tcl_Obj *dict;
+
+  if (objc != 2) {
+    Tcl_WrongNumArgs(interp, 1, objv, "target");
+    return TCL_ERROR;
+  }
+  tkwin = TkDND_TkWin(objv[1]);
+  if (!tkwin) return TCL_ERROR;
+  dict = Tcl_NewDictObj();
+  TkDND_AddStateInformation(interp, dict, TkDND_KeyboardGetState(tkwin));
+  Tcl_SetObjResult(interp, dict);
+  return TCL_OK;
+}; /* TkDND_KeyboardGetStateObjCmd */
+
 int TkDND_SendXdndEnterObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   XEvent event;
   Tk_Window source;
   Window target, proxy;
@@ -1290,8 +1412,9 @@ int TkDND_SendXdndEnterObjCmd(ClientData clientData,
   display = Tk_Display(source);
 
   /* Get the XDND version supported by the target... */
-  r = XGetWindowProperty(display, proxy, Tk_InternAtom(source, "XdndAware"), 0, 1,
-                         False, AnyPropertyType, &t, &f,&n,&a,&retval);
+  r = XGetWindowProperty(display, proxy, Tk_InternAtom(source, "XdndAware"),
+                         0, 1, False, AnyPropertyType,
+                         &t, &f, &n, &a, &retval);
   if (r != Success) {
     Tcl_SetResult(interp, "cannot retrieve XDND version from target",
                   TCL_STATIC);
@@ -1321,13 +1444,15 @@ int TkDND_SendXdndEnterObjCmd(ClientData clientData,
 }; /* TkDND_SendXdndEnterObjCmd */
 
 int TkDND_SendXdndPositionObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   static char *DropActions[] = {
-    "copy", "move", "link", "ask",  "private", "default",
+    "copy", "move", "link", "ask",
+    "private", "default",
     (char *) NULL
   };
   enum dropactions {
-    ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate, ActionDefault
+    ActionCopy, ActionMove, ActionLink, ActionAsk,
+    ActionPrivate, ActionDefault
   };
 
   XEvent event;
@@ -1390,7 +1515,7 @@ int TkDND_SendXdndPositionObjCmd(ClientData clientData,
 }; /* TkDND_SendXdndPositionObjCmd */
 
 int TkDND_SendXdndLeaveObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   XEvent event;
   Tk_Window source;
   Window target, proxy;
@@ -1420,7 +1545,7 @@ int TkDND_SendXdndLeaveObjCmd(ClientData clientData,
 }; /* TkDND_SendXdndLeaveObjCmd */
 
 int TkDND_SendXdndDropObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                  Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   XEvent event;
   Tk_Window source;
   Window target, proxy;
@@ -1452,7 +1577,7 @@ int TkDND_SendXdndDropObjCmd(ClientData clientData,
 }; /* TkDND_SendXdndDropObjCmd */
 
 int TkDND_XChangePropertyObjCmd(ClientData clientData,
-                         Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+                 Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
   XEvent event;
   Window target;
   Atom property = None, type = None;
@@ -1502,7 +1627,7 @@ int TkDND_XChangePropertyObjCmd(ClientData clientData,
       short *propPtr = (short *) Tcl_Alloc(sizeof(short)*numItems);
       data = (unsigned char *) propPtr;
       if (Tcl_ListObjGetElements(interp, objv[7], &numFields, &field)
-                                                                   != TCL_OK) {
+                                                              != TCL_OK) {
         return TCL_ERROR;
       }
       for (i = 0; i < numItems; i++) {
@@ -1515,7 +1640,7 @@ int TkDND_XChangePropertyObjCmd(ClientData clientData,
       long *propPtr  = (long *) Tcl_Alloc(sizeof(long)*numItems);
       data = (unsigned char *) propPtr;
       if (Tcl_ListObjGetElements(interp, objv[7], &numFields, &field)
-                                                                   != TCL_OK) {
+                                                              != TCL_OK) {
         return TCL_ERROR;
       }
       for (i = 0; i < numItems; i++) {
@@ -1682,6 +1807,12 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
 
   if (Tcl_CreateObjCommand(interp, "XChangeProperty",
            (Tcl_ObjCmdProc*) TkDND_XChangePropertyObjCmd,
+           (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
+    return TCL_ERROR;
+  }
+
+  if (Tcl_CreateObjCommand(interp, "_keyboard_get_state",
+           (Tcl_ObjCmdProc*) TkDND_KeyboardGetStateObjCmd,
            (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL) == NULL) {
     return TCL_ERROR;
   }

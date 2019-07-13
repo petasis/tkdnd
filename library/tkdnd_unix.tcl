@@ -60,16 +60,33 @@ namespace eval xdnd {
 # ----------------------------------------------------------------------------
 #  Command xdnd::HandleXdndEnter
 # ----------------------------------------------------------------------------
-proc xdnd::HandleXdndEnter { path drag_source typelist time { data {} } } {
+proc xdnd::GetPressedKeys { drop_target } {
+  set dict [_keyboard_get_state $drop_target]
+  set pressedkeys {}
+  for {set b 1} {$b <= 5} {incr b} {
+    if {[dict get $dict $b]} {lappend pressedkeys $b}
+  }
+  foreach {k l} {Alt alt Shift shift Control ctrl Lock caps_lock
+                 Mod1 mod1 Mod2 mod2 Mod3 mod3 Mod4 mod4 Mod5 mod5} {
+    if {[dict get $dict $k]} {lappend pressedkeys $l}
+  }
+  return $pressedkeys
+};# xdnd::GetPressedKeys
+
+# ----------------------------------------------------------------------------
+#  Command xdnd::HandleXdndEnter
+# ----------------------------------------------------------------------------
+proc xdnd::HandleXdndEnter { drop_target drag_source typelist time
+                             { data {} } } {
   variable _pressedkeys
   variable _actionlist
   variable _typelist
-  set _pressedkeys 1
+  set _pressedkeys [GetPressedKeys $drop_target]
   set _actionlist  { copy move link ask private }
   set _typelist    $typelist
   # puts "xdnd::HandleXdndEnter: $time"
   ::tkdnd::generic::SetDroppedData $data
-  ::tkdnd::generic::HandleEnter $path $drag_source $typelist $typelist \
+  ::tkdnd::generic::HandleEnter $drop_target $drag_source $typelist $typelist \
            $_actionlist $_pressedkeys
 };# xdnd::HandleXdndEnter
 
@@ -82,6 +99,7 @@ proc xdnd::HandleXdndPosition { drop_target rootX rootY time
   variable _typelist
   variable _last_mouse_root_x; set _last_mouse_root_x $rootX
   variable _last_mouse_root_y; set _last_mouse_root_y $rootY
+  set _pressedkeys [GetPressedKeys $drop_target]
   # puts "xdnd::HandleXdndPosition: $time"
   ## Get the dropped data...
   catch {
@@ -105,6 +123,7 @@ proc xdnd::HandleXdndDrop { time } {
   variable _pressedkeys
   variable _last_mouse_root_x
   variable _last_mouse_root_y
+  set _pressedkeys [GetPressedKeys [::tkdnd::generic::GetDropTarget]]
   ## Get the dropped data...
   ::tkdnd::generic::SetDroppedData [GetDroppedData \
     [::tkdnd::generic::GetDragSource] [::tkdnd::generic::GetDropTarget] \

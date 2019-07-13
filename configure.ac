@@ -137,6 +137,9 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
 
 if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
     TEA_ADD_SOURCES([unix/TkDND_XDND.c unix/tkUnixSelect.c unix/Cursors.c])
+    AC_CHECK_HEADER(X11/XKBlib.h,
+        [AC_DEFINE(HAVE_X11_EXTENSIONS_XKB_H, 1, [Do we have <X11/XKBlib.h>?])],
+        [AC_DEFINE(NO_X11_EXTENSIONS_XKB_H,   1, [Do we have <X11/XKBlib.h>?])])
 fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then

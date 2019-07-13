@@ -5858,6 +5858,18 @@ if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
 
 
 
+    ac_fn_c_check_header_mongrel "$LINENO" "X11/XKBlib.h" "ac_cv_header_X11_XKBlib_h" "$ac_includes_default"
+if test "x$ac_cv_header_X11_XKBlib_h" = xyes; then :
+
+$as_echo "#define HAVE_X11_EXTENSIONS_XKB_H 1" >>confdefs.h
+
+else
+
+$as_echo "#define NO_X11_EXTENSIONS_XKB_H 1" >>confdefs.h
+
+fi
+
+
 fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then
