@@ -303,20 +303,23 @@ int TkDND_RegisterTypesObjCmd(ClientData clientData, Tcl_Interp *interp,
 
 Tk_Window TkDND_GetToplevelFromWrapper(Tk_Window tkwin) {
   Window root_return, parent, *children_return = 0;
-  unsigned int nchildren_return;
-  Tk_Window toplevel = NULL;
+  unsigned int nchildren_return, i;
+  Tk_Window toplevel = NULL, child;
+  Display *display;
+
   if (tkwin == NULL || Tk_IsTopLevel(tkwin)) return tkwin;
-  XQueryTree(Tk_Display(tkwin), Tk_WindowId(tkwin),
+  display = Tk_Display(tkwin);
+  XQueryTree(display, Tk_WindowId(tkwin),
            &root_return, &parent,
            &children_return, &nchildren_return);
-  if (nchildren_return == 1) {
-    /* We have a wrapper window with one child: Tk's "toplevel" window. */
-    toplevel = Tk_IdToWindow(Tk_Display(tkwin), children_return[0]);
-  }
-  if (nchildren_return == 2) {
-    /* We have a wrapper window with two children:
-     * A menu, and Tk's "toplevel" window. Return the second... */
-    toplevel = Tk_IdToWindow(Tk_Display(tkwin), children_return[1]);
+  /* If we have a wrapper window with multiple children, use the first child
+   * that is a "toplevel" window. */
+  for (i = 0; i < nchildren_return; ++i) {
+    child = Tk_IdToWindow(display, children_return[i]);
+    if (Tk_IsTopLevel(child)) {
+      toplevel = child;
+      break;
+    }
   }
   if (children_return) XFree(children_return);
   return toplevel;

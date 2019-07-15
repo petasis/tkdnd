@@ -1,3 +1,8 @@
+2019-07-15  Petasis George  <petasis@iit.demokritos.gr>
+	* unix/TkDND_XDND.c: Changed how TkDND_GetToplevelFromWrapper()
+	selects the topelvel. Patch from Florian Pigorsch.
+	(https://github.com/petasis/tkdnd/issues/34)
+
 2019-07-14  Petasis George  <petasis@iit.demokritos.gr>
 	* doc/tkDND.n:
 	* doc/tkDND.htm: Updated documentation to reflect the changes in the

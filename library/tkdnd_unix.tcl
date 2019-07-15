@@ -61,7 +61,9 @@ namespace eval xdnd {
 #  Command xdnd::HandleXdndEnter
 # ----------------------------------------------------------------------------
 proc xdnd::GetPressedKeys { drop_target } {
-  set dict [_keyboard_get_state $drop_target]
+  if {[catch {set dict [_keyboard_get_state $drop_target]}]} {
+    return {}
+  }
   set pressedkeys {}
   for {set b 1} {$b <= 5} {incr b} {
     if {[dict get $dict $b]} {lappend pressedkeys $b}
