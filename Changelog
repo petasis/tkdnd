@@ -1,4 +1,10 @@
 2019-07-15  Petasis George  <petasis@iit.demokritos.gr>
+	* library/tkdnd.tcl: Allowed ::tkdnd::drag_source to accept multiple
+	mouse buttons, as the event that initiates a drag action.
+
+	* library/tkdnd.tcl: Merged pull request #36.
+	(https://github.com/petasis/tkdnd/pull/36).
+
 	* unix/TkDND_XDND.c: Changed how TkDND_GetToplevelFromWrapper()
 	selects the topelvel. Patch from Florian Pigorsch.
 	(https://github.com/petasis/tkdnd/issues/34)

@@ -278,7 +278,7 @@ TkDND \- Tk Drag and Drop Interface
 .br
 \fBtkdnd::drop_target unregister\fI window\fR
 .PP
-\fBtkdnd::drag_source register\fI window ?type-list? ?mouse-button?\fR
+\fBtkdnd::drag_source register\fI window ?type-list? ?mouse-buttons?\fR
 .br
 \fBtkdnd::drag_source unregister\fI window\fR
 .PP
@@ -327,7 +327,7 @@ Thus, \fIwindow\fR will stop receiving events related to drop operations.
 It is an error to use this command for a \fIwindow\fR that has not been
 registered as a drop target with \fBtkdnd::drop_target register\fR.
 .TP
-\fBtkdnd::drag_source register\fI window ?type-list? ?mouse-button?\fR
+\fBtkdnd::drag_source register\fI window ?type-list? ?mouse-buttons?\fR
 This command will register \fIwindow\fR as a drag source. A drag source is a
 widget than can start a drag action. \fIwindow\fR must exist when this command
 is executed and this command can be executed multiple times on a widget.
@@ -342,10 +342,11 @@ list is indicative/informative. \fIwindow\fR can initiate a drag action with
 even a different type list. If \fItype-list\fR is not specified, it defaults to
 the empty list.
 
-Finally, \fImouse-button\fR is the mouse button that will be used for starting
-the drag action. It can have any of the values 1 (left mouse button),
-2 (middle mouse button - wheel) and 3 (right mouse button).
-If \fImouse-button\fR is not specified, it defaults to 1.
+Finally, \fImouse-buttons\fR is one or more mouse buttons that will be used for
+starting the drag action. It can have any of the values "1" (left mouse
+button), "2" (middle mouse button - wheel) and "3" (right mouse button).  If
+\fImouse-buttons\fR is not specified, it defaults to "1" (left mouse button).
+Multiple mouse buttons can be specified as a list of values (i.e. {1 3}).
 .TP
 \fBtkdnd::drag_source unregister\fI window\fR
 This command will stop \fIwindow\fR from being a drag source.

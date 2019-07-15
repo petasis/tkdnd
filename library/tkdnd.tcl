@@ -178,21 +178,23 @@ namespace eval ::tkdnd {
 # ----------------------------------------------------------------------------
 proc ::tkdnd::drag_source { mode path { types {} } { event 1 }
                                       { tagprefix TkDND_Drag } } {
-  set tags [bindtags $path]
-  set idx  [lsearch $tags ${tagprefix}$event]
-  switch -- $mode {
-    register {
-      if { $idx != -1 } {
-        ## No need to do anything!
-        # bindtags $path [lreplace $tags $idx $idx ${tagprefix}$event]
-      } else {
-        bindtags $path [linsert $tags 1 ${tagprefix}$event]
+  foreach single_event $event {
+    set tags [bindtags $path]
+    set idx  [lsearch $tags ${tagprefix}$single_event]
+    switch -- $mode {
+      register {
+        if { $idx != -1 } {
+          ## No need to do anything!
+          # bindtags $path [lreplace $tags $idx $idx ${tagprefix}$single_event]
+        } else {
+          bindtags $path [linsert $tags 1 ${tagprefix}$single_event]
+        }
+        _drag_source_update_types $path $types
       }
-      _drag_source_update_types $path $types
-    }
-    unregister {
-      if { $idx != -1 } {
-        bindtags $path [lreplace $tags $idx $idx]
+      unregister {
+        if { $idx != -1 } {
+          bindtags $path [lreplace $tags $idx $idx]
+        }
       }
     }
   }
