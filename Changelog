@@ -1,3 +1,7 @@
+2020-02-23  Petasis George  <petasis@iit.demokritos.gr>
+	* generic/*: Moved cursor utilities from unix to the generic folder.
+	* unix/Cursors.c: TkDND_GetCursor moved in generic.
+
 2019-07-15  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd.tcl: Allowed ::tkdnd::drag_source to accept multiple
 	mouse buttons, as the event that initiates a drag action.

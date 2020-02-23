@@ -1,7 +1,4 @@
-#include "tcl.h"
-#include "tk.h"
-#include <X11/Xlib.h>
-#include <X11/X.h>
+#include "TkDND_Cursors.h"
 
 /*
  * Define DND Cursors...
@@ -23,7 +20,7 @@ static unsigned char noDropCurMask[] = {
  0xfe,0xc0,0x07,0xfe,0x81,0x07,0xff,0x83,0x0f,0xcf,0x07,0x0f,0x8f,0x0f,0x0f,
  0x0f,0x1f,0x0f,0x0f,0x3e,0x0f,0x1f,0xfc,0x0f,0x1e,0xf8,0x07,0x3e,0xf0,0x07,
  0xfc,0xe0,0x03,0xf8,0xff,0x01,0xf0,0xff,0x00,0xe0,0x7f,0x00,0x80,0x1f,0x00};
- 
+
 /* Copy Cursor... */
 #define CopyCursorWidth  29
 #define CopyCursorHeight 25
@@ -136,12 +133,6 @@ static unsigned char AskCurMask[] =
   0x00, 0xe6, 0x01, 0x00, 0x00, 0xc0, 0x03, 0x00, 0x00, 0xc0, 0x03, 0x00,
   0x00, 0x80, 0x01, 0x00};
 
-static Cursor noDropCursor = 0,
-              moveCursor   = 0,
-              copyCursor   = 0,
-              linkCursor   = 0,
-              askCursor    = 0;
-
 
 void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   XColor black, white;
@@ -153,103 +144,42 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   if (!interp) return;
   main_window   = Tk_MainWindow(interp);
   Tk_MakeWindowExist(main_window);
-  display       = Tk_Display(main_window);
-  RootWindow    = DefaultRootWindow(display);
-  
-  black.pixel = BlackPixel(display, DefaultScreen(display));
-  white.pixel = WhitePixel(display, DefaultScreen(display));
-  XQueryColor(display, DefaultColormap(display, 
-          DefaultScreen(display)), &black);
-  XQueryColor(display, DefaultColormap(display,
-          DefaultScreen(display)), &white);
+  Tk_Uid cbgcol = Tk_GetUid("black"), cfgcol = Tk_GetUid("white");
+
   /* No Drop Cursor */
-  if (!noDropCursor) {
-    image_pixmap = XCreateBitmapFromData(display, RootWindow,
-            (char *) noDropCurBits, noDropCursorWidth, noDropCursorHeight);
-    mask_pixmap  = XCreateBitmapFromData(display, RootWindow,
-            (char *) noDropCurMask, noDropCursorWidth, noDropCursorHeight);
-    noDropCursor = XCreatePixmapCursor (display, image_pixmap,
-            mask_pixmap, &black, &white, noDropCursorX, noDropCursorY);
-    XFreePixmap (display, image_pixmap);
-    XFreePixmap (display, mask_pixmap);
+  if (TkDND_noDropCursor == NULL) {
+    TkDND_noDropCursor = Tk_GetCursorFromData(interp, main_window,
+      noDropCurBits, noDropCurMask, noDropCursorWidth, noDropCursorHeight,
+      noDropCursorX, noDropCursorY, cbgcol, cfgcol);
   }
   /* Copy Cursor */
-  if (!copyCursor) {
-    image_pixmap = XCreateBitmapFromData(display, RootWindow,
-            (char *) CopyCurBits, CopyCursorWidth, CopyCursorHeight);
-    mask_pixmap  = XCreateBitmapFromData(display, RootWindow,
-            (char *) CopyCurMask, CopyCursorWidth, CopyCursorHeight);
-    copyCursor   = XCreatePixmapCursor (display, image_pixmap,
-            mask_pixmap, &black, &white, CopyCursorX, CopyCursorY);
-    XFreePixmap (display, image_pixmap);
-    XFreePixmap (display, mask_pixmap);
+  if (TkDND_copyCursor == NULL) {
+    TkDND_copyCursor = Tk_GetCursorFromData(interp, main_window,
+      CopyCurBits, CopyCurMask, CopyCursorWidth, CopyCursorHeight,
+      CopyCursorX, CopyCursorY, cbgcol, cfgcol);
   }
   /* Move Cursor */
-  if (!moveCursor) {
-    image_pixmap = XCreateBitmapFromData(display, RootWindow,
-            (char *) MoveCurBits, MoveCursorWidth, MoveCursorHeight);
-    mask_pixmap  = XCreateBitmapFromData(display, RootWindow,
-            (char *) MoveCurMask, MoveCursorWidth, MoveCursorHeight);
-    moveCursor   = XCreatePixmapCursor (display, image_pixmap,
-            mask_pixmap, &black, &white, MoveCursorX, MoveCursorY);
-    XFreePixmap (display, image_pixmap);
-    XFreePixmap (display, mask_pixmap);
+  if (TkDND_moveCursor == NULL) {
+    TkDND_moveCursor = Tk_GetCursorFromData(interp, main_window,
+      MoveCurBits, MoveCurMask, MoveCursorWidth, MoveCursorHeight,
+      MoveCursorX, MoveCursorY, cbgcol, cfgcol);
   }
   /* Link Cursor */
-  if (!linkCursor) {
-    image_pixmap = XCreateBitmapFromData(display, RootWindow,
-            (char *) LinkCurBits, LinkCursorWidth, LinkCursorHeight);
-    mask_pixmap  = XCreateBitmapFromData(display, RootWindow,
-            (char *) LinkCurMask, LinkCursorWidth, LinkCursorHeight);
-    linkCursor   = XCreatePixmapCursor (display, image_pixmap,
-            mask_pixmap, &black, &white, LinkCursorX, LinkCursorY);
-    XFreePixmap (display, image_pixmap);
-    XFreePixmap (display, mask_pixmap);
+  if (TkDND_linkCursor == NULL) {
+    TkDND_linkCursor = Tk_GetCursorFromData(interp, main_window,
+      LinkCurBits, LinkCurMask, LinkCursorWidth, LinkCursorHeight,
+      LinkCursorX, LinkCursorY, cbgcol, cfgcol);
   }
   /* Ask Cursor */
-  if (!askCursor) {
-    image_pixmap = XCreateBitmapFromData(display, RootWindow,
-            (char *) AskCurBits, AskCursorWidth, AskCursorHeight);
-    mask_pixmap  = XCreateBitmapFromData(display, RootWindow,
-            (char *) AskCurMask, AskCursorWidth, AskCursorHeight);
-    askCursor    = XCreatePixmapCursor (display, image_pixmap,
-            mask_pixmap, &black, &white, AskCursorX, AskCursorY);
-    XFreePixmap (display, image_pixmap);
-    XFreePixmap (display, mask_pixmap);
+  if (TkDND_askCursor == NULL) {
+    TkDND_askCursor = Tk_GetCursorFromData(interp, main_window,
+      AskCurBits, AskCurMask, AskCursorWidth, AskCursorHeight,
+      AskCursorX, AskCursorY, cbgcol, cfgcol);
   }
-  /* Register Cursors... */
+  /* Private Cursor (same as Ask)*/
+  if (TkDND_privateCursor == NULL) {
+    TkDND_privateCursor = Tk_GetCursorFromData(interp, main_window,
+      AskCurBits, AskCurMask, AskCursorWidth, AskCursorHeight,
+      AskCursorX, AskCursorY, cbgcol, cfgcol);
+  }
 }; /* TkDND_InitialiseCursors */
-
-Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name) {
-  static char *DropActions[] = {
-    "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
-    (char *) NULL
-  };
-  enum dropactions {
-    ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
-    refuse_drop, ActionDefault
-  };
-  int status, index;
-  Tk_Cursor cursor;
-
-  status = Tcl_GetIndexFromObj(interp, name, (const char **) DropActions,
-                              "dropactions", 0, &index);
-  if (status == TCL_OK) {
-    switch ((enum dropactions) index) {
-      case ActionDefault:
-      case ActionCopy:    return (Tk_Cursor) copyCursor;
-      case ActionMove:    return (Tk_Cursor) moveCursor;
-      case ActionLink:    return (Tk_Cursor) linkCursor;
-      case ActionAsk:     return (Tk_Cursor) askCursor;
-      case ActionPrivate: return (Tk_Cursor) askCursor;
-      case refuse_drop:   return (Tk_Cursor) noDropCursor;
-    }
-  }
-  /* The name is not an action. Try Tk cursors... */
-  cursor = Tk_AllocCursorFromObj(interp, Tk_MainWindow(interp), name);
-  if (cursor == None) {
-    Tcl_SetResult(interp, "invalid cursor name", TCL_STATIC);
-    return (Tk_Cursor) None;
-  }
-  return cursor;
-}; /* TkDND_GetCursor */

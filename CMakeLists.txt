@@ -55,11 +55,14 @@ include(CheckIncludeFiles)
 ## ===========================================================================
 ##  Project sources
 ## ===========================================================================
+SET ( PKG_SOURCES generic/TkDND_Cursors.c )
+INCLUDE_DIRECTORIES ( generic )
+
 IF ( WIN32 )
   ## True under windows (32bit, 64bit, Cygwin)...
   INCLUDE_DIRECTORIES ( win )
   SET ( CMAKE_SHARED_LIBRARY_PREFIX lib )
-  SET ( PKG_SOURCES win/TkDND_OleDND.cpp )
+  LIST ( APPEND PKG_SOURCES win/TkDND_OleDND.cpp )
 
   ADD_DEFINITIONS     ( -DUNICODE )
   ADD_DEFINITIONS     ( -D_UNICODE )
@@ -87,10 +90,10 @@ ELSE  ( WIN32 )
     ADD_DEFINITIONS     ( -fobjc-gc  )
     ADD_DEFINITIONS     ( -fobjc-arc )
     LINK_LIBRARIES      ( ${COCOA_LIBRARY} )
-    SET ( PKG_SOURCES macosx/macdnd.m )
+    LIST ( APPEND PKG_SOURCES macosx/macdnd.m )
   ELSE ( APPLE )
     INCLUDE_DIRECTORIES ( unix )
-    SET ( PKG_SOURCES unix/TkDND_XDND.c unix/tkUnixSelect.c unix/Cursors.c )
+    LIST ( APPEND PKG_SOURCES unix/TkDND_XDND.c unix/tkUnixSelect.c unix/Cursors.c )
     MESSAGE ( STATUS "Searching for X11..." )
     #FIND_PACKAGE ( X11 REQUIRED )
     include(FindX11)
