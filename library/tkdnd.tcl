@@ -348,6 +348,11 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
              executed was: \"$cmd\"\nResult was: \"$info\""
     }
     set action refuse_drop
+
+    ## Custom Cursors...
+    # Call the <<DragInitCmd>> binding.
+    set cursor_map [bind $source <<DragCursorMap>>]
+
     variable _windowingsystem
     # puts "Source:   \"$source\""
     # puts "Types:    \"[join $types {", "}]\""
@@ -356,7 +361,7 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
     # puts "Data:     \"[string range $data 0 100]\""
     switch $_windowingsystem {
       x11 {
-        set action [xdnd::_dodragdrop $source $actions $types $data $button]
+        set action [xdnd::_dodragdrop $source $actions $types $data $button $cursor_map]
       }
       win32 -
       windows {

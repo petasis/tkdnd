@@ -287,7 +287,7 @@ proc xdnd::_selection_ownership_lost {} {
 # ----------------------------------------------------------------------------
 #  Command xdnd::_dodragdrop
 # ----------------------------------------------------------------------------
-proc xdnd::_dodragdrop { source actions types data button } {
+proc xdnd::_dodragdrop { source actions types data button { cursor_map {} } } {
   variable _dragging
 
   # puts "xdnd::_dodragdrop: source: $source, actions: $actions, types: $types,\
@@ -316,6 +316,7 @@ proc xdnd::_dodragdrop { source actions types data button } {
   variable _dodragdrop_current_cursor             $_dodragdrop_default_action
   variable _dodragdrop_drop_occured               0
   variable _dodragdrop_selection_requestor        0
+  variable _dodragdrop_cursor_map                 $cursor_map
 
   ##
   ## If we have more than 3 types, the property XdndTypeList must be set on
@@ -345,7 +346,7 @@ proc xdnd::_dodragdrop { source actions types data button } {
   set _dragging 1
 
   ## Grab the mouse pointer...
-  _grab_pointer $source $_dodragdrop_default_action
+  _grab_pointer $source [_get_mapped_cursor $_dodragdrop_default_action]
 
   ## Register our generic event handler...
   #  The generic event callback will report events by modifying variable
@@ -634,10 +635,36 @@ proc xdnd::_update_cursor { {cursor {}}} {
     }
   }
   if {![string equal $cursor $_dodragdrop_current_cursor]} {
-    _set_pointer_cursor $_dodragdrop_drag_source $cursor
+    _set_pointer_cursor $_dodragdrop_drag_source [_get_mapped_cursor $cursor]
     set _dodragdrop_current_cursor $cursor
   }
 };# xdnd::_update_cursor
+
+# ----------------------------------------------------------------------------
+#  Command xdnd::_get_mapped_cursor
+# ----------------------------------------------------------------------------
+proc xdnd::_get_mapped_cursor { cursor } {
+  variable _dodragdrop_cursor_map
+  variable _dodragdrop_drag_source
+  ## Is there a custom cursor map?
+  if {[catch {dict get $_dodragdrop_cursor_map $cursor} mapped]} {
+    ## Do not report the error, ignore the mapping.
+    set mapped $cursor
+  }
+  ## Is there a cursor feedback command?
+  set cmd [bind $_dodragdrop_drag_source <<DragCursorFeedback>>]
+  if {$cmd ne ""} {
+    set code [catch {uplevel \#0 $cmd \{$_dodragdrop_drag_source\} \{$cursor\} \{$mapped\}} info options]
+    # puts "CODE: $code ---- $info"
+    switch -exact -- $code {
+      0 {if {$info ne ""} {set mapped $info}}
+      default {
+        return -options $options $info
+      }
+    }
+  }
+  return $mapped
+};# xdnd::_get_mapped_cursor
 
 # ----------------------------------------------------------------------------
 #  Command xdnd::_default_action
