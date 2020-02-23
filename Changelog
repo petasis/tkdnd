@@ -1,6 +1,11 @@
 2020-02-23  Petasis George  <petasis@iit.demokritos.gr>
+        * demos/custom_cursors.tcl:
+	* demos/cursors: Added a demo script for shwoing the interface for
+	custom cursors.
+
 	* generic/*: Moved cursor utilities from unix to the generic folder.
 	* unix/Cursors.c: TkDND_GetCursor moved in generic.
+	Added support for custom cursors.
 
 2019-07-15  Petasis George  <petasis@iit.demokritos.gr>
 	* library/tkdnd.tcl: Allowed ::tkdnd::drag_source to accept multiple

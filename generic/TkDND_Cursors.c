@@ -36,22 +36,25 @@
 #include "tcl.h"
 #include "tk.h"
 
+#include <X11/Xcursor/Xcursor.h>
+
 Tk_Cursor TkDND_noDropCursor  = NULL,
           TkDND_moveCursor    = NULL,
           TkDND_copyCursor    = NULL,
           TkDND_linkCursor    = NULL,
           TkDND_askCursor     = NULL,
-          TkDND_privateCursor = NULL;
+          TkDND_privateCursor = NULL,
+          TkDND_waitCursor    = NULL;
 
 
 Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name) {
   static char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
-    (char *) NULL
+    "wait", "clock", (char *) NULL
   };
   enum dropactions {
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,
-    refuse_drop, ActionDefault
+    refuse_drop, ActionDefault, ActionWait, ActionClock
   };
   int status, index;
   Tk_Cursor cursor;
@@ -67,7 +70,15 @@ Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name) {
       case ActionAsk:     return (Tk_Cursor) TkDND_askCursor;
       case ActionPrivate: return (Tk_Cursor) TkDND_privateCursor;
       case refuse_drop:   return (Tk_Cursor) TkDND_noDropCursor;
+      case ActionWait:
+      case ActionClock:   return (Tk_Cursor) TkDND_waitCursor;
     }
+  }
+  char *cur_name = Tcl_GetString(name);
+  printf("%s\n", cur_name); fflush(0);
+  if (cur_name[0] == '#') {
+    cursor = (Tk_Cursor) XcursorFilenameLoadCursor(Tk_Display(Tk_MainWindow(interp)), &cur_name[1]);
+    if (cursor != None) return cursor;
   }
   /* The name is not an action. Try Tk cursors... */
   cursor = Tk_AllocCursorFromObj(interp, Tk_MainWindow(interp), name);

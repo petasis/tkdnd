@@ -109,6 +109,17 @@ ELSE  ( WIN32 )
         INCLUDE_DIRECTORIES ( ${X11_Xkb_INCLUDE_PATH} )
       ENDIF ( X11_Xkb_FOUND )
 
+      IF ( X11_Xcursor_FOUND )
+        # dnf install libXcursor-devel
+        CHECK_INCLUDE_FILE ( "X11/Xcursor/Xcursor.h"
+                              HAVE_X11_EXTENSIONS_XCURSOR_H )
+        IF ( HAVE_X11_EXTENSIONS_XCURSOR_H )
+          ADD_DEFINITIONS ( -DHAVE_X11_EXTENSIONS_XCURSOR_H )
+        ENDIF ( HAVE_X11_EXTENSIONS_XCURSOR_H )
+        INCLUDE_DIRECTORIES ( ${X11_Xcursor_INCLUDE_PATH} )
+        LINK_LIBRARIES      ( ${X11_Xcursor_LIB} )
+      ENDIF ( X11_Xcursor_FOUND )
+
       MESSAGE ( STATUS "  X11_INCLUDE_DIR:         " ${X11_INCLUDE_DIR} )
       MESSAGE ( STATUS "  X11_LIBRARIES:           " ${X11_LIBRARIES} )
 

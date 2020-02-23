@@ -40,7 +40,8 @@
 #include "tk.h"
 
 extern Tk_Cursor TkDND_noDropCursor, TkDND_moveCursor, TkDND_copyCursor,
-                 TkDND_linkCursor,   TkDND_askCursor,  TkDND_privateCursor;
+                 TkDND_linkCursor,   TkDND_askCursor,  TkDND_privateCursor,
+                 TkDND_waitCursor;
 extern Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name);
 
 #endif /* _TKDND_CURSORS_H */

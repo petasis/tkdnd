@@ -34,7 +34,7 @@ switch $tkdnd::_windowingsystem {
     set cursor_map [list \
       copy        "@$parent_folder/cursors/unix-x11/copy.xbm \
                     $parent_folder/cursors/unix-x11/copy-mask.xbm black white" \
-      refuse_drop spider \
+      refuse_drop "#$parent_folder/cursors/unix/no-drop" \
     ]
   }
   windows {
