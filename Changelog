@@ -1,3 +1,9 @@
+2020-03-03  Petasis George  <petasis@iit.demokritos.gr>
+        * CMakeLists.txt:
+	* configure.ac:
+	* unix/Cursors.c: Corrections in build system and fixed some warnings
+	under unix.
+
 2020-02-23  Petasis George  <petasis@iit.demokritos.gr>
         * demos/custom_cursors.tcl:
 	* demos/cursors: Added a demo script for shwoing the interface for

@@ -37,9 +37,9 @@
 #include "TkDND_Cursors.h"
 
 /* https://www.x.org/releases/X11R7.7/doc/man/man3/Xcursor.3.xhtml */
-#ifdef HAVE_X11_EXTENSIONS_XCURSOR_H
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
 #include <X11/Xcursor/Xcursor.h>
-#endif /* HAVE_X11_EXTENSIONS_XCURSOR_H */
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
 
 /*
  * Define DND Cursors...
@@ -50,13 +50,13 @@
 #define noDropCursorHeight 20
 #define noDropCursorX      10
 #define noDropCursorY      10
-static unsigned char noDropCurBits[] = {
+static /*unsigned*/ char noDropCurBits[] = {
  0x00,0x00,0x00,0x80,0x1f,0x00,0xe0,0x7f,0x00,0xf0,0xf0,0x00,0x38,0xc0,0x01,
  0x7c,0x80,0x03,0xec,0x00,0x03,0xce,0x01,0x07,0x86,0x03,0x06,0x06,0x07,0x06,
  0x06,0x0e,0x06,0x06,0x1c,0x06,0x0e,0x38,0x07,0x0c,0x70,0x03,0x1c,0xe0,0x03,
  0x38,0xc0,0x01,0xf0,0xe0,0x00,0xe0,0x7f,0x00,0x80,0x1f,0x00,0x00,0x00,0x00};
 
-static unsigned char noDropCurMask[] = {
+static /*unsigned*/ char noDropCurMask[] = {
  0x80,0x1f,0x00,0xe0,0x7f,0x00,0xf0,0xff,0x00,0xf8,0xff,0x01,0xfc,0xf0,0x03,
  0xfe,0xc0,0x07,0xfe,0x81,0x07,0xff,0x83,0x0f,0xcf,0x07,0x0f,0x8f,0x0f,0x0f,
  0x0f,0x1f,0x0f,0x0f,0x3e,0x0f,0x1f,0xfc,0x0f,0x1e,0xf8,0x07,0x3e,0xf0,0x07,
@@ -67,7 +67,7 @@ static unsigned char noDropCurMask[] = {
 #define CopyCursorHeight 25
 #define CopyCursorX      10
 #define CopyCursorY      10
-static unsigned char CopyCurBits[] =
+static /*unsigned*/ char CopyCurBits[] =
 {
   0x00, 0x00, 0x00, 0x00, 0xfe, 0xff, 0x0f, 0x00, 0x02, 0x00, 0x08, 0x01,
   0x02, 0x00, 0x08, 0x01, 0x02, 0x00, 0x08, 0x01, 0x02, 0x00, 0xe8, 0x0f,
@@ -79,7 +79,7 @@ static unsigned char CopyCurBits[] =
   0x00, 0xc0, 0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00,
   0x00, 0x00, 0x00, 0x00};
 
-static unsigned char CopyCurMask[] =
+static /*unsigned*/ char CopyCurMask[] =
 {
   0xff, 0xff, 0x1f, 0x00, 0xff, 0xff, 0xff, 0x1f, 0xff, 0xff, 0xff, 0x1f,
   0x07, 0x00, 0xfc, 0x1f, 0x07, 0x00, 0xfc, 0x1f, 0x07, 0x00, 0xfc, 0x1f,
@@ -96,7 +96,7 @@ static unsigned char CopyCurMask[] =
 #define MoveCursorHeight 25
 #define MoveCursorX      10
 #define MoveCursorY      10
-static unsigned char MoveCurBits[] =
+static /*unsigned*/ char MoveCurBits[] =
 {
   0x00, 0x00, 0x00, 0xfe, 0xff, 0x0f, 0x02, 0x00, 0x08, 0x02, 0x00, 0x08,
   0x02, 0x00, 0x08, 0x02, 0x00, 0x08, 0x02, 0x00, 0x08, 0x02, 0x00, 0x08,
@@ -106,7 +106,7 @@ static unsigned char MoveCurBits[] =
   0x00, 0xc4, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x80, 0x01, 0x00, 0x80, 0x01,
   0x00, 0x00, 0x00};
 
-static unsigned char MoveCurMask[] =
+static /*unsigned*/ char MoveCurMask[] =
 {
   0xff, 0xff, 0x1f, 0xff, 0xff, 0x1f, 0xff, 0xff, 0x1f, 0x07, 0x00, 0x1c,
   0x07, 0x00, 0x1c, 0x07, 0x00, 0x1c, 0x07, 0x00, 0x1c, 0x07, 0x00, 0x1c,
@@ -121,7 +121,7 @@ static unsigned char MoveCurMask[] =
 #define LinkCursorHeight 25
 #define LinkCursorX      10
 #define LinkCursorY      10
-static unsigned char LinkCurBits[] =
+static /*unsigned*/ char LinkCurBits[] =
 {
   0x00, 0x00, 0x00, 0x00, 0xfe, 0xff, 0x0f, 0x00, 0x02, 0x00, 0x08, 0x01,
   0x02, 0x00, 0x88, 0x00, 0x02, 0x00, 0x48, 0x00, 0x02, 0x00, 0xe8, 0x0f,
@@ -133,7 +133,7 @@ static unsigned char LinkCurBits[] =
   0x00, 0xc0, 0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00,
   0x00, 0x00, 0x00, 0x00};
 
-static unsigned char LinkCurMask[] =
+static /*unsigned*/ char LinkCurMask[] =
 {
   0xff, 0xff, 0x1f, 0x00, 0xff, 0xff, 0xff, 0x1f, 0xff, 0xff, 0xff, 0x1f,
   0x07, 0x00, 0xfc, 0x1f, 0x07, 0x00, 0xfc, 0x1f, 0x07, 0x00, 0xfc, 0x1f,
@@ -150,7 +150,7 @@ static unsigned char LinkCurMask[] =
 #define AskCursorHeight 25
 #define AskCursorX      10
 #define AskCursorY      10
-static unsigned char AskCurBits[] =
+static /*unsigned*/ char AskCurBits[] =
 {
   0x00, 0x00, 0x00, 0x00, 0xfe, 0xff, 0x0f, 0x00, 0x02, 0x00, 0x88, 0x03,
   0x02, 0x00, 0x48, 0x04, 0x02, 0x00, 0x08, 0x04, 0x02, 0x00, 0x08, 0x02,
@@ -162,7 +162,7 @@ static unsigned char AskCurBits[] =
   0x00, 0xc0, 0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00,
   0x00, 0x00, 0x00, 0x00};
 
-static unsigned char AskCurMask[] =
+static /*unsigned*/ char AskCurMask[] =
 {
   0xff, 0xff, 0x1f, 0x00, 0xff, 0xff, 0xff, 0x1f, 0xff, 0xff, 0xff, 0x1f,
   0x07, 0x00, 0xfc, 0x1f, 0x07, 0x00, 0xfc, 0x1f, 0x07, 0x00, 0xfc, 0x1f,
@@ -176,11 +176,8 @@ static unsigned char AskCurMask[] =
 
 
 void TkDND_InitialiseCursors(Tcl_Interp *interp) {
-  XColor black, white;
-  Pixmap image_pixmap, mask_pixmap;
   Tk_Window main_window;
   Display *display;
-  Window RootWindow;
 
   if (!interp) return;
   main_window   = Tk_MainWindow(interp);
@@ -190,7 +187,7 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
 
   /* No Drop Cursor */
   if (TkDND_noDropCursor == NULL) {
-    TkDND_noDropCursor = XcursorLibraryLoadCursor(display, "dnd-no-drop");
+    TkDND_noDropCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-no-drop");
     if (TkDND_noDropCursor == None) {
       TkDND_noDropCursor = Tk_GetCursorFromData(interp, main_window,
         noDropCurBits, noDropCurMask, noDropCursorWidth, noDropCursorHeight,
@@ -199,7 +196,7 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Copy Cursor */
   if (TkDND_copyCursor == NULL) {
-    TkDND_copyCursor = XcursorLibraryLoadCursor(display, "dnd-copy");
+    TkDND_copyCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-copy");
     if (TkDND_copyCursor == None) {
       TkDND_copyCursor = Tk_GetCursorFromData(interp, main_window,
         CopyCurBits, CopyCurMask, CopyCursorWidth, CopyCursorHeight,
@@ -208,7 +205,7 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Move Cursor */
   if (TkDND_moveCursor == NULL) {
-    TkDND_moveCursor = XcursorLibraryLoadCursor(display, "dnd-move");
+    TkDND_moveCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-move");
     if (TkDND_moveCursor == None) {
       TkDND_moveCursor = Tk_GetCursorFromData(interp, main_window,
         MoveCurBits, MoveCurMask, MoveCursorWidth, MoveCursorHeight,
@@ -217,7 +214,7 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Link Cursor */
   if (TkDND_linkCursor == NULL) {
-    TkDND_linkCursor = XcursorLibraryLoadCursor(display, "dnd-link");
+    TkDND_linkCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-link");
     if (TkDND_linkCursor == None) {
       TkDND_linkCursor = Tk_GetCursorFromData(interp, main_window,
         LinkCurBits, LinkCurMask, LinkCursorWidth, LinkCursorHeight,
@@ -226,7 +223,7 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Ask Cursor */
   if (TkDND_askCursor == NULL) {
-    TkDND_askCursor = XcursorLibraryLoadCursor(display, "dnd-ask");
+    TkDND_askCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-ask");
     if (TkDND_askCursor == None) {
       TkDND_askCursor = Tk_GetCursorFromData(interp, main_window,
         AskCurBits, AskCurMask, AskCursorWidth, AskCursorHeight,
@@ -235,7 +232,7 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Private Cursor (same as Ask) */
   if (TkDND_privateCursor == NULL) {
-    TkDND_privateCursor = XcursorLibraryLoadCursor(display, "dnd-ask");
+    TkDND_privateCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-ask");
     if (TkDND_privateCursor == None) {
       TkDND_privateCursor = Tk_GetCursorFromData(interp, main_window,
         AskCurBits, AskCurMask, AskCursorWidth, AskCursorHeight,
@@ -245,7 +242,7 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
 
   /* Wait Cursor */
   if (TkDND_waitCursor == NULL) {
-    TkDND_waitCursor = XcursorLibraryLoadCursor(display, "wait");
+    TkDND_waitCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "wait");
     if (TkDND_waitCursor == None) {
       TkDND_waitCursor = Tk_GetCursor(interp, main_window, "clock");
     }

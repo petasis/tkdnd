@@ -73,7 +73,7 @@ TEA_SETUP_COMPILER
 
 #TEA_ADD_SOURCES([TkDND_XDND.c])
 TEA_ADD_HEADERS([])
-TEA_ADD_INCLUDES([])
+TEA_ADD_INCLUDES([-I generic])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
@@ -137,6 +137,7 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
 
 if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
     TEA_ADD_SOURCES([unix/TkDND_XDND.c unix/tkUnixSelect.c unix/Cursors.c])
+    AC_CHECK_HEADERS([X11/Xcursor/Xcursor.h])
     AC_CHECK_HEADER(X11/XKBlib.h,
         [AC_DEFINE(HAVE_X11_EXTENSIONS_XKB_H, 1, [Do we have <X11/XKBlib.h>?])],
         [AC_DEFINE(NO_X11_EXTENSIONS_XKB_H,   1, [Do we have <X11/XKBlib.h>?])])
@@ -273,6 +274,7 @@ AC_CHECK_TYPE([uintptr_t], [
            type wide enough to hold a pointer.])
     fi
 ])
+
 
 #--------------------------------------------------------------------
 # Finally, substitute all of the various values into the Makefile.
