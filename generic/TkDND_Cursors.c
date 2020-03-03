@@ -36,7 +36,10 @@
 #include "tcl.h"
 #include "tk.h"
 
+/* https://www.x.org/releases/X11R7.7/doc/man/man3/Xcursor.3.xhtml */
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
 #include <X11/Xcursor/Xcursor.h>
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
 
 Tk_Cursor TkDND_noDropCursor  = NULL,
           TkDND_moveCursor    = NULL,

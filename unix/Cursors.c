@@ -187,7 +187,12 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
 
   /* No Drop Cursor */
   if (TkDND_noDropCursor == NULL) {
-    TkDND_noDropCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-no-drop");
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+    TkDND_noDropCursor = (Tk_Cursor)
+          XcursorLibraryLoadCursor(display, "dnd-no-drop");
+#else
+    TkDND_noDropCursor = None;
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
     if (TkDND_noDropCursor == None) {
       TkDND_noDropCursor = Tk_GetCursorFromData(interp, main_window,
         noDropCurBits, noDropCurMask, noDropCursorWidth, noDropCursorHeight,
@@ -196,7 +201,12 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Copy Cursor */
   if (TkDND_copyCursor == NULL) {
-    TkDND_copyCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-copy");
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+    TkDND_copyCursor = (Tk_Cursor)
+          XcursorLibraryLoadCursor(display, "dnd-copy");
+#else
+    TkDND_copyCursor = None;
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
     if (TkDND_copyCursor == None) {
       TkDND_copyCursor = Tk_GetCursorFromData(interp, main_window,
         CopyCurBits, CopyCurMask, CopyCursorWidth, CopyCursorHeight,
@@ -205,7 +215,12 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Move Cursor */
   if (TkDND_moveCursor == NULL) {
-    TkDND_moveCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-move");
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+    TkDND_moveCursor = (Tk_Cursor)
+          XcursorLibraryLoadCursor(display, "dnd-move");
+#else
+    TkDND_moveCursor = None;
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
     if (TkDND_moveCursor == None) {
       TkDND_moveCursor = Tk_GetCursorFromData(interp, main_window,
         MoveCurBits, MoveCurMask, MoveCursorWidth, MoveCursorHeight,
@@ -214,7 +229,12 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Link Cursor */
   if (TkDND_linkCursor == NULL) {
-    TkDND_linkCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-link");
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+    TkDND_linkCursor = (Tk_Cursor)
+          XcursorLibraryLoadCursor(display, "dnd-link");
+#else
+    TkDND_linkCursor = None;
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
     if (TkDND_linkCursor == None) {
       TkDND_linkCursor = Tk_GetCursorFromData(interp, main_window,
         LinkCurBits, LinkCurMask, LinkCursorWidth, LinkCursorHeight,
@@ -223,7 +243,12 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Ask Cursor */
   if (TkDND_askCursor == NULL) {
-    TkDND_askCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-ask");
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+    TkDND_askCursor = (Tk_Cursor)
+          XcursorLibraryLoadCursor(display, "dnd-ask");
+#else
+    TkDND_askCursor = None;
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
     if (TkDND_askCursor == None) {
       TkDND_askCursor = Tk_GetCursorFromData(interp, main_window,
         AskCurBits, AskCurMask, AskCursorWidth, AskCursorHeight,
@@ -232,7 +257,12 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
   }
   /* Private Cursor (same as Ask) */
   if (TkDND_privateCursor == NULL) {
-    TkDND_privateCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "dnd-ask");
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+    TkDND_privateCursor = (Tk_Cursor)
+          XcursorLibraryLoadCursor(display, "dnd-ask");
+#else
+    TkDND_privateCursor = None;
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
     if (TkDND_privateCursor == None) {
       TkDND_privateCursor = Tk_GetCursorFromData(interp, main_window,
         AskCurBits, AskCurMask, AskCursorWidth, AskCursorHeight,
@@ -242,7 +272,12 @@ void TkDND_InitialiseCursors(Tcl_Interp *interp) {
 
   /* Wait Cursor */
   if (TkDND_waitCursor == NULL) {
-    TkDND_waitCursor = (Tk_Cursor) XcursorLibraryLoadCursor(display, "wait");
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+    TkDND_waitCursor = (Tk_Cursor)
+          XcursorLibraryLoadCursor(display, "wait");
+#else
+    TkDND_waitCursor = None;
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
     if (TkDND_waitCursor == None) {
       TkDND_waitCursor = Tk_GetCursor(interp, main_window, "clock");
     }
