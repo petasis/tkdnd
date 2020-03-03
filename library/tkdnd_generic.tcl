@@ -155,15 +155,15 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
   # debug "generic::HandlePosition: drop_target=$drop_target,\
   #            _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
 
-  if {![info exists _drag_source] && ![string length $_drag_source]} {
+  if {![info exists _drag_source] || ![string length $_drag_source]} {
     # debug "generic::HandlePosition: no or empty _drag_source:\
     #               return refuse_drop"
     return refuse_drop
   }
 
   if {$drag_source ne "" && $drag_source ne $_drag_source} {
-    debug "generic position event from unexpected source: $_drag_source\
-           != $drag_source"
+    # debug "generic position event from unexpected source: $_drag_source\
+    #        != $drag_source"
     return refuse_drop
   }
 
