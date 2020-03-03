@@ -61,6 +61,9 @@ Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name) {
   };
   int status, index;
   Tk_Cursor cursor;
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
+  char *cur_name = Tcl_GetString(name);
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
 
   status = Tcl_GetIndexFromObj(interp, name, (const char **) DropActions,
                               "dropactions", 0, &index);
@@ -77,12 +80,12 @@ Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name) {
       case ActionClock:   return (Tk_Cursor) TkDND_waitCursor;
     }
   }
-  char *cur_name = Tcl_GetString(name);
-  printf("%s\n", cur_name); fflush(0);
+#ifdef HAVE_X11_XCURSOR_XCURSOR_H
   if (cur_name[0] == '#') {
     cursor = (Tk_Cursor) XcursorFilenameLoadCursor(Tk_Display(Tk_MainWindow(interp)), &cur_name[1]);
     if (cursor != None) return cursor;
   }
+#endif /* HAVE_X11_XCURSOR_XCURSOR_H */
   /* The name is not an action. Try Tk cursors... */
   cursor = Tk_AllocCursorFromObj(interp, Tk_MainWindow(interp), name);
   if (cursor == None) {
