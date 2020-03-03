@@ -149,7 +149,7 @@ proc xdnd::GetPositionData { drop_target typelist time } {
 # ----------------------------------------------------------------------------
 proc xdnd::GetDroppedData { _drag_source _drop_target _common_drag_source_types time } {
   if {![llength $_common_drag_source_types]} {
-    error "no common data types between the drag source and drop target widgets"
+    return -code error "no common data types between the drag source and drop target widgets"
   }
   ## Is drag source in this application?
   if {[catch {winfo pathname -displayof $_drop_target $_drag_source} p]} {
