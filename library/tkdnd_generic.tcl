@@ -539,7 +539,7 @@ proc generic::platform_specific_type { type } {
 # ----------------------------------------------------------------------------
 #  Command tkdnd::platform_independent_types
 # ----------------------------------------------------------------------------
-proc ::tkdnd::platform_independent_types { types } {
+proc generic::platform_independent_types { types } {
   set new_types {}
   foreach type $types {
     set new_types [concat $new_types [platform_independent_type $type]]
