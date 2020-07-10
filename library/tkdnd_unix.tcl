@@ -372,18 +372,15 @@ proc xdnd::_dodragdrop { source actions types data button { cursor_map {} } } {
 #  Command xdnd::_process_drag_events
 # ----------------------------------------------------------------------------
 proc xdnd::_process_drag_events {event} {
-  # The return value from proc is normally 0. A non-zero return value indicates
-  # that the event is not to be handled further; that is, proc has done all
-  # processing that is to be allowed for the event
   variable _dragging
-  if {!$_dragging} {return 0}
+  if {!$_dragging} {return}
   # puts $event
 
   variable _dodragdrop_time
   set time [dict get $event time]
   set type [dict get $event type]
   if {$time < $_dodragdrop_time && ![string equal $type SelectionRequest]} {
-    return 0
+    return
   }
   set _dodragdrop_time $time
 
@@ -431,7 +428,6 @@ proc xdnd::_process_drag_events {event} {
         ## The button that initiated the drag was released. Trigger drop...
         _SendXdndDrop
       }
-      return 1
     }
     KeyPress {
     }
@@ -455,13 +451,10 @@ proc xdnd::_process_drag_events {event} {
       set _dodragdrop_selection_selection [dict get $event selection]
       set _dodragdrop_selection_target    [dict get $event target]
       set _dodragdrop_selection_time      $time
-      return 0
     }
     default {
-      return 0
     }
   }
-  return 0
 };# _process_drag_events
 
 # ----------------------------------------------------------------------------
