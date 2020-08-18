@@ -72,6 +72,7 @@ TEA_SETUP_COMPILER
 #-----------------------------------------------------------------------
 
 #TEA_ADD_SOURCES([TkDND_XDND.c])
+TEA_ADD_SOURCES([generic/TkDND_Cursors.c])
 TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([-I generic])
 TEA_ADD_LIBS([])
@@ -137,10 +138,25 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
 
 if test "${TEA_WINDOWINGSYSTEM}" = "x11"; then
     TEA_ADD_SOURCES([unix/TkDND_XDND.c unix/tkUnixSelect.c unix/Cursors.c])
-    AC_CHECK_HEADERS([X11/Xcursor/Xcursor.h])
+    AC_CHECK_HEADERS([X11/Xcursor/Xcursor.h], [], [
+        echo "X11/Xcursor/Xcursor.h not found!"
+        echo "TkDND requires libXcursor, please install the dependency!"
+        exit -1
+        ])
+    AC_SEARCH_LIBS([XcursorFilenameLoadCursor], [Xcursor], [
+        TEA_ADD_LIBS($LIBS)
+    ], [
+        echo "TkDND requires libXcursor, please install the dependency!"
+        exit -1
+        ])
     AC_CHECK_HEADER(X11/XKBlib.h,
         [AC_DEFINE(HAVE_X11_EXTENSIONS_XKB_H, 1, [Do we have <X11/XKBlib.h>?])],
         [AC_DEFINE(NO_X11_EXTENSIONS_XKB_H,   1, [Do we have <X11/XKBlib.h>?])])
+
+    #     echo "TkDND requires libXcursor, please install the dependency"
+    #     echo
+    #     exit 1
+    # fi
 fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then

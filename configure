@@ -652,11 +652,11 @@ TK_TOP_DIR_NATIVE
 TK_INCLUDES
 TCL_INCLUDES
 LINK
-PKG_OBJECTS
-PKG_SOURCES
 ac_ct_CXX
 CXXFLAGS
 CXX
+PKG_OBJECTS
+PKG_SOURCES
 EGREP
 GREP
 RANLIB
@@ -5261,6 +5261,41 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
 #TEA_ADD_SOURCES([TkDND_XDND.c])
 
+    vars="generic/TkDND_Cursors.c"
+    for i in $vars; do
+	case $i in
+	    \$*)
+		# allow $-var names
+		PKG_SOURCES="$PKG_SOURCES $i"
+		PKG_OBJECTS="$PKG_OBJECTS $i"
+		;;
+	    *)
+		# check for existence - allows for generic/win/unix VPATH
+		# To add more dirs here (like 'src'), you have to update VPATH
+		# in Makefile.in as well
+		if test ! -f "${srcdir}/$i" -a ! -f "${srcdir}/generic/$i" \
+		    -a ! -f "${srcdir}/win/$i" -a ! -f "${srcdir}/unix/$i" \
+		    -a ! -f "${srcdir}/macosx/$i" \
+		    ; then
+		    as_fn_error $? "could not find source file '$i'" "$LINENO" 5
+		fi
+		PKG_SOURCES="$PKG_SOURCES $i"
+		# this assumes it is in a VPATH dir
+		i=`basename $i`
+		# handle user calling this before or after TEA_SETUP_COMPILER
+		if test x"${OBJEXT}" != x ; then
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.${OBJEXT}"
+		else
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.\${OBJEXT}"
+		fi
+		PKG_OBJECTS="$PKG_OBJECTS $j"
+		;;
+	esac
+    done
+
+
+
+
     vars=""
     for i in $vars; do
 	# check for existence, be strict because it is installed
@@ -5866,9 +5901,88 @@ if test "x$ac_cv_header_X11_Xcursor_Xcursor_h" = xyes; then :
 #define HAVE_X11_XCURSOR_XCURSOR_H 1
 _ACEOF
 
+else
+
+        echo "X11/Xcursor/Xcursor.h not found!"
+        echo "TkDND requires libXcursor, please install the dependency!"
+        exit -1
+
 fi
 
 done
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing XcursorFilenameLoadCursor" >&5
+$as_echo_n "checking for library containing XcursorFilenameLoadCursor... " >&6; }
+if ${ac_cv_search_XcursorFilenameLoadCursor+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char XcursorFilenameLoadCursor ();
+int
+main ()
+{
+return XcursorFilenameLoadCursor ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' Xcursor; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_XcursorFilenameLoadCursor=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_XcursorFilenameLoadCursor+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_XcursorFilenameLoadCursor+:} false; then :
+
+else
+  ac_cv_search_XcursorFilenameLoadCursor=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_XcursorFilenameLoadCursor" >&5
+$as_echo "$ac_cv_search_XcursorFilenameLoadCursor" >&6; }
+ac_res=$ac_cv_search_XcursorFilenameLoadCursor
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+
+    vars="$LIBS"
+    for i in $vars; do
+	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
+	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib
+	    i=`echo "$i" | sed -e 's/^\([^-].*\)\.lib$/-l\1/i'`
+	fi
+	PKG_LIBS="$PKG_LIBS $i"
+    done
+
+
+
+else
+
+        echo "TkDND requires libXcursor, please install the dependency!"
+        exit -1
+
+fi
 
     ac_fn_c_check_header_mongrel "$LINENO" "X11/XKBlib.h" "ac_cv_header_X11_XKBlib_h" "$ac_includes_default"
 if test "x$ac_cv_header_X11_XKBlib_h" = xyes; then :
@@ -5882,6 +5996,11 @@ $as_echo "#define NO_X11_EXTENSIONS_XKB_H 1" >>confdefs.h
 fi
 
 
+
+    #     echo "TkDND requires libXcursor, please install the dependency"
+    #     echo
+    #     exit 1
+    # fi
 fi
 
 if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then

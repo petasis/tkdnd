@@ -1,4 +1,6 @@
 2020-08-18  Petasis George  <petasis@iit.demokritos.gr>
+        * configure.ac: Added checks for lib Xcursor.
+
         * library/tkdnd_generic.tcl: Fixed bug #44, where "string is entier"
 	may not be available.
 
