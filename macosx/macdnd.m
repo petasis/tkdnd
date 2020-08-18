@@ -169,6 +169,7 @@ DNDView*  TkDND_GetDNDSubview(NSView *view, Tk_Window tkwin);
 }; /* willBeginAtPoint */
 
 - (void)draggingSession:(NSDraggingSession *)session movedToPoint:(NSPoint)screenPoint {
+      [[self superview] display];
   // printf("movedToPoint: (%f, %f)\n", screenPoint.x, screenPoint.y); fflush(0);
 }; /* movedToPoint */
 
