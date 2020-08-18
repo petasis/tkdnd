@@ -1,8 +1,10 @@
+sudo: true
 language: cpp
 os:
   - linux
   - osx
-
+install:
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends install libxcursor1 libxcursor-dev
 script:
   - export TKDND_VERSION=`cat VERSION`
   - export TKDND_HOME=`pwd`
