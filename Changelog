@@ -1,3 +1,11 @@
+2020-08-18  Petasis George  <petasis@iit.demokritos.gr>
+        * library/tkdnd_generic.tcl: Fixed bug #44, where "string is entier"
+	may not be available.
+
+        * library/tkdnd_generic.tcl: Fixed bug #43, renamed
+	::tkdnd::platform_independent_types to
+	generic::platform_independent_types.
+
 2020-03-03  Petasis George  <petasis@iit.demokritos.gr>
         * CMakeLists.txt:
 	* configure.ac:

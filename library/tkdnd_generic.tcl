@@ -55,6 +55,11 @@ namespace eval generic {
   variable _tkdnd2platform
   variable _platform2tkdnd
 
+  variable _integer_test entier
+  if {[catch {string is entier 1234}]} {
+    set _integer_test integer
+  }
+
   proc debug {msg} {
     puts $msg
   };# debug
@@ -93,10 +98,11 @@ namespace eval generic {
 proc generic::SetPressedKeys { pressedkeys } {
   variable _pressedkeys
   variable _pressedmods
+  variable _integer_test
   set keys {}
   set mods {}
   foreach {b} $pressedkeys {
-    if {[string is entier -strict $b]} {
+    if {[string is $_integer_test -strict $b]} {
       lappend keys $b
     } else {
       lappend mods $b
@@ -537,15 +543,15 @@ proc generic::platform_specific_type { type } {
 }; # generic::platform_specific_type
 
 # ----------------------------------------------------------------------------
-#  Command tkdnd::platform_independent_types
+#  Command generic::platform_independent_types
 # ----------------------------------------------------------------------------
-proc ::tkdnd::platform_independent_types { types } {
+proc generic::platform_independent_types { types } {
   set new_types {}
   foreach type $types {
     set new_types [concat $new_types [platform_independent_type $type]]
   }
   return $new_types
-}; # tkdnd::platform_independent_types
+}; # generic::platform_independent_types
 
 # ----------------------------------------------------------------------------
 #  Command generic::platform_independent_type
