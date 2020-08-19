@@ -1182,12 +1182,13 @@ int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
   objv[0] = Tcl_NewStringObj("tkdnd::xdnd::_process_drag_events", -1);
   objv[1] = dict;
   TkDND_Status_Eval(2);
-  if (status == TCL_OK) {
+  /*if (status == TCL_OK) {
     result = Tcl_GetObjResult(interp); Tcl_IncrRefCount(result);
     status = Tcl_GetIntFromObj(interp, result, &i);
     Tcl_DecrRefCount(result);
     if (status == TCL_OK) return i;
-  } else {
+  } else {*/
+  if (status != TCL_OK) {
     /* An error occurred, stop the drag action... */
     Tcl_SetVar(interp, "::tkdnd::xdnd::_dragging", "0", TCL_GLOBAL_ONLY);
   }
