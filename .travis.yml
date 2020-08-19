@@ -11,8 +11,8 @@ matrix:
             - libxcursor-dev
             - libxcursor1
     - os: osx
-          sudo: false
-          name: "Cocoa shared library"
+      sudo: false
+      name: "Cocoa shared library"
 script:
   - export TKDND_VERSION=`cat VERSION`
   - export TKDND_HOME=`pwd`
