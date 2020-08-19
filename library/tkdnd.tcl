@@ -39,6 +39,7 @@
 package require Tk
 
 namespace eval ::tkdnd {
+  variable _package_dir {}
   variable _topw ".drag"
   variable _tabops
   variable _state
@@ -52,6 +53,14 @@ namespace eval ::tkdnd {
 
   variable _windowingsystem
 
+  if {[info exists ::TKDND_DEBUG_LEVEL]} {
+    variable _debug_level $::TKDND_DEBUG_LEVEL
+  } elseif {[info exists ::env(TKDND_DEBUG_LEVEL)]} {
+    variable _debug_level $::env(TKDND_DEBUG_LEVEL)
+  } else {
+    variable _debug_level 0
+  }
+
   bind TkDND_Drag1 <ButtonPress-1> {tkdnd::_begin_drag press  1 %W %s %X %Y %x %y}
   bind TkDND_Drag1 <B1-Motion>     {tkdnd::_begin_drag motion 1 %W %s %X %Y %x %y}
   bind TkDND_Drag2 <ButtonPress-2> {tkdnd::_begin_drag press  2 %W %s %X %Y %x %y}
@@ -60,13 +69,55 @@ namespace eval ::tkdnd {
   bind TkDND_Drag3 <B3-Motion>     {tkdnd::_begin_drag motion 3 %W %s %X %Y %x %y}
 
   # ----------------------------------------------------------------------------
+  #  Command tkdnd::debug_enabled: returns the requested debug level (0 = no debug).
+  # ----------------------------------------------------------------------------
+  proc debug_enabled { {level {}} } {
+    variable _debug_level
+    if {$level != {}} {
+      if {[string is integer -strict $level]} {
+        set _debug_level $level
+      } elseif {[string is true $level]} {
+        set _debug_level 1
+      }
+    }
+    return $_debug_level
+  };# debug_enabled
+
+  # ----------------------------------------------------------------------------
+  #  Command tkdnd::source: source a Tcl fileInitialise the TkDND package.
+  # ----------------------------------------------------------------------------
+  proc source { filename { encoding utf-8 } } {
+    variable _package_dir
+    # If in debug mode, enable debug statements...
+    set dbg_lvl [debug_enabled]
+    if {$dbg_lvl} {
+      puts "tkdnd::source (debug level $dbg_lvl) $filename"
+      set fd [open $filename r]
+      fconfigure $fd -encoding $encoding
+      set script [read $fd]
+      close $fd
+      set map {}
+      for {set lvl 0} {$lvl <= $dbg_lvl} {incr lvl} {
+        lappend map "\#\D\B\G$lvl " {} ;# Do not remove these \\
+      }
+      lappend map "\#\D\B\G\ " {}      ;# Do not remove these \\
+      set script [string map $map $script]
+      return [eval $script]
+    }
+    ::source -encoding $encoding $filename
+  };# source
+
+  # ----------------------------------------------------------------------------
   #  Command tkdnd::initialise: Initialise the TkDND package.
   # ----------------------------------------------------------------------------
   proc initialise { dir PKG_LIB_FILE PACKAGE_NAME} {
+    variable _package_dir
     variable _platform_namespace
     variable _drop_file_temp_dir
     variable _windowingsystem
     global env
+
+    set _package_dir $dir
 
     switch [tk windowingsystem] {
       x11 {
@@ -171,6 +222,10 @@ namespace eval ::tkdnd {
     set _drop_file_temp_dir $dir
   }
 
+  proc debug {msg} {
+    puts $msg
+  };# debug
+
 };# namespace ::tkdnd
 
 # ----------------------------------------------------------------------------
@@ -178,6 +233,7 @@ namespace eval ::tkdnd {
 # ----------------------------------------------------------------------------
 proc ::tkdnd::drag_source { mode path { types {} } { event 1 }
                                       { tagprefix TkDND_Drag } } {
+  #DBG debug "::tkdnd::drag_source $mode $path $types $event $tagprefix"
   foreach single_event $event {
     set tags [bindtags $path]
     set idx  [lsearch $tags ${tagprefix}$single_event]
@@ -298,9 +354,10 @@ proc ::tkdnd::_begin_drag { event button source state X Y x y } {
 #  Command tkdnd::_init_drag
 # ----------------------------------------------------------------------------
 proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
+  #DBG debug "::tkdnd::_init_drag $button $source $state $rootX $rootY $X $Y"
   # Call the <<DragInitCmd>> binding.
   set cmd [bind $source <<DragInitCmd>>]
-  # puts "CMD: $cmd"
+  #DBG debug "CMD: $cmd"
   if {[string length $cmd]} {
     set cmd [string map [list %W [list $source] \
                               %X $rootX %Y $rootY %x $X %y $Y \
@@ -308,7 +365,7 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
                               %b \{$button\} \
                               %t \{[bind $source <<DragSourceTypes>>]\}] $cmd]
     set code [catch {uplevel \#0 $cmd} info options]
-    # puts "CODE: $code ---- $info"
+    #DBG debug "CODE: $code ---- $info"
     switch -exact -- $code {
       0 {}
       3 - 4 {
@@ -350,15 +407,16 @@ proc ::tkdnd::_init_drag { button source state rootX rootY X Y } {
     set action refuse_drop
 
     ## Custom Cursors...
-    # Call the <<DragInitCmd>> binding.
+    # Call the <<DragCursorMap>> binding.
     set cursor_map [bind $source <<DragCursorMap>>]
 
     variable _windowingsystem
-    # puts "Source:   \"$source\""
-    # puts "Types:    \"[join $types {", "}]\""
-    # puts "Actions:  \"[join $actions {", "}]\""
-    # puts "Button:   \"$button\""
-    # puts "Data:     \"[string range $data 0 100]\""
+    #DBG debug "Source:    \"$source\""
+    #DBG debug "Types:     \"[join $types {", "}]\""
+    #DBG debug "Actions:   \"[join $actions {", "}]\""
+    #DBG debug "Button:    \"$button\""
+    #DBG debug "Data:      \"[string range $data 0 100]\""
+    #DBG debug "CursorMap: \"[string range $cursor_map 0 100]\""
     switch $_windowingsystem {
       x11 {
         set action [xdnd::_dodragdrop $source $actions $types $data $button $cursor_map]

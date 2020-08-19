@@ -39,6 +39,10 @@
 namespace eval xdnd {
   variable _dragging 0
 
+  proc debug { msg } {
+    tkdnd::debug $msg
+  };# debug
+
   proc initialise { } {
     ## Mapping from platform types to TkDND types...
     ::tkdnd::generic::initialise_platform_to_tkdnd_types [list \
@@ -61,6 +65,7 @@ namespace eval xdnd {
 #  Command xdnd::HandleXdndEnter
 # ----------------------------------------------------------------------------
 proc xdnd::GetPressedKeys { drop_target } {
+  #DBG debug "xdnd::GetPressedKeys: $drop_target"
   if {[catch {set dict [_keyboard_get_state $drop_target]}]} {
     return {}
   }
@@ -72,6 +77,7 @@ proc xdnd::GetPressedKeys { drop_target } {
                  Mod1 mod1 Mod2 mod2 Mod3 mod3 Mod4 mod4 Mod5 mod5} {
     if {[dict get $dict $k]} {lappend pressedkeys $l}
   }
+  #DBG debug "xdnd::GetPressedKeys: $drop_target -> $pressedkeys"
   return $pressedkeys
 };# xdnd::GetPressedKeys
 
@@ -86,7 +92,7 @@ proc xdnd::HandleXdndEnter { drop_target drag_source typelist time
   set _pressedkeys [GetPressedKeys $drop_target]
   set _actionlist  { copy move link ask private }
   set _typelist    $typelist
-  # puts "xdnd::HandleXdndEnter: $time"
+  #DBG debug "xdnd::HandleXdndEnter: $time"
   ::tkdnd::generic::SetDroppedData $data
   ::tkdnd::generic::HandleEnter $drop_target $drag_source $typelist $typelist \
            $_actionlist $_pressedkeys
@@ -102,7 +108,7 @@ proc xdnd::HandleXdndPosition { drop_target rootX rootY time
   variable _last_mouse_root_x; set _last_mouse_root_x $rootX
   variable _last_mouse_root_y; set _last_mouse_root_y $rootY
   set _pressedkeys [GetPressedKeys $drop_target]
-  # puts "xdnd::HandleXdndPosition: $time"
+  #DBG debug "xdnd::HandleXdndPosition: $time"
   ## Get the dropped data...
   catch {
     ::tkdnd::generic::SetDroppedData [GetPositionData $drop_target $_typelist $time]
@@ -115,6 +121,7 @@ proc xdnd::HandleXdndPosition { drop_target rootX rootY time
 #  Command xdnd::HandleXdndLeave
 # ----------------------------------------------------------------------------
 proc xdnd::HandleXdndLeave { } {
+  #DBG debug "xdnd::HandleXdndLeave"
   ::tkdnd::generic::HandleLeave
 };# xdnd::HandleXdndLeave
 
@@ -126,6 +133,7 @@ proc xdnd::HandleXdndDrop { time } {
   variable _last_mouse_root_x
   variable _last_mouse_root_y
   set _pressedkeys [GetPressedKeys [::tkdnd::generic::GetDropTarget]]
+  #DBG debug "xdnd::HandleXdndDrop: $time"
   ## Get the dropped data...
   ::tkdnd::generic::SetDroppedData [GetDroppedData \
     [::tkdnd::generic::GetDragSource] [::tkdnd::generic::GetDropTarget] \
@@ -158,7 +166,7 @@ proc xdnd::GetDroppedData { _drag_source _drop_target _common_drag_source_types 
     set _use_tk_selection 1
   }
   foreach type $_common_drag_source_types {
-    # puts "TYPE: $type ($_drop_target)"
+    #DBG debug "TYPE: $type ($_drop_target)"
     # _get_selection $_drop_target $time $type
     if {$_use_tk_selection} {
       if {![catch {
@@ -168,7 +176,7 @@ proc xdnd::GetDroppedData { _drag_source _drop_target _common_drag_source_types 
         return [normalise_data $type $result]
       }
     } else {
-      # puts "_selection_get -displayof $_drop_target -selection XdndSelection \
+      #DBG debug "_selection_get -displayof $_drop_target -selection XdndSelection \
       #                 -type $type -time $time"
       #after 100 [list focus -force $_drop_target]
       #after 50 [list raise [winfo toplevel $_drop_target]]
@@ -290,8 +298,8 @@ proc xdnd::_selection_ownership_lost {} {
 proc xdnd::_dodragdrop { source actions types data button { cursor_map {} } } {
   variable _dragging
 
-  # puts "xdnd::_dodragdrop: source: $source, actions: $actions, types: $types,\
-  #       data: \"$data\", button: $button"
+  #DBG debug "xdnd::_dodragdrop: source: $source, actions: $actions, types: $types,\
+  #DBG        data: \"$data\", button: $button"
   if {$_dragging} {
     ## We are in the middle of another drag operation...
     error "another drag operation in progress"
@@ -336,34 +344,43 @@ proc xdnd::_dodragdrop { source actions types data button { cursor_map {} } } {
   ##
   ## Arrange selection handlers for our drag source, and all the supported types
   ##
+  #DBG debug "xdnd::_dodragdrop: registerSelectionHandler $source $types"
   registerSelectionHandler $source $types
 
   ##
   ## Step 1: When a drag begins, the source takes ownership of XdndSelection.
   ##
+  #DBG debug "xdnd::_dodragdrop: selection own $source"
   selection own -command ::tkdnd::xdnd::_selection_ownership_lost \
                 -selection XdndSelection $source
   set _dragging 1
 
   ## Grab the mouse pointer...
+  #DBG debug "xdnd::_dodragdrop: _grab_pointer $source [_get_mapped_cursor $_dodragdrop_default_action]"
   _grab_pointer $source [_get_mapped_cursor $_dodragdrop_default_action]
 
   ## Register our generic event handler...
   #  The generic event callback will report events by modifying variable
   #  ::xdnd::_dodragdrop_event: a dict with event information will be set as
   #  the value of the variable...
+  #DBG debug "xdnd::_dodragdrop: _register_generic_event_handler"
   _register_generic_event_handler
 
   ## Set a timeout for debugging purposes...
   #  after 60000 {set ::tkdnd::xdnd::_dragging 0}
 
+  #DBG debug "xdnd::_dodragdrop: waiting drag action to finish..."
   tkwait variable ::tkdnd::xdnd::_dragging
+  #DBG debug "xdnd::_dodragdrop: drag action finished!"
   _SendXdndLeave
 
   set _dragging 0
+  #DBG debug "xdnd::_dodragdrop: _ungrab_pointer $source"
   _ungrab_pointer $source
+  #DBG debug "xdnd::_dodragdrop: _unregister_generic_event_handler"
   _unregister_generic_event_handler
   catch {selection clear -selection XdndSelection}
+  #DBG debug "xdnd::_dodragdrop: unregisterSelectionHandler $source $types"
   unregisterSelectionHandler $source $types
   return $_dodragdrop_drop_target_accepts_action
 };# xdnd::_dodragdrop
@@ -377,12 +394,13 @@ proc xdnd::_process_drag_events {event} {
   # processing that is to be allowed for the event
   variable _dragging
   if {!$_dragging} {return 0}
-  # puts $event
+  #DBG debug "xdnd::_process_drag_events: $event"
 
   variable _dodragdrop_time
   set time [dict get $event time]
   set type [dict get $event type]
   if {$time < $_dodragdrop_time && ![string equal $type SelectionRequest]} {
+    #DBG debug "xdnd::_process_drag_events: return 0 (1)"
     return 0
   }
   set _dodragdrop_time $time
@@ -401,8 +419,8 @@ proc xdnd::_process_drag_events {event} {
         ## Examine the modifiers to suggest an action...
         set _dodragdrop_default_action [_default_action $event]
         ## Is it a Tk widget?
-        # set path [winfo containing $rootx $rooty]
-        # puts "Window under mouse: $window ($path)"
+        #DBG set path [winfo containing $rootx $rooty]
+        #DBG debug "Window under mouse: $window ($path)"
         if {$_dodragdrop_drop_target != $window} {
           ## Send XdndLeave to $_dodragdrop_drop_target
           _SendXdndLeave
@@ -429,9 +447,12 @@ proc xdnd::_process_drag_events {event} {
       set button [dict get $event button]
       if {$button == $_dodragdrop_button} {
         ## The button that initiated the drag was released. Trigger drop...
+        #DBG debug "xdnd::_process_drag_events: _SendXdndDrop"
         _SendXdndDrop
       }
-      return 1
+      #DBG debug "xdnd::_process_drag_events: return 1 (2)"
+      # return 1 ;# Returning non-zero is not a good idea...
+      return 0
     }
     KeyPress {
     }
@@ -455,12 +476,15 @@ proc xdnd::_process_drag_events {event} {
       set _dodragdrop_selection_selection [dict get $event selection]
       set _dodragdrop_selection_target    [dict get $event target]
       set _dodragdrop_selection_time      $time
+      #DBG debug "xdnd::_process_drag_events: return 0 (3)"
       return 0
     }
     default {
+      #DBG debug "xdnd::_process_drag_events: return 0 (4)"
       return 0
     }
   }
+  #DBG debug "xdnd::_process_drag_events: return 0 (5)"
   return 0
 };# _process_drag_events
 
@@ -480,7 +504,7 @@ proc xdnd::_SendXdndEnter {window proxy} {
   set _dodragdrop_drop_target_proxy $proxy
   set _dodragdrop_waiting_status    0
   if {$_dodragdrop_drop_target < 1} return
-  # puts "XdndEnter: $_dodragdrop_drop_target $_dodragdrop_drop_target_proxy"
+  #DBG debug "XdndEnter: $_dodragdrop_drop_target $_dodragdrop_drop_target_proxy"
   _send_XdndEnter $_dodragdrop_drag_source $_dodragdrop_drop_target \
                   $_dodragdrop_drop_target_proxy $_dodragdrop_types
 };# xdnd::_SendXdndEnter
@@ -502,7 +526,7 @@ proc xdnd::_SendXdndPosition {rootx rooty action} {
   set _dodragdrop_xdnd_position_heartbeat [after 200 \
     [list ::tkdnd::xdnd::_SendXdndPosition $rootx $rooty $action]]
   if {$_dodragdrop_waiting_status} {return}
-  # puts "XdndPosition: $_dodragdrop_drop_target $rootx $rooty $action"
+  #DBG debug "XdndPosition: $_dodragdrop_drop_target $rootx $rooty $action"
   _send_XdndPosition $_dodragdrop_drag_source $_dodragdrop_drop_target \
                      $_dodragdrop_drop_target_proxy $rootx $rooty $action
   set _dodragdrop_waiting_status 1
@@ -527,7 +551,7 @@ proc xdnd::_HandleXdndStatus {event} {
   variable _dodragdrop_drop_occured
   if {$_dodragdrop_drop_occured} return
   _update_cursor
-  # puts "XdndStatus: $event"
+  #DBG debug "XdndStatus: $event"
 };# xdnd::_HandleXdndStatus
 
 # ----------------------------------------------------------------------------
@@ -556,7 +580,7 @@ proc xdnd::_HandleXdndFinished {event} {
   if {!$_dodragdrop_drop_target_accepts_drop} {
     set _dodragdrop_drop_target_accepts_action refuse_drop
   }
-  # puts "XdndFinished: $event"
+  #DBG debug "XdndFinished: $event"
 };# xdnd::_HandleXdndFinished
 
 # ----------------------------------------------------------------------------
@@ -567,7 +591,7 @@ proc xdnd::_SendXdndLeave {} {
   variable _dodragdrop_drop_target
   if {$_dodragdrop_drop_target < 1} return
   variable _dodragdrop_drop_target_proxy
-  # puts "XdndLeave: $_dodragdrop_drop_target"
+  #DBG debug "XdndLeave: $_dodragdrop_drop_target"
   _send_XdndLeave $_dodragdrop_drag_source $_dodragdrop_drop_target \
                   $_dodragdrop_drop_target_proxy
   set _dodragdrop_drop_target 0
@@ -605,13 +629,13 @@ proc xdnd::_SendXdndDrop {} {
     _HandleXdndFinished {}
     return
   }
-  # puts "XdndDrop: $_dodragdrop_drop_target"
+  #DBG debug "XdndDrop: $_dodragdrop_drop_target"
   variable _dodragdrop_drop_timestamp
   set _dodragdrop_drop_timestamp [_send_XdndDrop \
                  $_dodragdrop_drag_source $_dodragdrop_drop_target \
                  $_dodragdrop_drop_target_proxy]
   set _dodragdrop_drop_target 0
-  # puts "XdndDrop: $_dodragdrop_drop_target"
+  #DBG debug "XdndDrop: $_dodragdrop_drop_target"
   ## Arrange a timeout for receiving XdndFinished...
   variable _dodragdrop_xdnd_finished_event_after_id
   set _dodragdrop_xdnd_finished_event_after_id \
@@ -622,7 +646,7 @@ proc xdnd::_SendXdndDrop {} {
 #  Command xdnd::_update_cursor
 # ----------------------------------------------------------------------------
 proc xdnd::_update_cursor { {cursor {}}} {
-  # puts "_update_cursor $cursor"
+  #DBG debug "_update_cursor $cursor"
   variable _dodragdrop_current_cursor
   variable _dodragdrop_drag_source
   variable _dodragdrop_drop_target_accepts_drop
@@ -655,7 +679,7 @@ proc xdnd::_get_mapped_cursor { cursor } {
   set cmd [bind $_dodragdrop_drag_source <<DragCursorFeedback>>]
   if {$cmd ne ""} {
     set code [catch {uplevel \#0 $cmd \{$_dodragdrop_drag_source\} \{$cursor\} \{$mapped\}} info options]
-    # puts "CODE: $code ---- $info"
+    #DBG debug "CODE: $code ---- $info"
     switch -exact -- $code {
       0 {if {$info ne ""} {set mapped $info}}
       default {
@@ -853,7 +877,7 @@ proc xdnd::_SendData {type offset bytes args} {
       error "unsupported format $format"
     }
   }
-  # puts "SendData: $type $offset $bytes $args ($typed_data)"
-  # puts "          $data"
+  #DBG debug "SendData: $type $offset $bytes $args ($typed_data)"
+  #DBG debug "          $data"
   return $data
 };# xdnd::_SendData

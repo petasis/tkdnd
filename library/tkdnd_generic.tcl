@@ -60,8 +60,8 @@ namespace eval generic {
     set _integer_test integer
   }
 
-  proc debug {msg} {
-    puts $msg
+  proc debug { msg } {
+    tkdnd::debug $msg
   };# debug
 
   proc initialise { } {
@@ -130,11 +130,11 @@ proc generic::HandleEnter { drop_target drag_source typelist codelist
   variable _last_mouse_root_x;        set _last_mouse_root_x 0
   variable _last_mouse_root_y;        set _last_mouse_root_y 0
   SetPressedKeys $pressedkeys
-  # debug "\n==============================================================="
-  # debug "generic::HandleEnter: drop_target=$drop_target,\
-  #        drag_source=$drag_source,\
-  #        typelist=$typelist"
-  # debug "generic::HandleEnter: ACTION: default"
+  #DBG debug "\n==============================================================="
+  #DBG debug "generic::HandleEnter: drop_target=$drop_target,\
+  #DBG        drag_source=$drag_source,\
+  #DBG        typelist=$typelist"
+  #DBG debug "generic::HandleEnter: ACTION: default"
   return default
 };# generic::HandleEnter
 
@@ -158,18 +158,18 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
   variable _last_mouse_root_x;        set _last_mouse_root_x $rootX
   variable _last_mouse_root_y;        set _last_mouse_root_y $rootY
 
-  # debug "generic::HandlePosition: drop_target=$drop_target,\
-  #            _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
+  #DBG debug "generic::HandlePosition: drop_target=$drop_target,\
+  #DBG            _drop_target=$_drop_target, rootX=$rootX, rootY=$rootY"
 
   if {![info exists _drag_source] || ![string length $_drag_source]} {
-    # debug "generic::HandlePosition: no or empty _drag_source:\
-    #               return refuse_drop"
+    #DBG debug "generic::HandlePosition: no or empty _drag_source:\
+    #DBG               return refuse_drop"
     return refuse_drop
   }
 
   if {$drag_source ne "" && $drag_source ne $_drag_source} {
-    # debug "generic position event from unexpected source: $_drag_source\
-    #        != $drag_source"
+    #DBG debug "generic position event from unexpected source: $_drag_source\
+    #DBG        != $drag_source"
     return refuse_drop
   }
 
@@ -182,11 +182,11 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
           [FindWindowWithCommonTypes $drop_target $_typelist] {break}
   set data [GetDroppedData $time]
 
-  # debug "\t($_drop_target) -> ($drop_target)"
+  #DBG debug "\t($_drop_target) -> ($drop_target)"
   if {$drop_target != $_drop_target} {
     if {[string length $_drop_target]} {
       ## Call the <<DropLeave>> event.
-      # debug "\t<<DropLeave>> on $_drop_target"
+      #DBG debug "\t<<DropLeave>> on $_drop_target"
       set cmd [bind $_drop_target <<DropLeave>>]
       if {[string length $cmd]} {
         set widgetX 0; set widgetY 0
@@ -219,7 +219,7 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
       set _common_drag_source_types $common_drag_source_types
       set _common_drop_target_types $common_drop_target_types
       ## Drop target supports at least one type. Send a <<DropEnter>>.
-      # puts "<<DropEnter>> -> $drop_target"
+      #DBG debug "<<DropEnter>> -> $drop_target"
       set cmd [bind $drop_target <<DropEnter>>]
       if {[string length $cmd]} {
         set widgetX 0; set widgetY 0
@@ -280,7 +280,7 @@ proc generic::HandlePosition { drop_target drag_source pressedkeys
     }
   }
   # Return values: copy, move, link, ask, private, refuse_drop, default
-  # debug "generic::HandlePosition: ACTION: $_action"
+  #DBG debug "generic::HandlePosition: ACTION: $_action"
   switch -exact -- $_action {
     copy - move - link - ask - private - refuse_drop - default {}
     default {set _action copy}
@@ -306,7 +306,7 @@ proc generic::HandleLeave { } {
   variable _last_mouse_root_x
   variable _last_mouse_root_y
   if {![info exists _drop_target]} {set _drop_target {}}
-  # debug "generic::HandleLeave: _drop_target=$_drop_target"
+  #DBG debug "generic::HandleLeave: _drop_target=$_drop_target"
   if {[info exists _drop_target] && [string length $_drop_target]} {
     set cmd [bind $_drop_target <<DropLeave>>]
     if {[string length $cmd]} {
@@ -358,7 +358,7 @@ proc generic::HandleDrop {drop_target drag_source pressedkeys rootX rootY time }
 
   SetPressedKeys $pressedkeys
 
-  # puts "generic::HandleDrop: $time"
+  #DBG debug "generic::HandleDrop: $time"
 
   if {![info exists _drag_source] && ![string length $_drag_source]} {
     return refuse_drop
@@ -432,7 +432,7 @@ proc generic::HandleDrop {drop_target drag_source pressedkeys rootX rootY time }
 # ----------------------------------------------------------------------------
 proc generic::GetWindowCommonTypes { win typelist } {
   set types [bind $win <<DropTargetTypes>>]
-  # debug ">> Accepted types: $win $_types"
+  #DBG debug ">> Accepted types: $win $_types"
   set common_drag_source_types {}
   set common_drop_target_types {}
   if {[llength $types]} {
