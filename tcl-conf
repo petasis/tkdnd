@@ -82,7 +82,7 @@ if {[catch {package require fileutil}]} {
       sub-directories) \"$path\"."
       if {$exit_at_fail} {exit 1} else {
         error "Cannot find file \"$filename\" within directory (and\
-               sub-directories) \"$path\".""
+               sub-directories) \"$path\"."
       }
     }
     lindex $found 0
@@ -96,7 +96,7 @@ if {[catch {package require fileutil}]} {
       sub-directories) \"$path\"."
       if {$exit_at_fail} {exit 2} else {
         error "Cannot find file \"$filename\" within directory (and\
-               sub-directories) \"$path\".""
+               sub-directories) \"$path\"."
       }
     }
     lindex $found 0
