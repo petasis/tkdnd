@@ -112,10 +112,13 @@ echo `pwd`
 
 # bash configure
 # ${TCL_TCLSH} tcl-conf
+tclsh tcl-conf
 
-bash configure \
-  --prefix="$TKDND_HOME/cmake/runtime/MSYS2" \
-  --exec-prefix="$TKDND_HOME/cmake/runtime/MSYS2"
+## 
+
+# bash configure \
+#   --prefix="$TKDND_HOME/cmake/runtime/MSYS2" \
+#   --exec-prefix="$TKDND_HOME/cmake/runtime/MSYS2"
 
 make
 make install
