@@ -75,23 +75,23 @@ if {[catch {package require fileutil}]} {
     }
     return ${rlist}
   };# rglob
-  proc find_file {path filename} {
+  proc find_file {path filename {exit_at_fail true}} {
     set found [rglob $path $filename]
     if {![llength $found]} {
       puts stderr "Cannot find file \"$filename\" within directory (and\
       sub-directories) \"$path\"."
-      exit 1
+      if {$exit_at_fail} {exit 1}
     }
     lindex $found 0
   };# find_file
 } else {
   puts "Tcllib's package \"fileutil\" found!"
-  proc find_file {path filename} {
+  proc find_file {path filename {exit_at_fail true}} {
     set found [fileutil::findByPattern $path -glob -- $filename]
     if {![llength $found]} {
       puts stderr "Cannot find file \"$filename\" within directory (and\
       sub-directories) \"$path\"."
-      exit 2
+      if {$exit_at_fail} {exit 2}
     }
     lindex $found 0
   };# find_file
@@ -107,7 +107,7 @@ puts "Found \"tclConfig.sh\" in \"$tcl_libpath\"."
 
 if {![file exists $tk_libpath/tkConfig.sh]} {
   ## Ok, we are missing the configuration file. Can we find it?
-  set tk_libpath [file dirname [find_file $root tkConfig.sh]]
+  set tk_libpath [file dirname [find_file $root tkConfig.sh false]]
 }
 puts "Found \"tkConfig.sh\"  in \"$tk_libpath\"."
 
