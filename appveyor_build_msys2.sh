@@ -122,3 +122,4 @@ make
 make install
 
 ls *tkdnd*
+ls $TKDND_HOME/cmake/runtime/tkdnd*/
