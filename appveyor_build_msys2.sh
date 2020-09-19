@@ -109,6 +109,8 @@ echo `pwd`
 # EOT
 # fi
 
+ls *tkdnd*
+ls cmake/runtime/tkdnd*/
 
 # bash configure
 # ${TCL_TCLSH} tcl-conf
