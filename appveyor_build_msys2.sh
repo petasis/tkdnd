@@ -109,8 +109,7 @@ echo `pwd`
 # EOT
 # fi
 
-ls *tkdnd*
-ls cmake/runtime/tkdnd*/
+ls -laF build/runtime/tkdnd${TKDND_VERSION}/
 
 # bash configure
 # ${TCL_TCLSH} tcl-conf
@@ -124,4 +123,4 @@ make
 make install
 
 ls *tkdnd*
-ls cmake/runtime/tkdnd*/
+ls -laF cmake/runtime/lib/tkdnd${TKDND_VERSION}/
