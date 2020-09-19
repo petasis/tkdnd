@@ -80,7 +80,7 @@ if {[catch {package require fileutil}]} {
     if {![llength $found]} {
       puts stderr "Cannot find file \"$filename\" within directory (and\
       sub-directories) \"$path\"."
-      if {$exit_at_fail} {exit 1}
+      if {$exit_at_fail} {exit 1} else {return ""}
     }
     lindex $found 0
   };# find_file
@@ -91,7 +91,7 @@ if {[catch {package require fileutil}]} {
     if {![llength $found]} {
       puts stderr "Cannot find file \"$filename\" within directory (and\
       sub-directories) \"$path\"."
-      if {$exit_at_fail} {exit 2}
+      if {$exit_at_fail} {exit 2} else {return ""}
     }
     lindex $found 0
   };# find_file
@@ -109,7 +109,12 @@ if {![file exists $tk_libpath/tkConfig.sh]} {
   ## Ok, we are missing the configuration file. Can we find it?
   set tk_libpath [file dirname [find_file $root tkConfig.sh false]]
 }
-puts "Found \"tkConfig.sh\"  in \"$tk_libpath\"."
+if {$tk_libpath != ""} {
+  puts "Found \"tkConfig.sh\"  in \"$tk_libpath\"."
+} else {
+  set tk_libpath $tcl_libpath
+  puts "Not Found \"tkConfig.sh\": using \"$tk_libpath\" as Tk library path."
+}
 
 ## Ensure we can find tclConfig.sh & tkConfig.sh
 if {![file exists $tcl_includepath/tcl.h]} {
