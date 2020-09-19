@@ -113,7 +113,7 @@ puts "Found \"tclConfig.sh\" in \"$tcl_libpath\"."
 
 if {![file exists $tk_libpath/tkConfig.sh]} {
   ## Ok, we are missing the configuration file. Can we find it?
-  if {[catch {file dirname [find_file $root tkConfig.sh false]} tk_libpath}
+  if {[catch {file dirname [find_file $root tkConfig.sh false]} tk_libpath]} {
     set tk_libpath $tcl_libpath
     puts "Not Found \"tkConfig.sh\": using \"$tk_libpath\" as Tk library path."
   } else {
