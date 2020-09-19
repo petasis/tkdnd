@@ -1,3 +1,7 @@
+2020-09-19  Petasis George  <petasis@iit.demokritos.gr>
+        * .appveyor.yml: Build also with MSYS2 under Windows.
+        * appveyor_build_msys2.sh:
+
 2020-08-19  Petasis George  <petasis@iit.demokritos.gr>
         * library/tkdnd_unix.tcl: Fixed bug #40.
 

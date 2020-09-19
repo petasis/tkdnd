@@ -46,11 +46,18 @@ build:
 
 before_build:
   - cmd: if %platform%==x86 set TKDND_PLATFORM=Win32
+  - cmd: if %platform%==x86 set MSYS2_ARCH=i686
+  - cmd: if %platform%==x86 set MSYSTEM=MINGW32
   - cmd: if %platform%==x64 set TKDND_PLATFORM=x64
+  - cmd: if %platform%==x64 set MSYS2_ARCH=x86_64
+  - cmd: if %platform%==x64 set MSYSTEM=MINGW64
 
 build_script:
   - cmd: msbuild tkdnd.sln /p:Platform=%TKDND_PLATFORM% /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - cmd: msbuild INSTALL.vcxproj /p:Platform=%TKDND_PLATFORM% /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  ## MSYS2
+  - PATH C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin;C:\msys64\bin;%PATH%
+  - bash '%APPVEYOR_BUILD_FOLDER%\appveyor_build_msys2.sh'
 
 after_build:
   - cmd: echo %cd%
