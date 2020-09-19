@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
 # Exit early if any command fails
-set -e
+#set -e
 
 PKG_PREFIX="mingw-w64-$MSYS2_ARCH"
+
+pacman --noconfirm -S --needed \
+       ${PKG_PREFIX}-tcl \
+       ${PKG_PREFIX}-tk \
+       ${PKG_PREFIX}-tcllib
 
 echo `pwd`
 
@@ -105,7 +110,7 @@ EOT
 fi
 
 
-# bash configure
+bash configure
 ${TCL_TCLSH} tcl-conf
 make
 make install
