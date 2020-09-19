@@ -7,7 +7,9 @@ PKG_PREFIX="mingw-w64-$MSYS2_ARCH"
 
 echo `pwd`
 
-bash configure
+# bash configure
+${TCL_TCLSH} tcl-conf
 make
 make install
+
 ls *tkdnd*

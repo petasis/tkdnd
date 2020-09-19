@@ -1,6 +1,10 @@
 2020-09-19  Petasis George  <petasis@iit.demokritos.gr>
+        * configure:
+        * configure.ac: Added flag -static-libstdc++ when building with gcc
+        under Windows.
+
         * .appveyor.yml: Build also with MSYS2 under Windows.
-        * appveyor_build_msys2.sh:
+        * appveyor_build_msys2.sh: Build script for MSYS2.
 
 2020-08-19  Petasis George  <petasis@iit.demokritos.gr>
         * library/tkdnd_unix.tcl: Fixed bug #40.

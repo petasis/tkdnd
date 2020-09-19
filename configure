@@ -5737,6 +5737,11 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $tcl_cv_cc_staticlib" >&5
 $as_echo "$tcl_cv_cc_staticlib" >&6; }
+      if test "x$tcl_cv_cc_staticlib" = xyes; then :
+
+          SHLIB_LD_LIBS="${SHLIB_LD_LIBS} -static-libstdc++"
+
+fi
 
 else
 

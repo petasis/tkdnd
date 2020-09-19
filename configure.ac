@@ -115,6 +115,9 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
           hold_cflags=$CFLAGS; CFLAGS="$CFLAGS -static-libstdc++"
           AC_TRY_COMPILE(,, tcl_cv_cc_staticlib=yes, tcl_cv_cc_staticlib=no)
           CFLAGS=$hold_cflags])
+      AS_IF([test "x$tcl_cv_cc_staticlib" = xyes], [
+          SHLIB_LD_LIBS="${SHLIB_LD_LIBS} -static-libstdc++"
+      ])
     ], [
         ## We are under Windows but not using GCC. MS Visual Studio?
         CFLAGS_OPTIMIZE=""
