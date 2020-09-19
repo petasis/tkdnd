@@ -89,7 +89,7 @@ Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name) {
   /* The name is not an action. Try Tk cursors... */
   cursor = Tk_AllocCursorFromObj(interp, Tk_MainWindow(interp), name);
   if (cursor == None) {
-    Tcl_SetResult(interp, "invalid cursor name", TCL_STATIC);
+    Tcl_SetResult(interp, (char *) "invalid cursor name", TCL_STATIC);
     return (Tk_Cursor) None;
   }
   return cursor;

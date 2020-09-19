@@ -5741,7 +5741,18 @@ $as_echo "$tcl_cv_cc_staticlib" >&6; }
 
           { $as_echo "$as_me:${as_lineno-$LINENO}: Adding -static-libstdc++ to SHLIB_LD_LIBS" >&5
 $as_echo "$as_me: Adding -static-libstdc++ to SHLIB_LD_LIBS" >&6;}
-          SHLIB_LD_LIBS="${SHLIB_LD_LIBS} -static-libstdc++"
+          # SHLIB_LD_LIBS="${SHLIB_LD_LIBS} -static-libstdc++"
+
+    vars="-static-libstdc++"
+    for i in $vars; do
+	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
+	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib
+	    i=`echo "$i" | sed -e 's/^\([^-].*\)\.lib$/-l\1/i'`
+	fi
+	PKG_LIBS="$PKG_LIBS $i"
+    done
+
+
 
 fi
 
