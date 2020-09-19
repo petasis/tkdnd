@@ -51,9 +51,9 @@ Tk_Cursor TkDND_noDropCursor  = NULL,
 
 
 Tk_Cursor TkDND_GetCursor(Tcl_Interp *interp, Tcl_Obj *name) {
-  static char *DropActions[] = {
+  static const char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop", "default",
-    "wait", "clock", (char *) NULL
+    "wait", "clock", (const char *) NULL
   };
   enum dropactions {
     ActionCopy, ActionMove, ActionLink, ActionAsk, ActionPrivate,

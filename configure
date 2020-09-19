@@ -5739,6 +5739,8 @@ fi
 $as_echo "$tcl_cv_cc_staticlib" >&6; }
       if test "x$tcl_cv_cc_staticlib" = xyes; then :
 
+          { $as_echo "$as_me:${as_lineno-$LINENO}: Adding -static-libstdc++ to SHLIB_LD_LIBS" >&5
+$as_echo "$as_me: Adding -static-libstdc++ to SHLIB_LD_LIBS" >&6;}
           SHLIB_LD_LIBS="${SHLIB_LD_LIBS} -static-libstdc++"
 
 fi

@@ -116,6 +116,7 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
           AC_TRY_COMPILE(,, tcl_cv_cc_staticlib=yes, tcl_cv_cc_staticlib=no)
           CFLAGS=$hold_cflags])
       AS_IF([test "x$tcl_cv_cc_staticlib" = xyes], [
+          AC_MSG_NOTICE([Adding -static-libstdc++ to SHLIB_LD_LIBS])
           SHLIB_LD_LIBS="${SHLIB_LD_LIBS} -static-libstdc++"
       ])
     ], [
