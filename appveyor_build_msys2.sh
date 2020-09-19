@@ -10,3 +10,4 @@ echo `pwd`
 bash configure
 make
 make install
+ls *tkdnd*
