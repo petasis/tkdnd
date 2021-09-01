@@ -1,5 +1,7 @@
 2021-09-01  Petasis George  <petasis@iit.demokritos.gr>
         * library/tkdnd_utils.tcl: Fixed bug #55.
+        * CMakeLists.txt: Fix so as a correct pkgIndex.tcl is generated (by
+        reading pkgIndex.tcl.in).
 
 2020-09-19  Petasis George  <petasis@iit.demokritos.gr>
         * configure:

@@ -259,69 +259,10 @@ ADD_LIBRARY ( ${PKG_TARGET_LIB_NAME} SHARED ${PKG_SOURCES} )
 ## ===========================================================================
 ##  Generate the pkgIndex.tcl file...
 ## ===========================================================================
-FILE ( WRITE library/pkgIndex.tcl
-"#
-# Tcl package index file
-#
-
-namespace eval ::tkdnd {
-  ## Check if a debug level must be set...
-  if {[info exists ::TKDND_DEBUG_LEVEL]} {
-    variable _debug_level $::TKDND_DEBUG_LEVEL
-  } elseif {[info exists ::env(TKDND_DEBUG_LEVEL)]} {
-    variable _debug_level $::env(TKDND_DEBUG_LEVEL)
-  } else {
-    variable _debug_level 0
-  }
-
-  # ----------------------------------------------------------------------------
-  #  Command tkdnd::debug_enabled: returns the requested debug level (0 = no debug).
-  # ----------------------------------------------------------------------------
-  proc debug_enabled { {level {}} } {
-    variable _debug_level
-    if {$level != {}} {
-      if {[string is integer -strict $level]} {
-        set _debug_level $level
-      } elseif {[string is true $level]} {
-        set _debug_level 1
-      }
-    }
-    return $_debug_level
-  };# debug_enabled
-
-  # ----------------------------------------------------------------------------
-  #  Command tkdnd::source: source a Tcl fileInitialise the TkDND package.
-  # ----------------------------------------------------------------------------
-  proc source { filename { encoding utf-8 } } {
-    variable _package_dir
-    # If in debug mode, enable debug statements...
-    set dbg_lvl [debug_enabled]
-    if {$dbg_lvl} {
-      puts \"tkdnd::source (debug level $dbg_lvl) $filename\"
-      set fd [open $filename r]
-      fconfigure $fd -encoding $encoding
-      set script [read $fd]
-      close $fd
-      set map {}
-      for {set lvl 0} {$lvl <= $dbg_lvl} {incr lvl} {
-        lappend map \"#DBG$lvl \" {}
-      }
-      lappend map {#DBG } {}
-      set script [string map $map $script]
-      return [eval $script]
-    }
-    ::source -encoding $encoding $filename
-  };# source
-
-}; # namespace ::tkdnd
-
-package ifneeded ${PKG_NAME} ${PKG_VERSION} \\
-  \"source \\{$dir/tkdnd.tcl\\} ; \\
-   tkdnd::initialise \\{$dir\\} lib${PKG_TARGET_LIB_NAME}[info sharedlibextension] ${PKG_NAME}\"
-
-package ifneeded tkdnd::utils ${PKG_VERSION} \\
-  \"source \\{$dir/tkdnd_utils.tcl\\} ; \\
-   package provide tkdnd::utils ${PKG_VERSION}\"" )
+SET ( PACKAGE_VERSION ${PKG_VERSION} )
+SET ( PACKAGE_NAME    ${PKG_NAME} )
+SET ( PKG_LIB_FILE    "lib${PKG_TARGET_LIB_NAME}[info sharedlibextension]" )
+configure_file(pkgIndex.tcl.in library/pkgIndex.tcl @ONLY)
 
 ## ===========================================================================
 ##  Declare the package install targets...
@@ -330,7 +271,7 @@ INSTALL ( TARGETS ${PKG_TARGET_LIB_NAME}
           RUNTIME DESTINATION ${PKG_TARGET_LIB_NAME}
           LIBRARY DESTINATION ${PKG_TARGET_LIB_NAME}
           ARCHIVE DESTINATION ${PKG_TARGET_LIB_NAME} )
-INSTALL ( FILES library/pkgIndex.tcl
+INSTALL ( FILES ${CMAKE_CURRENT_BINARY_DIR}/library/pkgIndex.tcl
                 library/tkdnd.tcl
                 library/tkdnd_generic.tcl
                 library/tkdnd_compat.tcl
