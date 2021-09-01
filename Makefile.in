@@ -252,7 +252,7 @@ shell: binaries libraries
 gdb:
 	$(TCLSH_ENV) $(PKG_ENV) $(GDB) $(TCLSH_PROG) $(SCRIPT)
 
-gdb-test: binaries libraries 
+gdb-test: binaries libraries
 	$(TCLSH_ENV) $(PKG_ENV) $(GDB) \
 	    --args $(TCLSH_PROG) `@CYGPATH@ $(srcdir)/tests/all.tcl` \
 	    $(TESTFLAGS) -singleproc 1 \

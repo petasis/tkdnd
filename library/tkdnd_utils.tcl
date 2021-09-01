@@ -249,7 +249,7 @@ proc ::tkdnd::text::_begin_drag { event button source state X Y x y } {
   return -code continue
 };# tkdnd::text::_begin_drag
 
-proc tkdnd::text::_TextAutoScan {w x y} {
+proc ::tkdnd::text::_TextAutoScan {w x y} {
   variable _now_dragging
   if {$_now_dragging} {return -code break}
   return -code continue
