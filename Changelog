@@ -1,3 +1,8 @@
+2022-12-10  Petasis George  <petasis@iit.demokritos.gr>
+        * demos/simple_target.tcl: Wrapped the drop target inside a
+        ttk::frame, to test if events are received by windows inside windows
+        that are not drop targets.
+
 2021-09-01  Petasis George  <petasis@iit.demokritos.gr>
         * library/tkdnd_utils.tcl: Fixed bug #55.
         * CMakeLists.txt: Fix so as a correct pkgIndex.tcl is generated (by
