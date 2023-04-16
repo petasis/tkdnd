@@ -123,8 +123,7 @@ namespace eval ::tkdnd {
       x11 {
         set _windowingsystem x11
       }
-      win32 -
-      windows {
+      win32 {
         set _windowingsystem windows
       }
       aqua  {
