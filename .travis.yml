@@ -36,5 +36,6 @@ deploy:
   file_glob: false
   file: "${FILE_TO_UPLOAD}"
   skip_cleanup: true
+  overwrite: true
   on:
     tags: true
