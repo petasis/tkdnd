@@ -15,9 +15,7 @@
 
 /* OS X compiler cannot handle redefinition of panic. Thus disable
  * deprecated functions. We do not use them anyway. */
-#if 0
 #define TCL_NO_DEPRECATED
-#endif
 
 #import <tcl.h>
 #import <tk.h>
