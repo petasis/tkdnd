@@ -432,7 +432,7 @@ proc generic::HandleDrop {drop_target drag_source pressedkeys rootX rootY time }
 # ----------------------------------------------------------------------------
 proc generic::GetWindowCommonTypes { win typelist } {
   set types [bind $win <<DropTargetTypes>>]
-  #DBG debug ">> Accepted types: $win $_types"
+  #DBG debug ">> Accepted types: $win $types"
   set common_drag_source_types {}
   set common_drop_target_types {}
   if {[llength $types]} {

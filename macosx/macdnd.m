@@ -15,13 +15,34 @@
 
 /* OS X compiler cannot handle redefinition of panic. Thus disable
  * deprecated functions. We do not use them anyway. */
+#if 0
 #define TCL_NO_DEPRECATED
+#endif
 
 #import <tcl.h>
 #import <tk.h>
 #import <tkInt.h>
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
+
+/* 
+   Check, if Tcl version supports Tcl_Size,
+   which was introduced in Tcl 8.7 and 9.
+
+   Initial updates for Tcl 8.7 and 8.9 contributed by Paul Obermeier.
+*/
+#ifndef TCL_SIZE_MAX
+  #include <limits.h>
+  #define TCL_SIZE_MAX INT_MAX
+
+  #ifndef Tcl_Size
+    typedef int Tcl_Size;
+  #endif
+
+  #define TCL_SIZE_MODIFIER ""
+  #define Tcl_GetSizeIntFromObj Tcl_GetIntFromObj
+  #define Tcl_NewSizeIntObj     Tcl_NewIntObj
+#endif
 
 #pragma clang diagnostic ignored "-Warc-bridge-casts-disallowed-in-nonarc"
 #if 0
@@ -64,13 +85,13 @@
 #define TkDND_Eval(objc)                                                \
   for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                     \
   if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK)      \
-    Tk_BackgroundError(interp);                                         \
+    Tcl_BackgroundError(interp);                                        \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
 #define TkDND_Status_Eval(objc)                                         \
   for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);                     \
   status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);           \
-  if (status != TCL_OK) Tk_BackgroundError(interp);                     \
+  if (status != TCL_OK) Tcl_BackgroundError(interp);                    \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
 #ifndef Tk_Interp
@@ -564,7 +585,8 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   NSPasteboard *sourcePasteBoard = [sender draggingPasteboard];
   Tcl_Obj *data      = NULL;
   Tcl_Obj* objv[3], **elem, *result;
-  int i, index, status, elem_nu;
+  int i, index, status;
+  Tcl_Size elem_nu;
   const NSString *type;
 
   /* Retrieve the common types, as preferred by the drag source... */
@@ -741,7 +763,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
                            int objc, Tcl_Obj *CONST objv[]) {
   Tcl_Obj         **elem, **data_elem, **files_elem;
   int               actions = 0;
-  int               status, elem_nu, data_elem_nu, files_elem_nu, i, j, index;
+  int               status, i, j, index;
+  Tcl_Size          elem_nu, data_elem_nu, files_elem_nu;
   Tk_Window         path;
   Drawable          d;
   NSView           *view;
@@ -1227,7 +1250,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
 int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
                                    int objc, Tcl_Obj *CONST objv[]) {
   Tcl_Obj **type;
-  int typec, i, len;
+  int i;
+  Tcl_Size len, typec;
   char *str;
   bool added_string = false, added_filenames = false, added_html = false;
 
@@ -1347,11 +1371,11 @@ int TkDND_Type2StringObjCmd(ClientData clientData, Tcl_Interp *interp,
  */
 int Tkdnd_Init (Tcl_Interp *interp) {
 
-  if (Tcl_InitStubs(interp, "8.5", 0) == NULL) {
+  if (Tcl_InitStubs(interp, "8.5-", 0) == NULL) {
     return TCL_ERROR;
   }
 
-  if (Tk_InitStubs(interp, "8.5", 0) == NULL) {
+  if (Tk_InitStubs(interp, "8.5-", 0) == NULL) {
     return TCL_ERROR;
   }
 

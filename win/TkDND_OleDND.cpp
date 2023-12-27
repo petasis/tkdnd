@@ -163,7 +163,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   DWORD             actions = 0;
   DWORD             dwEffect;
   DWORD             dwResult;
-  int               status, type_nu, data_nu, i, index, nDataLength, button = 1;
+  int               status, index, button = 1;
+  Tcl_Size          i, type_nu, data_nu, nDataLength;
   char             *ptr;
   Tcl_UniChar      *unicode, *ptr_u;
   FORMATETC        *m_pfmtetc;
@@ -258,11 +259,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           m_pstgmed[i].hGlobal = GlobalAlloc(GHND, buffer_size);
           if (m_pstgmed[i].hGlobal) {
             ptr_u = (Tcl_UniChar *) GlobalLock(m_pstgmed[i].hGlobal);
+#if 0
 #ifdef HAVE_STRSAFE_H
             StringCchCopyW((LPWSTR) ptr_u, buffer_size, (LPWSTR) unicode);
 #else
             lstrcpyW((LPWSTR) ptr_u, (LPWSTR) unicode);
 #endif
+#endif
+            memcpy(ptr_u, unicode, buffer_size);
             GlobalUnlock(m_pstgmed[i].hGlobal);
           }
           break;
@@ -287,7 +291,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           LPDROPFILES pDropFiles;
           Tcl_DString ds;
           Tcl_Obj **File, *native_files_obj = NULL, *obj;
-          int file_nu, j, size, len;
+          Tcl_Size j, file_nu;
+          Tcl_Size size, len;
           char *native_name;
 
           status = Tcl_ListObjGetElements(interp, data[i], &file_nu, &File);
@@ -425,18 +430,18 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
 
   if (
 #ifdef USE_TCL_STUBS
-      Tcl_InitStubs(interp, "8.3", 0)
+      Tcl_InitStubs(interp, "8.4-", 0)
 #else
-      Tcl_PkgRequire(interp, "Tcl", "8.3", 0)
+      Tcl_PkgRequire(interp, "Tcl", "8.4-", 0)
 #endif /* USE_TCL_STUBS */
             == NULL) {
             return TCL_ERROR;
   }
   if (
 #ifdef USE_TK_STUBS
-       Tk_InitStubs(interp, "8.3", 0)
+       Tk_InitStubs(interp, "8.4-", 0)
 #else
-       Tcl_PkgRequire(interp, "Tk", "8.3", 0)
+       Tcl_PkgRequire(interp, "Tk", "8.4-", 0)
 #endif /* USE_TK_STUBS */
             == NULL) {
             return TCL_ERROR;

@@ -51,7 +51,27 @@
 #ifdef HAVE_LIMITS_H
 #include "limits.h"
 #else
+#define INT_MAX  32767
 #define LONG_MAX 0x7FFFFFFFL
+#endif
+
+/*
+   Check, if Tcl version supports Tcl_Size,
+   which was introduced in Tcl 8.7 and 9.
+   
+   Initial updates for Tcl 8.7 and 8.9 contributed by Paul Obermeier.
+*/
+#ifndef TCL_SIZE_MAX
+  #define TCL_SIZE_MAX INT_MAX
+
+  #ifndef Tcl_Size
+    typedef int Tcl_Size;
+  #endif
+
+  #define TCL_SIZE_MODIFIER ""
+  #define Tcl_GetSizeIntFromObj Tcl_GetIntFromObj
+  #define Tcl_NewSizeIntObj     Tcl_NewIntObj
+  #define NO_NATIVE_TCL_SIZE
 #endif
 
 /*
@@ -62,10 +82,10 @@
 #define TKDND_SET_XDND_PROPERTY_ON_TOPLEVEL
 
 #define TkDND_TkWindowChildren(tkwin) \
-    ((Tk_Window) (((Tk_FakeWin *) (tkwin))->dummy2))
+  ((Tk_Window) (((Tk_FakeWin *) (tkwin))->dummy2))
 
 #define TkDND_TkWindowLastChild(tkwin) \
-    ((Tk_Window) (((Tk_FakeWin *) (tkwin))->dummy3))
+  ((Tk_Window) (((Tk_FakeWin *) (tkwin))->dummy3))
 
 #define TkDND_TkWin(x) \
   (Tk_NameToWindow(interp, Tcl_GetString(x), Tk_MainWindow(interp)))
@@ -73,13 +93,13 @@
 #define TkDND_Eval(objc) \
   for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);\
   if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK) \
-      Tk_BackgroundError(interp); \
+    Tcl_BackgroundError(interp); \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
 #define TkDND_Status_Eval(objc) \
   for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);\
   status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);\
-  if (status != TCL_OK) Tk_BackgroundError(interp); \
+  if (status != TCL_OK) Tcl_BackgroundError(interp); \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);
 
 #define TkDND_Dict_Put(dict, k, v) \
@@ -896,7 +916,8 @@ int TkDND_AnnounceTypeListObjCmd(ClientData clientData, Tcl_Interp *interp,
                             int objc, Tcl_Obj *CONST objv[]) {
   Tk_Window path;
   Tcl_Obj **type;
-  int status, i, types;
+  int status;
+  Tcl_Size i, types;
   Atom *typelist;
 
   if (objc != 3) {
@@ -924,7 +945,8 @@ int TkDND_AnnounceActionListObjCmd(ClientData clientData, Tcl_Interp *interp,
                             int objc, Tcl_Obj *CONST objv[]) {
   Tk_Window path;
   Tcl_Obj **action, **description;
-  int status, i, actions, descriptions;
+  int status;
+  Tcl_Size i, actions, descriptions;
   Atom actionlist[10], descriptionlist[10];
 
   if (objc != 4) {
@@ -1392,7 +1414,8 @@ int TkDND_SendXdndEnterObjCmd(ClientData clientData,
   Tk_Window source;
   Window target, proxy;
   Display *display;
-  int types, r, f, *tv, target_version = XDND_VERSION, flags, status, i;
+  int r, f, *tv, target_version = XDND_VERSION, flags, status, i;
+  Tcl_Size types;
   Atom t = None;
   unsigned long n, a;
   unsigned char *retval;
@@ -1585,7 +1608,8 @@ int TkDND_XChangePropertyObjCmd(ClientData clientData,
   XEvent event;
   Window target;
   Atom property = None, type = None;
-  int format, numItems, numFields, i;
+  int format, numItems, i;
+  Tcl_Size numFields;
   Display *display;
   Tk_Window source;
   Time time;
@@ -1687,23 +1711,24 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
 
   if (
 #ifdef USE_TCL_STUBS
-      Tcl_InitStubs(interp, "8.3", 0)
+      Tcl_InitStubs(interp, "8.4-", 0)
 #else
-      Tcl_PkgRequire(interp, "Tcl", "8.3", 0)
+      Tcl_PkgRequire(interp, "Tcl", "8.4-", 0)
 #endif /* USE_TCL_STUBS */
             == NULL) {
             return TCL_ERROR;
   }
   if (
 #ifdef USE_TK_STUBS
-       Tk_InitStubs(interp, "8.3", 0)
+       Tk_InitStubs(interp, "8.4-", 0)
 #else
-       Tcl_PkgRequire(interp, "Tk", "8.3", 0)
+       Tcl_PkgRequire(interp, "Tk", "8.4-", 0)
 #endif /* USE_TK_STUBS */
             == NULL) {
             return TCL_ERROR;
   }
 
+#if 0
   /*
    * Get the version, because we really need 8.3.3+.
    */
@@ -1712,6 +1737,7 @@ int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
     Tcl_SetResult(interp, "tkdnd requires Tk 8.3.3 or greater", TCL_STATIC);
     return TCL_ERROR;
   }
+#endif
 
   if (Tcl_GetCommandInfo(interp, "selection", &info) == 0) {
     Tcl_SetResult(interp, "selection Tk command not found", TCL_STATIC);

@@ -1,7 +1,7 @@
 # TkDND
 TkDND is an extension that adds native drag & drop capabilities to the [Tk](http://www.tcl.tk/) toolkit.
 
-It can be used with any Tk version equal or greater to **8.3.3** and currently only the UNIX (X-Windows), Microsoft Windows (XP, Vista, 7, 8, 8.1, 10) and OS X (10.5+) operating systems are supported.
+It can be used with any Tk version equal or greater to **8.4** and currently only the UNIX (X-Windows), Microsoft Windows (XP, Vista, 7, 8, 8.1, 10, 11) and OS X (10.5+) operating systems are supported (under OS X Tk version **8.5** is required).
 
 ## Current Travis/AppVeyor CI build status for TkDND:
 
@@ -13,7 +13,7 @@ It can be used with any Tk version equal or greater to **8.3.3** and currently o
 
 ## Installation
 ### Requirements
-  * An installation Tcl/Tk, with version >= 8.3.3. The Tcl/Tk installation must contain the files tclConfig.sh, tkConfig.sh and the development libraries, under Unix/Linux/OSX/Windows, if you want to use configure/make. The files tclConfig.sh, and tkConfig.sh are not required if you want to use [CMake](https://cmake.org/).
+  * An installation of Tcl/Tk, with version >= 8.4. The Tcl/Tk installation must contain the files tclConfig.sh, tkConfig.sh and the development libraries, under Unix/Linux/OSX/Windows, if you want to use configure/make. The files tclConfig.sh, and tkConfig.sh are not required if you want to use [CMake](https://cmake.org/).
   * [CMake](https://cmake.org/), version >= 3.2.
   * A working C/C++ compiler.
   * tclsh/wish must be in the PATH environmental variable. Typing `tclsh` in a command prompt/terminal, must run the executable from the Tcl/Tk installation TkDND will be built against.

@@ -77,19 +77,45 @@ extern "C" {
 }
 #endif
 
+#ifdef HAVE_LIMITS_H
+#include "limits.h"
+#else
+#define INT_MAX  32767
+#define LONG_MAX 0x7FFFFFFFL
+#endif
+
+/*
+   Check, if Tcl version supports Tcl_Size,
+   which was introduced in Tcl 8.7 and 9.
+   
+   Initial updates for Tcl 8.7 and 8.9 contributed by Paul Obermeier.
+*/
+#ifndef TCL_SIZE_MAX
+  #define TCL_SIZE_MAX INT_MAX
+
+  #ifndef Tcl_Size
+    typedef int Tcl_Size;
+  #endif
+
+  #define TCL_SIZE_MODIFIER ""
+  #define Tcl_GetSizeIntFromObj Tcl_GetIntFromObj
+  #define Tcl_NewSizeIntObj     Tcl_NewIntObj
+  #define NO_NATIVE_TCL_SIZE
+#endif
+
 #define TkDND_TkWin(x) \
   (Tk_NameToWindow(interp, Tcl_GetString(x), Tk_MainWindow(interp)))
 
 #define TkDND_Eval(objc) {\
   for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);\
   if (Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL) != TCL_OK) \
-      Tk_BackgroundError(interp); \
+    Tcl_BackgroundError(interp); \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);}
 
 #define TkDND_Status_Eval(objc) {\
   for (i=0; i<objc; ++i) Tcl_IncrRefCount(objv[i]);\
   status = Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);\
-  if (status != TCL_OK) Tk_BackgroundError(interp); \
+  if (status != TCL_OK) Tcl_BackgroundError(interp); \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);}
 
 #if defined(UNICODE) || defined(_MBCS)
@@ -98,7 +124,7 @@ extern "C" {
 #    define TCL_NEWSTRING(x, y) Tcl_NewStringObj(x, y)
 #  else
 #    define TCL_GETSTRING(x)    ((LPCWSTR) Tcl_GetUnicode(x))
-#    define TCL_NEWSTRING(x, y) Tcl_NewUnicodeObj((Tcl_UniChar *) x, y)
+#    define TCL_NEWSTRING(x, y) Tcl_NewUnicodeObj((const Tcl_UniChar *) x, y)
 #  endif
 #else
 #  define TCL_GETSTRING(x)    Tcl_GetString(x)
@@ -863,7 +889,15 @@ class TkDND_DropTarget: public IDropTarget {
         while (pEF->Next(1, &fetc, NULL) == S_OK) {
           if (pDataObject->QueryGetData(&fetc) == S_OK) {
             /* Get the format name from windows */
+#if defined(UNICODE) && !defined(NO_NATIVE_TCL_SIZE)
+            Tcl_DString ds;
+            Tcl_DStringInit(&ds);
+            Tcl_WCharToUtfDString(FormatName(fetc.cfFormat), -1, &ds);
+            element = Tcl_DStringToObj(&ds);
+            Tcl_DStringFree(&ds);
+#else
             element = TCL_NEWSTRING(FormatName(fetc.cfFormat), -1);
+#endif
             Tcl_ListObjAppendElement(NULL, typelist, element);
             /* Store the numeric code of the format */
             sprintf(tmp, "0x%08x", fetc.cfFormat);
@@ -918,7 +952,8 @@ class TkDND_DropTarget: public IDropTarget {
     STDMETHODIMP Drop(IDataObject *pDataObject, DWORD grfKeyState,
                       POINTL pt, DWORD *pdwEffect) {
       Tcl_Obj *objv[7], *result, **typeObj, *data = NULL, *type = NULL;
-      int i, type_index, status, typeObjc;
+      int i, type_index, status;
+      Tcl_Size typeObjc;
       *pdwEffect = DROPEFFECT_NONE;
 #ifdef DND_USE_ACTIVE
       if (!drop_active) return S_OK;
@@ -970,7 +1005,7 @@ private:
         Tcl_NewStringObj("unsupported type", -1);
       }
       bytes = (unsigned char *) GlobalLock(StgMed.hGlobal);
-      result = Tcl_NewByteArrayObj(bytes, (int) GlobalSize(StgMed.hGlobal));
+      result = Tcl_NewByteArrayObj(bytes, (Tcl_Size) GlobalSize(StgMed.hGlobal));
       GlobalUnlock(StgMed.hGlobal);
       ReleaseStgMedium(&StgMed);
       return result;
@@ -978,6 +1013,7 @@ private:
 
     Tcl_Obj *GetData_CF_UNICODETEXT(IDataObject *pDataObject) {
       STGMEDIUM StgMed;
+      memset(&StgMed, 0, sizeof(StgMed));
       FORMATETC fmte = { CF_UNICODETEXT, (DVTARGETDEVICE FAR *)NULL,
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 
@@ -1102,13 +1138,18 @@ private:
             // WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) szFile, -1,
             //                                 utf8, sizeof(utf8), 0, 0);
             Tcl_DStringInit(&ds);
+#if defined(UNICODE) && !defined(NO_NATIVE_TCL_SIZE)
+            Tcl_WCharToUtfDString(szFile, -1, &ds);
+#else
             Tcl_UniCharToUtfDString((Tcl_UniChar *) szFile,
                 Tcl_UniCharLen((Tcl_UniChar *) szFile), &ds);
+#endif
             utf_8_data = Tcl_DStringValue(&ds);
             // utf_8_data = utf8;
 #else  /* UNICODE */
             utf_8_data = (char *) &szFile[0];
 #endif /* UNICODE */
+
             /* Convert to forward slashes for easier access in scripts... */
             for (p=utf_8_data; *p!='\0'; p=(char *) CharNextA(p)) {
               if (*p == '\\') *p = '/';
@@ -1284,7 +1325,7 @@ private:
         contents_fmt.lindex = file_index;
         if (pDataObject->GetData(&contents_fmt, &content_storage) == S_OK) {
           // Dump stream into a file.
-          item = Tcl_NewUnicodeObj((Tcl_UniChar *) szTempStr, -1);
+          item = Tcl_NewUnicodeObj((const Tcl_UniChar *) szTempStr, -1);
           Tcl_AppendToObj(item, "\\", 1);
           Tcl_GetUnicode(item);
           Tcl_AppendUnicodeToObj(item, (Tcl_UniChar *)

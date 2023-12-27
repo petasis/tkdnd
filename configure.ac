@@ -19,7 +19,7 @@ dnl        to configure the system for the local environment.
 # so you can encode the package version directly into the source files.
 #-----------------------------------------------------------------------
 
-AC_INIT([tkdnd], [m4_esyscmd_s([cat VERSION])])
+AC_INIT([tkdnd],[m4_esyscmd_s([cat VERSION])])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -113,7 +113,7 @@ AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
       AC_CACHE_CHECK([if the compiler understands -static-libstdc++],
           tcl_cv_cc_staticlib, [
           hold_cflags=$CFLAGS; CFLAGS="$CFLAGS -static-libstdc++"
-          AC_TRY_COMPILE(,, tcl_cv_cc_staticlib=yes, tcl_cv_cc_staticlib=no)
+          AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[tcl_cv_cc_staticlib=yes],[tcl_cv_cc_staticlib=no])
           CFLAGS=$hold_cflags])
       AS_IF([test "x$tcl_cv_cc_staticlib" = xyes], [
           AC_MSG_NOTICE([Adding -static-libstdc++ to SHLIB_LD_LIBS])
@@ -303,4 +303,5 @@ AC_CHECK_TYPE([uintptr_t], [
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-AC_OUTPUT([Makefile pkgIndex.tcl])
+AC_CONFIG_FILES([Makefile pkgIndex.tcl])
+AC_OUTPUT
