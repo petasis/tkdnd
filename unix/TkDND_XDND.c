@@ -1085,7 +1085,7 @@ void TkDND_AddStateInformation(Tcl_Interp *interp, Tcl_Obj *dict,
 int TkDND_HandleGenericEvent(ClientData clientData, XEvent *eventPtr) {
   Tcl_Interp *interp = (Tcl_Interp *) clientData;
   Tcl_Obj *dict, *key, *value;
-  Tcl_Obj *objv[2], *result;
+  Tcl_Obj *objv[2] /*, *result*/;
   int status, i;
 #ifdef TKDND_USE_XKEYCODETOKEYSYM
   KeySym keysym;
@@ -1706,7 +1706,9 @@ DLLEXPORT int Tkdnd_SafeInit(Tcl_Interp *interp);
 #endif
 
 int DLLEXPORT Tkdnd_Init(Tcl_Interp *interp) {
+#if 0
   int major, minor, patchlevel;
+#endif
   Tcl_CmdInfo info;
 
   if (

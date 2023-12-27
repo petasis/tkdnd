@@ -6,3 +6,6 @@ autom4te.cache
 cmake/debug-nmake-x86_64/
 cmake/release-nmake-x86_64/
 cmake/runtime/
+*.o
+*.so
+*.swp
