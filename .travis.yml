@@ -19,7 +19,7 @@ matrix:
     osx_image: xcode14.2
     sudo: false
     name: Cocoa shared library (macOS 12.6)
-    env: CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework --with-tk=/System/Library/Frameworks/Tk.framework"
+    env: CONFIGURE_ARGS=""
 script:
 - export TKDND_VERSION=`cat VERSION`
 - export TKDND_HOME=`pwd`
