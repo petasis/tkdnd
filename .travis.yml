@@ -10,16 +10,18 @@ matrix:
         packages:
         - libxcursor-dev
         - libxcursor1
+    env: CONFIGURE_ARGS=""
   - os: osx
     sudo: false
     name: Cocoa shared library
+    env: CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework"
 script:
 - export TKDND_VERSION=`cat VERSION`
 - export TKDND_HOME=`pwd`
 - export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
 - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
 - echo ${FILE_TO_UPLOAD}
-- ./configure --prefix=${TKDND_RUNTIME} --exec-prefix=${TKDND_RUNTIME} && make && make test
+- ./configure --prefix=${TKDND_RUNTIME} --exec-prefix=${TKDND_RUNTIME} ${CONFIGURE_ARGS} && make && make test
 - make install
 before_deploy:
 - make install
