@@ -1,41 +1,39 @@
 language: cpp
 matrix:
   include:
-    - os: linux
-      dist: xenial
-      sudo: false
-      name: "X11 shared library"
-      addons:
-        apt:
-          packages:
-            - libxcursor-dev
-            - libxcursor1
-    - os: osx
-      sudo: false
-      name: "Cocoa shared library"
+  - os: linux
+    dist: xenial
+    sudo: false
+    name: X11 shared library
+    addons:
+      apt:
+        packages:
+        - libxcursor-dev
+        - libxcursor1
+  - os: osx
+    sudo: false
+    name: Cocoa shared library
 script:
-  - export TKDND_VERSION=`cat VERSION`
-  - export TKDND_HOME=`pwd`
-  - export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
-  - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
-  - echo ${FILE_TO_UPLOAD}
-  - ./configure --prefix=${TKDND_RUNTIME} --exec-prefix=${TKDND_RUNTIME} && make && make test
-  - make install
-
+- export TKDND_VERSION=`cat VERSION`
+- export TKDND_HOME=`pwd`
+- export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
+- export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
+- echo ${FILE_TO_UPLOAD}
+- ./configure --prefix=${TKDND_RUNTIME} --exec-prefix=${TKDND_RUNTIME} && make && make test
+- make install
 before_deploy:
-  - make install
-  - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
-  - cd ${TKDND_RUNTIME}/lib && tar -czvf ${FILE_TO_UPLOAD} tkdnd${TKDND_VERSION}
-  - cd ${TKDND_HOME}
-  - echo ${FILE_TO_UPLOAD}
-
+- make install
+- export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}-${TRAVIS_OS_NAME}-x64.tgz
+- cd ${TKDND_RUNTIME}/lib && tar -czvf ${FILE_TO_UPLOAD} tkdnd${TKDND_VERSION}
+- cd ${TKDND_HOME}
+- echo ${FILE_TO_UPLOAD}
 deploy:
   provider: releases
   api_key:
-    - secure: "U9zLYpHvUIQM1XE/xjn3tsnO/Pg3EnMK+882pb8Pn8QgTaadcW/6dV6np3NsBZ8edUvP/vdvikSngnRti0aUUi8xgSsHfEZvc7tZKLxvV+VBX1LEDgXJn//qt3A4xkE+UgK4AMjFUEh01azzqNp7x4owMKaJF3/Wb1KDnCWygWXFInLev3nLi6mKglgn7CqTLEoIhOyQAR2DjNCRyAtT5YZgL7XRQWSDuOyBaRSp//3famJroPHqLVKDjnP6i4GQ7bNuR+MXsDMw2/3CKte/nKxsoiTfD4YEkVFlgNyOeJCYhPAfJwglqNRx1yngwoiWQtSDg4GEieCSubEeYi9CRVlCp40RrAmmRFB+AAsyHutkOqqf+3g3rOXJEN8HOs4Ei5e63/v6T9B/VXqWUqHpbcoST2OKLUq2kxe83Me2Xern+nZy+Y4Qk8UAjCJN8Mqf2UA8hmRs6JIP7AhazN1bmzq3J1nTqwVGfcf0XBIj8/AFsrlVM4SURxXcbF3nuiu/dMeTpOVjhnaMJQd1Wjwp2N/7VlMTxTQh3A0B9QRo3KglIpmOER9j6alQ1DFPdRR+js31sHes7eaYURrsixyZZbC08T4g4lRa/8YkK+082AdvwM7GWZnu+3yQKraj/oyx3CacfPpR1dDwWA+hUWn/Bp2+UVIfaEEqTu455Appk0Q="
-  file_glob: false
+    secure: mmiC2u89FxftrJRP5Yu/CcErQpKJSwqvrNEV4O7SClaMIXl8SgTvhILIkZHWQv0Qn6BbJwYni0MBdR2EDx2gLEDfzinNwStkhZ8A+uqSmpluuqJqCzKH8RzxsPReOOOuf2gkd4yN8gcECuMYvlnKglZ2Tfw/CkgjH6LApypsIvjZ+WAbjFDGJtOr+62T0y+II8C5oO17X+0L5FYLuXRNwOQXrQgi5NxUk/0wQmlDiAa+NZ+PGXYbjk2gW0hmmII8GnXw+s5XiR0ANiSG6ityn2w5hbd2/DBsG3lQ+ioyL0Gj2XDBv4l6Y1mKV8HeQLl7zxdeWOXdcCv3C9hZXi60YwPIm2MayAK3VSKv+k/0HvNoneSDbEq4TPMNblXTJDG6xOusrv3K3bFxgbt2lk8fKf3rtHT5mtdb+3BhB3vNWqqgBYKDtwviePX/Y8EyZ5XD1z3VmDWbmayGBCs/iBCtjfXqkz1EUvOXf9e/crjh/E8D4UTjopowWVMkTMEbXtdB32Xt/UanabGxWcrE+MnwAe/EkZKJ4gbZ0/cI7ysEtwOFqNjIGufplBB0X3XegCExlxKIsV9Cw3zVbo1Ei0gbaOM3BcESDonVa98OQBRIL/G4qJdVDrQ2IHBgeRTz3akVYlIp7NvBMPIyx+K0c1O6j084PvGZfuz5n2o4As819Nk=
   file: "${FILE_TO_UPLOAD}"
-  skip_cleanup: true
-  overwrite: true
   on:
+    repo: petasis/tkdnd
     tags: true
+  skip_cleanup: 'true'
+  overwrite: 'true'
