@@ -14,7 +14,7 @@ matrix:
   - os: osx
     sudo: false
     name: Cocoa shared library
-    env: CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework"
+    env: CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework --with-tk=/System/Library/Frameworks/Tcl.framework/tclConfig.sh"
 script:
 - export TKDND_VERSION=`cat VERSION`
 - export TKDND_HOME=`pwd`
