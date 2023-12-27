@@ -13,7 +13,12 @@ matrix:
     env: CONFIGURE_ARGS=""
   - os: osx
     sudo: false
-    name: Cocoa shared library
+    name: Cocoa shared library (macOS 10.13)
+    env: CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework --with-tk=/System/Library/Frameworks/Tk.framework"
+  - os: osx
+    osx_image: xcode14.2
+    sudo: false
+    name: Cocoa shared library (macOS 12.6)
     env: CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework --with-tk=/System/Library/Frameworks/Tk.framework"
 script:
 - export TKDND_VERSION=`cat VERSION`
