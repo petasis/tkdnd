@@ -19,7 +19,9 @@ matrix:
     osx_image: xcode14.2
     sudo: false
     name: Cocoa shared library (macOS 12.6)
-    env: CONFIGURE_ARGS=""
+    env:
+      - CONFIGURE_ARGS=""
+      - HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK="false"
     addons:
       homebrew:
         packages:
