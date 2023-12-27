@@ -7,13 +7,13 @@ It can be used with any Tk version equal or greater to **8.4** and currently onl
 
 | OS | Master Branch | Release Branch |
 ---|---|---
-| Linux 64, Tcl/Tk 8.6 | [![Build Status](https://travis-ci.com/petasis/tkdnd.svg?branch=master)](https://travis-ci.com/petasis/tkdnd) | |
+| Linux 64, Tcl/Tk 8.6 | [![Build Status](https://travis-ci.com/petasis/tkdnd.svg?branch=master)](https://app.travis-ci.com/github/petasis/tkdnd) | |
 | Windows 64, Tcl/Tk 8.6 | [![Build status](https://ci.appveyor.com/api/projects/status/vfnx40w79dqsox1y/branch/master?svg=true)](https://ci.appveyor.com/project/petasis/tkdnd/branch/master) | |
-| macOS 64 (Darwin), Tcl/Tk 8.5| [![Build Status](https://travis-ci.com/petasis/tkdnd.svg?branch=master)](https://travis-ci.com/petasis/tkdnd) | |
+| macOS 64 (Darwin), Tcl/Tk 8.5| [![Build Status](https://travis-ci.com/petasis/tkdnd.svg?branch=master)](https://app.travis-ci.com/github/petasis/tkdnd) | |
 
 ## Installation
 ### Requirements
-  * An installation of Tcl/Tk, with version >= 8.4. The Tcl/Tk installation must contain the files tclConfig.sh, tkConfig.sh and the development libraries, under Unix/Linux/OSX/Windows, if you want to use configure/make. The files tclConfig.sh, and tkConfig.sh are not required if you want to use [CMake](https://cmake.org/).
+  * An installation of Tcl/Tk, with version >= 8.4 (>= 8.5 for OS X). The Tcl/Tk installation must contain the files tclConfig.sh, tkConfig.sh and the development libraries, under Unix/Linux/OSX/Windows, if you want to use configure/make. The files tclConfig.sh, and tkConfig.sh are not required if you want to use [CMake](https://cmake.org/).
   * [CMake](https://cmake.org/), version >= 3.2.
   * A working C/C++ compiler.
   * tclsh/wish must be in the PATH environmental variable. Typing `tclsh` in a command prompt/terminal, must run the executable from the Tcl/Tk installation TkDND will be built against.
