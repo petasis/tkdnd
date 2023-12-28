@@ -14,18 +14,19 @@ matrix:
       - CONFIGURE_ARGS=""
       - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}"
   - os: osx
+    osx_image: xcode9.4
     sudo: false
     name: Cocoa shared library (macOS 10.13)
     env:
       - CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework --with-tk=/System/Library/Frameworks/Tk.framework"
-      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}"
+      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}-${TRAVIS_OSX_IMAGE}"
   - os: osx
     osx_image: xcode14.2
     sudo: false
     name: Cocoa shared library (macOS 12.6)
     env:
       - CONFIGURE_ARGS=""
-      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}"
+      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}-${TRAVIS_OSX_IMAGE}"
       - HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
     addons:
       homebrew:
