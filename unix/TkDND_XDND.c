@@ -49,10 +49,14 @@
 #endif /* HAVE_X11_EXTENSIONS_XKB_H */
 
 #ifdef HAVE_LIMITS_H
-#include "limits.h"
+  #include <limits.h>
 #else
-#define INT_MAX  32767
-#define LONG_MAX 0x7FFFFFFFL
+  #ifndef INT_MAX
+    #define INT_MAX  32767
+  #endif
+  #ifndef LONG_MAX
+    #define LONG_MAX 0x7FFFFFFFL
+  #endif
 #endif
 
 /*

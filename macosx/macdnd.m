@@ -30,7 +30,16 @@
    Initial updates for Tcl 8.7 and 8.9 contributed by Paul Obermeier.
 */
 #ifndef TCL_SIZE_MAX
-  #include <limits.h>
+  #ifdef HAVE_LIMITS_H
+    #include <limits.h>
+  #else
+    #ifndef INT_MAX
+      #define INT_MAX  32767
+    #endif
+    #ifndef LONG_MAX
+      #define LONG_MAX 0x7FFFFFFFL
+    #endif
+  #endif
   #define TCL_SIZE_MAX INT_MAX
 
   #ifndef Tcl_Size

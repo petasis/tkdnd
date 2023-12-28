@@ -94,6 +94,8 @@ TEA_ADD_TCL_SOURCES([library/tkdnd_compat.tcl library/tkdnd.tcl library/tkdnd_ge
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
+AC_CHECK_HEADERS([limits.h],,AC_MSG_ERROR([required header file missing]))
+
 AS_CASE([${TEA_PLATFORM}], [windows|*MINGW64_*],[
 #if test "${TEA_PLATFORM}" = "windows" ; then
     # Ensure no empty if clauses
