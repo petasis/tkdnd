@@ -75,6 +75,7 @@ proc FillPosition {text action X Y data} {
   $text insert end "Position: (x=$X, y=$Y), Action: $action, Data Preview:\n"
   $text insert end \"$data\"
   $text configure -state disabled
+  return $action
 };# FillPosition
 proc FillData {text Data type code} {
     $text configure -state normal
@@ -113,8 +114,7 @@ set abg #8fbc8f
 set type *
 dnd bindtarget .typeList $type <DragEnter> ".typeList configure -bg $abg
 FillTypeListbox .typeList %t %T %c %C %a %A %m %b
-FillPosition    .position %A %X %Y %D
-return %Α"
+FillPosition    .position %A %X %Y %D"
 dnd bindtarget .typeList $type <Drag> \
         [dnd bindtarget .typeList $type <DragEnter>]
 dnd bindtarget .typeList $type <Drop> \
