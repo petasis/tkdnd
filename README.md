@@ -8,7 +8,7 @@ It can be used with any Tk version equal or greater to **8.4** and currently onl
 | OS | Master Branch |
 ---|---
 | Linux: Ubuntu Xenial 16.04, x86-64, Tcl/Tk 8.6 | [![Build Status](https://app.travis-ci.com/petasis/tkdnd.svg?branch=master)](https://app.travis-ci.com/github/petasis/tkdnd) |
-| Windows 64, Tcl/Tk 8.6 | [![Build status](https://ci.appveyor.com/api/projects/status/vfnx40w79dqsox1y/branch/master?svg=true)](https://ci.appveyor.com/project/petasis/tkdnd/branch/master) |
+| Windows, x86, x86-64, Tcl/Tk 8.6 | [![Build status](https://ci.appveyor.com/api/projects/status/vfnx40w79dqsox1y/branch/master?svg=true)](https://ci.appveyor.com/project/petasis/tkdnd/branch/master) |
 | macOS: macOS 10.13, x86-64, Tcl/Tk 8.5 | [![Build Status](https://app.travis-ci.com/petasis/tkdnd.svg?branch=master)](https://app.travis-ci.com/github/petasis/tkdnd) |
 | macOS: macOS 12.6, x86-64, Tcl/Tk 8.6 (Homebrew) | [![Build Status](https://app.travis-ci.com/petasis/tkdnd.svg?branch=master)](https://app.travis-ci.com/github/petasis/tkdnd) |
 

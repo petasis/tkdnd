@@ -3,6 +3,8 @@
 # Exit early if any command fails
 #set -e
 
+pacman -Ss tcllib
+
 PKG_PREFIX="mingw-w64-$MSYS2_ARCH"
 
 pacman --noconfirm -S --needed \

@@ -1,3 +1,28 @@
+2023-12-29 Petasis George  <petasis@iit.demokritos.gr>
+        * README.md: Updated required Tcl/Tk versions. Tk 8.3.3 has been
+        dropped, TkDND now requires 8.4 on Windows/Linux, and 8.5 for macOS.
+
+        * library/tkdnd_macosx.tcl:
+        * macosx/macdnd.m: Fixed deprecations introduced in macOS 10.13.
+
+2023-12-27 Petasis George  <petasis@iit.demokritos.gr>
+        * .travis.yml: Restored travis CI operation, and added an additional
+        CI for macOS (macOS 10.13 - High Sierra - OS shipped Tcl/Tk - 8.5 &
+        macOS 12.06 - Monterey - Homebrew Tcl/Tk 8.6.13+).
+
+        * configure.ac:
+        * tclconfig/*: Updated to the latest Tcl config package.
+
+        * generic/TkDND_Cursors.c:
+        * library/tkdnd.tcl:
+        * macosx/macdnd.m:
+        * unix/TkDND_XDND.c:
+        * win/OleDND.h
+        * win/TkDND_OleDND.cpp: Initial updates for Tcl 8.7 and 8.9 contributed by Paul Obermeier.
+
+2022-12-12 Petasis George  <petasis@iit.demokritos.gr>
+        * tests/bug40.tcl: Added a test case for bug 40.
+
 2022-12-10  Petasis George  <petasis@iit.demokritos.gr>
         * demos/simple_target.tcl: Wrapped the drop target inside a
         ttk::frame, to test if events are received by windows inside windows
