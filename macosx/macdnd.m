@@ -22,6 +22,7 @@
 #import <tkInt.h>
 #import <tkMacOSXInt.h>
 #import <Cocoa/Cocoa.h>
+#import <Availability.h>
 
 /* 
    Check, if Tcl version supports Tcl_Size,
@@ -144,12 +145,24 @@ Tcl_Interp * TkDND_Interp(Tk_Window tkwin) {
 #endif
 
 #if defined(__has_feature) && __has_feature(objc_arc)
-    #define TKDND_ARC
+  #define TKDND_ARC
 #endif
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
-    #define TKDND_LION_OR_LATER
+  #define TKDND_LION_OR_LATER
 #endif
+
+/*
+ * After macOS 10.13 (High Sierra), new pasteboard types have beed defined,
+ * and the old ones have been deprecated (will be available up to 10.14 (Sonoma)).
+ */
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_13
+  #define TKDND_HIGH_SIERRA_OR_LATER
+#else
+  #define TKDND_SIERRA_OR_EARLIER
+#endif
+
+
 #define TKDND_DRAGSESSION_END_WAIT_VAR "::tkdnd::macdnd::drag_source_action"
 
 /*
@@ -309,111 +322,161 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
   int index, status;
   NSString *str = NULL;
   static char *OSXTypes[] = {
+    /* macOS 10.13 and later */
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+    "NSPasteboardTypeURL",
+    "NSPasteboardTypeFileURL",
+#endif
     /* OS X v10.6 and later */
-    "NSPasteboardTypeString",
+    "NSPasteboardTypeColor",
+    "NSPasteboardTypeFont",
+    "NSPasteboardTypeHTML",
+    "NSPasteboardTypeMultipleTextSelection",
     "NSPasteboardTypePDF",
-    "NSPasteboardTypeTIFF",
     "NSPasteboardTypePNG",
     "NSPasteboardTypeRTF",
     "NSPasteboardTypeRTFD",
-    "NSPasteboardTypeHTML",
-    "NSPasteboardTypeTabularText",
-    "NSPasteboardTypeFont",
     "NSPasteboardTypeRuler",
-    "NSPasteboardTypeColor",
     "NSPasteboardTypeSound",
-    "NSPasteboardTypeMultipleTextSelection",
+    "NSPasteboardTypeString",
+    "NSPasteboardTypeTabularText",
+    "NSPasteboardTypeTextFinderOptions",
+    "NSPasteboardTypeTIFF",
+#ifdef TKDND_SIERRA_OR_EARLIER
     "NSPasteboardTypeFindPanelSearchOptions",
+#endif
     /* OS X v10.5 and earlier */
-    "NSStringPboardType",
-    "NSFilenamesPboardType",
-    "NSPostScriptPboardType",
-    "NSTIFFPboardType",
-    "NSRTFPboardType",
-    "NSTabularTextPboardType",
-    "NSFontPboardType",
-    "NSRulerPboardType",
+    "NSFindPanelSearchOptionsPboardType",
     "NSFileContentsPboardType",
+#ifdef TKDND_SIERRA_OR_EARLIER
     "NSColorPboardType",
-    "NSRTFDPboardType",
+    "NSFilenamesPboardType",
+    "NSFontPboardType",
     "NSHTMLPboardType",
-    "NSURLPboardType",
-    "NSPDFPboardType",
-    "NSVCardPboardType",
-    "NSFilesPromisePboardType",
     "NSMultipleTextSelectionPboardType",
+    "NSPDFPboardType",
+    "NSPICTPboardType",
+    "NSRTFDPboardType",
+    "NSRTFPboardType",
+    "NSRulerPboardType",
+    "NSStringPboardType",
+    "NSTIFFPboardType",
+    "NSTabularTextPboardType",
+    "NSURLPboardType",
+    "NSFilesPromisePboardType",
+    "NSInkTextPboardType",
+    "NSPostScriptPboardType",
+    "NSVCardPboardType",
+    "NSGetFileType",
+    "NSCreateFileContentsPboardType",
+    "NSCreateFilenamePboardType",
+    "NSGetFileTypes",
+#endif
     (char *) NULL
   };
   enum osxtypes {
+    /* macOS 10.13 and later */
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+    TYPE_NSPasteboardTypeURL,
+    TYPE_NSPasteboardTypeFileURL,
+#endif
     /* OS X v10.6 and later */
-    TYPE_NSPasteboardTypeString,
+    TYPE_NSPasteboardTypeColor,
+    TYPE_NSPasteboardTypeFont,
+    TYPE_NSPasteboardTypeHTML,
+    TYPE_NSPasteboardTypeMultipleTextSelection,
     TYPE_NSPasteboardTypePDF,
-    TYPE_NSPasteboardTypeTIFF,
     TYPE_NSPasteboardTypePNG,
     TYPE_NSPasteboardTypeRTF,
     TYPE_NSPasteboardTypeRTFD,
-    TYPE_NSPasteboardTypeHTML,
-    TYPE_NSPasteboardTypeTabularText,
-    TYPE_NSPasteboardTypeFont,
     TYPE_NSPasteboardTypeRuler,
-    TYPE_NSPasteboardTypeColor,
     TYPE_NSPasteboardTypeSound,
-    TYPE_NSPasteboardTypeMultipleTextSelection,
+    TYPE_NSPasteboardTypeString,
+    TYPE_NSPasteboardTypeTabularText,
+    TYPE_NSPasteboardTypeTextFinderOptions,
+    TYPE_NSPasteboardTypeTIFF,
+#ifdef TKDND_SIERRA_OR_EARLIER
     TYPE_NSPasteboardTypeFindPanelSearchOptions,
+#endif
     /* OS X v10.5 and earlier */
-    TYPE_NSStringPboardType,
-    TYPE_NSFilenamesPboardType,
-    TYPE_NSPostScriptPboardType,
-    TYPE_NSTIFFPboardType,
-    TYPE_NSRTFPboardType,
-    TYPE_NSTabularTextPboardType,
-    TYPE_NSFontPboardType,
-    TYPE_NSRulerPboardType,
+    TYPE_NSFindPanelSearchOptionsPboardType,
     TYPE_NSFileContentsPboardType,
+#ifdef TKDND_SIERRA_OR_EARLIER
     TYPE_NSColorPboardType,
-    TYPE_NSRTFDPboardType,
+    TYPE_NSFilenamesPboardType,
+    TYPE_NSFontPboardType,
     TYPE_NSHTMLPboardType,
-    TYPE_NSURLPboardType,
-    TYPE_NSPDFPboardType,
-    TYPE_NSVCardPboardType,
-    TYPE_NSFilesPromisePboardType,
     TYPE_NSMultipleTextSelectionPboardType,
+    TYPE_NSPDFPboardType,
+    TYPE_NSPICTPboardType,
+    TYPE_NSRTFDPboardType,
+    TYPE_NSRTFPboardType,
+    TYPE_NSRulerPboardType,
+    TYPE_NSStringPboardType,
+    TYPE_NSTIFFPboardType,
+    TYPE_NSTabularTextPboardType,
+    TYPE_NSURLPboardType,
+    TYPE_NSFilesPromisePboardType,
+    TYPE_NSInkTextPboardType,
+    TYPE_NSPostScriptPboardType,
+    TYPE_NSVCardPboardType,
+    TYPE_NSGetFileType,
+    TYPE_NSCreateFileContentsPboardType,
+    TYPE_NSCreateFilenamePboardType,
+    TYPE_NSGetFileTypes,
+#endif
   };
   status = Tcl_GetIndexFromObj(interp, obj, (const char **) OSXTypes,
                                  "osxtypes", 0, &index);
   if (status != TCL_OK) return NULL;
   switch ((enum osxtypes) index) {
-    case TYPE_NSPasteboardTypeString:                 {str = NSPasteboardTypeString                ; break;}
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+    case TYPE_NSPasteboardTypeURL:                    {str = NSPasteboardTypeURL                   ; break;}
+    case TYPE_NSPasteboardTypeFileURL:                {str = NSPasteboardTypeFileURL               ; break;}
+#endif
+    case TYPE_NSPasteboardTypeColor:                  {str = NSPasteboardTypeColor                 ; break;}
+    case TYPE_NSPasteboardTypeFont:                   {str = NSPasteboardTypeFont                  ; break;}
+    case TYPE_NSPasteboardTypeHTML:                   {str = NSPasteboardTypeHTML                  ; break;}
+    case TYPE_NSPasteboardTypeMultipleTextSelection:  {str = NSPasteboardTypeMultipleTextSelection ; break;}
     case TYPE_NSPasteboardTypePDF:                    {str = NSPasteboardTypePDF                   ; break;}
-    case TYPE_NSPasteboardTypeTIFF:                   {str = NSPasteboardTypeTIFF                  ; break;}
     case TYPE_NSPasteboardTypePNG:                    {str = NSPasteboardTypePNG                   ; break;}
     case TYPE_NSPasteboardTypeRTF:                    {str = NSPasteboardTypeRTF                   ; break;}
     case TYPE_NSPasteboardTypeRTFD:                   {str = NSPasteboardTypeRTFD                  ; break;}
-    case TYPE_NSPasteboardTypeHTML:                   {str = NSPasteboardTypeHTML                  ; break;}
-    case TYPE_NSPasteboardTypeTabularText:            {str = NSPasteboardTypeTabularText           ; break;}
-    case TYPE_NSPasteboardTypeFont:                   {str = NSPasteboardTypeFont                  ; break;}
     case TYPE_NSPasteboardTypeRuler:                  {str = NSPasteboardTypeRuler                 ; break;}
-    case TYPE_NSPasteboardTypeColor:                  {str = NSPasteboardTypeColor                 ; break;}
     case TYPE_NSPasteboardTypeSound:                  {str = NSPasteboardTypeSound                 ; break;}
-    case TYPE_NSPasteboardTypeMultipleTextSelection:  {str = NSPasteboardTypeMultipleTextSelection ; break;}
+    case TYPE_NSPasteboardTypeString:                 {str = NSPasteboardTypeString                ; break;}
+    case TYPE_NSPasteboardTypeTabularText:            {str = NSPasteboardTypeTabularText           ; break;}
+    case TYPE_NSPasteboardTypeTextFinderOptions:      {str = NSPasteboardTypeTextFinderOptions     ; break;}
+    case TYPE_NSPasteboardTypeTIFF:                   {str = NSPasteboardTypeTIFF                  ; break;}
+#ifdef TKDND_SIERRA_OR_EARLIER
     case TYPE_NSPasteboardTypeFindPanelSearchOptions: {str = NSPasteboardTypeFindPanelSearchOptions; break;}
-    case TYPE_NSStringPboardType:                     {str = NSStringPboardType                    ; break;}
-    case TYPE_NSFilenamesPboardType:                  {str = NSFilenamesPboardType                 ; break;}
-    case TYPE_NSPostScriptPboardType:                 {str = NSPostScriptPboardType                ; break;}
-    case TYPE_NSTIFFPboardType:                       {str = NSTIFFPboardType                      ; break;}
-    case TYPE_NSRTFPboardType:                        {str = NSRTFPboardType                       ; break;}
-    case TYPE_NSTabularTextPboardType:                {str = NSTabularTextPboardType               ; break;}
-    case TYPE_NSFontPboardType:                       {str = NSFontPboardType                      ; break;}
-    case TYPE_NSRulerPboardType:                      {str = NSRulerPboardType                     ; break;}
+#endif
+    case TYPE_NSFindPanelSearchOptionsPboardType:     {str = NSFindPanelSearchOptionsPboardType    ; break;}
     case TYPE_NSFileContentsPboardType:               {str = NSFileContentsPboardType              ; break;}
+#ifdef TKDND_SIERRA_OR_EARLIER
     case TYPE_NSColorPboardType:                      {str = NSColorPboardType                     ; break;}
-    case TYPE_NSRTFDPboardType:                       {str = NSRTFDPboardType                      ; break;}
+    case TYPE_NSFilenamesPboardType:                  {str = NSFilenamesPboardType                 ; break;}
+    case TYPE_NSFontPboardType:                       {str = NSFontPboardType                      ; break;}
     case TYPE_NSHTMLPboardType:                       {str = NSHTMLPboardType                      ; break;}
-    case TYPE_NSURLPboardType:                        {str = NSURLPboardType                       ; break;}
-    case TYPE_NSPDFPboardType:                        {str = NSPDFPboardType                       ; break;}
-    case TYPE_NSVCardPboardType:                      {str = NSVCardPboardType                     ; break;}
-    case TYPE_NSFilesPromisePboardType:               {str = NSFilesPromisePboardType              ; break;}
     case TYPE_NSMultipleTextSelectionPboardType:      {str = NSMultipleTextSelectionPboardType     ; break;}
+    case TYPE_NSPDFPboardType:                        {str = NSPDFPboardType                       ; break;}
+    case TYPE_NSPICTPboardType:                       {str = TYPE_NSPICTPboardType                 ; break;}
+    case TYPE_NSRTFDPboardType:                       {str = NSRTFDPboardType                      ; break;}
+    case TYPE_NSRTFPboardType:                        {str = NSRTFPboardType                       ; break;}
+    case TYPE_NSRulerPboardType:                      {str = NSRulerPboardType                     ; break;}
+    case TYPE_NSStringPboardType:                     {str = NSStringPboardType                    ; break;}
+    case TYPE_NSTIFFPboardType:                       {str = NSTIFFPboardType                      ; break;}
+    case TYPE_NSTabularTextPboardType:                {str = NSTabularTextPboardType               ; break;}
+    case TYPE_NSURLPboardType:                        {str = NSURLPboardType                       ; break;}
+    case TYPE_NSFilesPromisePboardType:               {str = NSFilesPromisePboardType              ; break;}
+    case TYPE_NSInkTextPboardType:                    {str = NSInkTextPboardType                   ; break;}
+    case TYPE_NSPostScriptPboardType:                 {str = NSPostScriptPboardType                ; break;}
+    case TYPE_NSVCardPboardType:                      {str = NSVCardPboardType                     ; break;}
+    case TYPE_NSGetFileType:                          {str = NSGetFileType                         ; break;}
+    case TYPE_NSCreateFileContentsPboardType:         {str = NSCreateFileContentsPboardType        ; break;}
+    case TYPE_NSCreateFilenamePboardType:             {str = NSCreateFilenamePboardType            ; break;}
+    case TYPE_NSGetFileTypes:                         {str = NSGetFileTypes                        ; break;}
+#endif
   }
   return str;
 }; /* TKDND_Obj2NSString */
@@ -460,10 +523,17 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
     element = Tcl_NewStringObj("NSPasteboardTypeHTML", -1);
     Tcl_ListObjAppendElement(NULL, objv[3], element);
   }
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+  if ([[sourcePasteBoard types] containsObject:NSPasteboardTypeFileURL]) {
+    element = Tcl_NewStringObj("NSPasteboardTypeFileURL", -1);
+    Tcl_ListObjAppendElement(NULL, objv[3], element);
+  }
+#else
   if ([[sourcePasteBoard types] containsObject:NSFilenamesPboardType]) {
     element = Tcl_NewStringObj("NSFilenamesPboardType", -1);
     Tcl_ListObjAppendElement(NULL, objv[3], element);
   }
+#endif
   /* Evaluate the command and get the result...*/
   TkDND_Status_Eval(4);
   // printf("Status=%d (%d)\n", status, TCL_OK);fflush(0);
@@ -638,7 +708,13 @@ const NSString *TKDND_Obj2NSString(Tcl_Interp *interp, Tcl_Obj *obj) {
           break;
         }
       }
-    } else if ([type isEqualToString:NSFilenamesPboardType]) {
+    } else if ([type isEqualToString:
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+                    NSPasteboardTypeFileURL
+#else
+                    NSFilenamesPboardType
+#endif
+               ]) {
       /* Filenames array... */
 #ifdef TKDND_LION_OR_LATER
       Tcl_Obj *element;
@@ -777,11 +853,11 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   NSView           *view;
   DNDView          *dragview;
   static char *DropTypes[] = {
-    "NSPasteboardTypeString", "NSPasteboardTypeHTML", "NSFilenamesPboardType",
+    "NSPasteboardTypeString", "NSPasteboardTypeHTML", "NSFilenamesPboardType", "NSPasteboardTypeFileURL",
     (char *) NULL
   };
   enum droptypes {
-    TYPE_NSPasteboardTypeString, TYPE_NSPasteboardTypeHTML, TYPE_NSFilenamesPboardType
+    TYPE_NSPasteboardTypeString, TYPE_NSPasteboardTypeHTML, TYPE_NSFilenamesPboardType, TYPE_NSPasteboardTypeFileURL
   };
   static char *DropActions[] = {
     "copy", "move", "link", "ask",  "private", "refuse_drop",
@@ -872,9 +948,10 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
         }
         break;
       }
-      case TYPE_NSFilenamesPboardType: {
+      case TYPE_NSFilenamesPboardType:
+      case TYPE_NSPasteboardTypeFileURL: {
         if (!added_filenames) {
-          // [draggedtypes addObject: NSFilenamesPboardType];
+          // [draggedtypes addObject: NSFilenamesPboardType, NSPasteboardTypeFileURL];
           added_filenames = true;
           perform_drag    = true;
         }
@@ -977,7 +1054,8 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           [dataitems addObject: dragItem];
           break;
         }
-        case TYPE_NSFilenamesPboardType: {
+        case TYPE_NSFilenamesPboardType:
+        case TYPE_NSPasteboardTypeFileURL: {
           CGFloat iconX = imageLocation.x - iconS/2;
           CGFloat iconY = imageLocation.y - iconS/2;
           /* Place the filenames into the clipboard. */
@@ -990,8 +1068,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
               NSString *datastring = [NSString stringWithUTF8String:Tcl_GetString(files_elem[j])];
               NSURL *fileURL = [NSURL fileURLWithPath: datastring];
               NSDraggingItem *dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:fileURL];
-              NSImage *dragicon = [[NSWorkspace sharedWorkspace]
-                                       iconForFileType:[fileURL pathExtension]];
+              NSImage *dragicon = [[NSWorkspace sharedWorkspace] iconForFile:[fileURL path]];
 #else
               NSString *datastring = [[NSString stringWithUTF8String:Tcl_GetString(files_elem[j])] autorelease];
               NSURL *fileURL = [[NSURL fileURLWithPath: datastring] autorelease];
@@ -1165,6 +1242,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           }
           break;
         }
+        case TYPE_NSPasteboardTypeFileURL:
         case TYPE_NSFilenamesPboardType: {
           /* Place the filenames into the clipboard. */
           status = Tcl_ListObjGetElements(interp, data_elem[i],
@@ -1205,7 +1283,13 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   }
   [dragpasteboard writeObjects: dataitems];
   if (added_filenames) {
-    [dragpasteboard setPropertyList:filelist forType:NSFilenamesPboardType];
+    [dragpasteboard setPropertyList:filelist forType:
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+                    NSPasteboardTypeFileURL
+#else
+                    NSFilenamesPboardType
+#endif
+    ];
   }
 
   /* Do drag & drop... */
@@ -1303,7 +1387,13 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
         added_string = true;
       }
       if (!added_filenames) {
-        [draggedtypes addObject: NSFilenamesPboardType];
+        [draggedtypes addObject:
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+                    NSPasteboardTypeFileURL
+#else
+                    NSFilenamesPboardType
+#endif
+        ];
         added_filenames = true;
       }
       if (!added_html) {
@@ -1320,9 +1410,16 @@ int TkDND_RegisterDragWidgetObjCmd(ClientData clientData, Tcl_Interp *ip,
         [draggedtypes addObject: NSPasteboardTypeHTML];
         added_html = true;
       }
-    } else if (strncmp(str, "NSFilenamesPboardType", len) == 0) {
+    } else if (strncmp(str, "NSPasteboardTypeFileURL", len) == 0 ||
+               strncmp(str, "NSFilenamesPboardType", len) == 0) {
       if (!added_filenames) {
-        [draggedtypes addObject: NSFilenamesPboardType];
+        [draggedtypes addObject:
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+                    NSPasteboardTypeFileURL
+#else
+                    NSFilenamesPboardType
+#endif
+        ];
         added_filenames = true;
       }
     } else {
@@ -1373,6 +1470,36 @@ int TkDND_Type2StringObjCmd(ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 }; /* TkDND_Type2StringObjCmd */
 
+/* Convert TkDND Generic types to macOS types... */
+int TkDND_GenericType2OStypeObjCmd(ClientData clientData, Tcl_Interp *interp,
+                             int objc, Tcl_Obj *CONST objv[]) {
+  static char *GenericTypes[] = {
+    "DND_Text", "DND_Files", "DND_HTML",
+    (char *) NULL
+  };
+  static char *OSTypes[] = {
+    "NSPasteboardTypeString", 
+#ifdef TKDND_HIGH_SIERRA_OR_LATER
+    "NSPasteboardTypeFileURL"
+#else
+    "NSFilenamesPboardType"
+#endif
+    , "NSPasteboardTypeHTML",
+    (char *) NULL
+  };
+  int index, status;
+
+  if (objc != 2) {
+    Tcl_WrongNumArgs(interp, 1, objv, "generic-type");
+    return TCL_ERROR;
+  }
+  status = Tcl_GetIndexFromObj(interp, objv[1], (const char **) GenericTypes,
+                               "generictypes", 0, &index);
+  if (status != TCL_OK) return status;
+  Tcl_SetObjResult(interp, Tcl_NewStringObj(OSTypes[index], -1));
+  return TCL_OK;
+}; /* TkDND_Type2StringObjCmd */
+
 /*
  * Initialize the package in the tcl interpreter, create tcl commands...
  */
@@ -1397,6 +1524,9 @@ int Tkdnd_Init (Tcl_Interp *interp) {
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
   Tcl_CreateObjCommand(interp, "::macdnd::osxtype2string",
                        TkDND_Type2StringObjCmd,
+                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
+  Tcl_CreateObjCommand(interp, "::macdnd::generictype2ostype",
+                       TkDND_GenericType2OStypeObjCmd,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
 
   if (Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION) != TCL_OK) {

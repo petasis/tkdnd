@@ -56,9 +56,9 @@ namespace eval macdnd {
   proc initialise { } {
      ## Mapping from platform types to TkDND types...
     ::tkdnd::generic::initialise_platform_to_tkdnd_types [list \
-       NSPasteboardTypeString  DND_Text  \
-       NSFilenamesPboardType   DND_Files \
-       NSPasteboardTypeHTML    DND_HTML  \
+       NSPasteboardTypeString                   DND_Text  \
+       [macdnd::generictype2ostype DND_Files]   DND_Files \
+       NSPasteboardTypeHTML                     DND_HTML  \
     ]
   };# initialise
 
