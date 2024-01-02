@@ -19,14 +19,14 @@ matrix:
     name: Cocoa shared library (macOS 10.13)
     env:
       - CONFIGURE_ARGS="--with-tcl=/System/Library/Frameworks/Tcl.framework --with-tk=/System/Library/Frameworks/Tk.framework"
-      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}-${TRAVIS_OSX_IMAGE}"
+      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}-${TRAVIS_OSX_IMAGE}-HighSierra-10.13"
   - os: osx
     osx_image: xcode14.2
     sudo: false
     name: Cocoa shared library (macOS 12.6)
     env:
       - CONFIGURE_ARGS=""
-      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}-${TRAVIS_OSX_IMAGE}"
+      - BUILD_FILENAME_TAG="-${TRAVIS_OS_NAME}-${TRAVIS_CPU_ARCH}-${TRAVIS_OSX_IMAGE}-Monterey-12.6-Homebrew"
       - HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
     addons:
       homebrew:
