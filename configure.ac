@@ -174,7 +174,7 @@ if test "${TEA_WINDOWINGSYSTEM}" = "aqua"; then
     else
       TEA_ADD_CFLAGS([-fobjc-gc])
     fi
-    TEA_ADD_LIBS([-framework Cocoa -framework Carbon])
+    # TEA_ADD_LIBS([-framework Cocoa -framework Carbon])
 fi
 
 AC_SUBST(CLEANFILES)
