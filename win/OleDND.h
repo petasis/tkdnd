@@ -985,6 +985,10 @@ class TkDND_DropTarget: public IDropTarget {
         data = GetData_Bytearray(pDataObject, type);
       }
       Tcl_DecrRefCount(result);
+      if (data == NULL) {
+        // Do not know the specific error.
+        return E_UNEXPECTED;
+      }
 
       // We are ready to pass the info to the Tcl level, and get the desired
       // action.
@@ -1006,7 +1010,8 @@ private:
       fmte.cfFormat = RegisterClipboardFormat(TCL_GETSTRING(formatObj));
       if (pDataObject->QueryGetData(&fmte) != S_OK ||
           pDataObject->GetData(&fmte, &StgMed) != S_OK ) {
-        Tcl_NewStringObj("unsupported type", -1);
+        /* TODO - No way to return specific error without changing signature */
+        return NULL;
       }
       bytes = (unsigned char *) GlobalLock(StgMed.hGlobal);
       result = Tcl_NewByteArrayObj(bytes, (Tcl_Size) GlobalSize(StgMed.hGlobal));
