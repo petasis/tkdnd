@@ -166,7 +166,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   int               status, index, button = 1;
   Tcl_Size          i, type_nu, data_nu, nDataLength;
   char             *ptr;
-  Tcl_UniChar      *unicode, *ptr_u;
   FORMATETC        *m_pfmtetc;
   STGMEDIUM        *m_pstgmed;
   static const char *DropTypes[] = {
@@ -254,21 +253,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       switch ((enum droptypes) index) {
         case TYPE_CF_UNICODETEXT: {
           m_pfmtetc[i].cfFormat = CF_UNICODETEXT;
-          unicode = Tcl_GetUnicodeFromObj(data[i], &nDataLength);
-          buffer_size = (nDataLength+1) * sizeof(Tcl_UniChar);
-          m_pstgmed[i].hGlobal = GlobalAlloc(GHND, buffer_size);
-          if (m_pstgmed[i].hGlobal) {
-            ptr_u = (Tcl_UniChar *) GlobalLock(m_pstgmed[i].hGlobal);
-#if 0
-#ifdef HAVE_STRSAFE_H
-            StringCchCopyW((LPWSTR) ptr_u, buffer_size, (LPWSTR) unicode);
-#else
-            lstrcpyW((LPWSTR) ptr_u, (LPWSTR) unicode);
-#endif
-#endif
-            memcpy(ptr_u, unicode, buffer_size);
-            GlobalUnlock(m_pstgmed[i].hGlobal);
-          }
+          m_pstgmed[i].hGlobal = ObjToWinStringHGLOBAL(data[i]);
           break;
         }
         case TYPE_CF_HTMLFORMAT:

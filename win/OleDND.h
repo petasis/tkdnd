@@ -122,19 +122,6 @@ extern "C" {
   if (status != TCL_OK) Tcl_BackgroundError(interp); \
   for (i=0; i<objc; ++i) Tcl_DecrRefCount(objv[i]);}
 
-#if defined(UNICODE) || defined(_MBCS)
-#  ifdef _MBCS
-#    define TCL_GETSTRING(x)    ((LPCSTR) Tcl_GetUnicode(x))
-#    define TCL_NEWSTRING(x, y) Tcl_NewStringObj(x, y)
-#  else
-#    define TCL_GETSTRING(x)    ((LPCWSTR) Tcl_GetUnicode(x))
-#    define TCL_NEWSTRING(x, y) Tcl_NewUnicodeObj((const Tcl_UniChar *) x, y)
-#  endif
-#else
-#  define TCL_GETSTRING(x)    Tcl_GetString(x)
-#  define TCL_NEWSTRING(x, y) Tcl_NewStringObj(x, y)
-#endif
-
 
 /*****************************************************************************
  * Windows Clipboard formats.
@@ -191,7 +178,7 @@ inline Tcl_Obj *ObjFromWinString(const WCHAR *pWS) {
 // Copy a Tcl_Obj to a WCHAR buffer. Always terminates the buffer.
 // Returns the number of characters copied not including the terminator.
 // Returns -1 if buffer too small.
-inline Tcl_Size ObjToWinBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
+inline Tcl_Size ObjToWinStringBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
   Tcl_Size len;
   const Tcl_UniChar *utf16 = Tcl_GetUnicodeFromObj(pObj, &len);
   // Remember len does not include the terminator.
@@ -199,6 +186,23 @@ inline Tcl_Size ObjToWinBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
     return -1;
   memcpy(pBuf, utf16, (len+1) * sizeof(WCHAR));
   return len;
+}
+
+// WCHAR string -> HGLOBAL. Panics on memory allocation failure.
+// Always returns non-NULL. HGLOBAL must be GlobalFree'd.
+inline HGLOBAL ObjToWinStringHGLOBAL(Tcl_Obj *pObj) {
+  Tcl_Size len;
+  WCHAR *to;
+  const Tcl_UniChar *from = Tcl_GetUnicodeFromObj(pObj, &len);
+  HGLOBAL hGlobal = GlobalAlloc(GHND, (len+1) * sizeof(WCHAR));
+  if (hGlobal == NULL) {
+    // Tcl panics on alloc failures and so do we.
+    Tcl_Panic("Unable to allocate GlobalALloc memory.");
+  }
+  to = (WCHAR *)GlobalLock(hGlobal);
+  memcpy(to, from, (len+1) * sizeof(WCHAR));
+  GlobalUnlock(hGlobal);
+  return hGlobal;
 }
 
 #else
@@ -227,7 +231,7 @@ inline Tcl_Size ObjToWinStringDS(Tcl_Obj *pObj, Tcl_DString *pDS) {
 // Copy a Tcl_Obj to a WCHAR buffer. Always terminates the buffer.
 // Returns the number of characters copied not including the terminator.
 // Returns -1 if buffer too small.
-inline Tcl_Size ObjToWinBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
+inline Tcl_Size ObjToWinStringBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
   Tcl_DString ds;
   Tcl_Size len = ObjToWinStringDS(pObj, &ds);
   // Remember len does not include the terminator.
@@ -236,6 +240,26 @@ inline Tcl_Size ObjToWinBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
   memcpy(pBuf, Tcl_DStringValue(&ds), (len+1) * sizeof(WCHAR));
   return len;
 }
+
+// WCHAR string -> HGLOBAL. Panics on memory allocation failure.
+// Always returns non-NULL. HGLOBAL must be GlobalFree'd.
+inline HGLOBAL ObjToWinStringHGLOBAL(Tcl_Obj *pObj) {
+  Tcl_DString ds;
+  Tcl_Size len = ObjToWinStringDS(pObj, &ds);
+  WCHAR *to;
+  HGLOBAL hGlobal = GlobalAlloc(GHND, (len+1) * sizeof(WCHAR));
+  if (hGlobal == NULL) {
+    // Tcl panics on alloc failures and so do we.
+    Tcl_Panic("Unable to allocate GlobalALloc memory.");
+  }
+  to = (WCHAR *)GlobalLock(hGlobal);
+  memcpy(to, Tcl_DStringValue(&ds), (len+1) * sizeof(WCHAR));
+  GlobalUnlock(hGlobal);
+  return hGlobal;
+}
+
+
+
 #endif
 
 
@@ -705,7 +729,7 @@ class TkDND_DropTarget: public IDropTarget {
             objv[0]=Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
             TkDND_Status_Eval(1);
             if (status == TCL_OK &&
-                ObjToWinBuffer(Tcl_GetObjResult(interp),
+                ObjToWinStringBuffer(Tcl_GetObjResult(interp),
                                szTempStr, MAX_PATH) != -1) {
               if (index == TYPE_FILEGROUPDESCRIPTORW)
                 data = GetData_FileGroupDescriptorW(pDataObject);
@@ -1066,7 +1090,7 @@ private:
       Tcl_Obj *result;
       unsigned char *bytes;
       WCHAR fmt_buf[MAX_PATH];
-      if (ObjToWinBuffer(formatObj, fmt_buf,
+      if (ObjToWinStringBuffer(formatObj, fmt_buf,
                          sizeof(fmt_buf) / sizeof(fmt_buf[0])) == -1) {
         return NULL;
       }
@@ -1094,29 +1118,33 @@ private:
 
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
+          Tcl_Obj *result;
           Tcl_DString ds;
-          WCHAR *data, *destPtr;
-          data = (WCHAR *) GlobalLock(StgMed.hGlobal);
+          char *data, *destPtr;
+          WCHAR *wstr = (WCHAR *) GlobalLock(StgMed.hGlobal);
           Tcl_DStringInit(&ds);
 #if TCL_UTF_MAX < 4
-          Tcl_UniCharToUtfDString(data, -1, &ds);
+          Tcl_UniCharToUtfDString(wstr, -1, &ds);
 #else
-          Tcl_WCharToUtfDString(data, -1, &ds);
+          Tcl_WCharToUtfDString(wstr, -1, &ds);
 #endif
           GlobalUnlock(StgMed.hGlobal);
           ReleaseStgMedium(&StgMed);
           /*  Translate CR/LF to LF.  */
-          data = destPtr = (WCHAR *) Tcl_DStringValue(&ds);
+          data = destPtr = (char *) Tcl_DStringValue(&ds);
           while (*data) {
-              if (data[0] == L'\r' && data[1] == L'\n') {
+              if (data[0] == '\r' && data[1] == '\n') {
                   data++;
               } else {
                   *destPtr++ = *data++;
               }
           }
-          *destPtr = L'\0';
-          Tcl_Obj *result = ObjFromWinString((WCHAR*) Tcl_DStringValue(&ds));
-          Tcl_DStringFree(&ds);
+          *destPtr = '\0';
+#if TCL_MAJOR_VERSION < 9
+          result = Tcl_NewStringObj(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+#else
+          result = Tcl_DStringToObj(&ds); // No need for Tcl_DStringFree
+#endif
           return result;
         }
       }
