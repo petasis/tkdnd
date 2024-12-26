@@ -225,7 +225,7 @@ inline Tcl_Size ObjToWinStringDS(Tcl_Obj *pObj, Tcl_DString *pDS) {
   const char *type_str = Tcl_GetStringFromObj(pObj, &type_len);
   WCHAR *wtype_str;
   Tcl_UtfToWCharDString(type_str, type_len, pDS);
-  return (Tcl_DStringLength(pDS)/sizeof(WCHAR)) - 1;
+  return (Tcl_DStringLength(pDS)/sizeof(WCHAR)); // Not including terminator
 };
 
 // Copy a Tcl_Obj to a WCHAR buffer. Always terminates the buffer.
@@ -245,7 +245,7 @@ inline Tcl_Size ObjToWinStringBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_le
 // Always returns non-NULL. HGLOBAL must be GlobalFree'd.
 inline HGLOBAL ObjToWinStringHGLOBAL(Tcl_Obj *pObj) {
   Tcl_DString ds;
-  Tcl_Size len = ObjToWinStringDS(pObj, &ds);
+  Tcl_Size len = ObjToWinStringDS(pObj, &ds); // Does not include terminator
   WCHAR *to;
   HGLOBAL hGlobal = GlobalAlloc(GHND, (len+1) * sizeof(WCHAR));
   if (hGlobal == NULL) {
