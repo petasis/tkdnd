@@ -145,8 +145,8 @@ int TkDND_RevokeDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     GlobalUnlock(m_pstgmed[i].hGlobal); \
   }
 
-#define COPY_BYTEARRAY_TO_DATA_OBJECT(type_str) \
-  m_pfmtetc[i].cfFormat = RegisterClipboardFormat(type_str); \
+#define COPY_BYTEARRAY_TO_DATA_OBJECT(wchar_type_str) \
+  m_pfmtetc[i].cfFormat = RegisterClipboardFormatW(wchar_type_str); \
   bytes = Tcl_GetByteArrayFromObj(data[i], &nDataLength); \
   m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength); \
   if (m_pstgmed[i].hGlobal) { \
@@ -273,13 +273,13 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
         }
         case TYPE_CF_HTMLFORMAT:
         case TYPE_CF_HTML: {
-          COPY_BYTEARRAY_TO_DATA_OBJECT(TEXT("HTML Format"));
+          COPY_BYTEARRAY_TO_DATA_OBJECT(L"HTML Format");
           break;
         }
         case TYPE_CF_RICHTEXTFORMAT:
         case TYPE_CF_RTF:
         case TYPE_CF_RTFTEXT: {
-          COPY_BYTEARRAY_TO_DATA_OBJECT(TEXT("Rich Text Format"));
+          COPY_BYTEARRAY_TO_DATA_OBJECT(L"Rich Text Format");
           break;
         }
         case TYPE_CF_TEXT: {
@@ -360,7 +360,14 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       }
     } else {
       /* A user defined type? */
-      COPY_BYTEARRAY_TO_DATA_OBJECT(TCL_GETSTRING(type[i]));
+#if TCL_MAJOR_VERSION < 9
+      COPY_BYTEARRAY_TO_DATA_OBJECT(Tcl_GetUnicode(type[i]));
+#else
+      Tcl_DString ds;
+      ObjToWinStringDS(type[i], &ds);
+      COPY_BYTEARRAY_TO_DATA_OBJECT((WCHAR *)Tcl_DStringValue(&ds));
+      Tcl_DStringFree(&ds);
+#endif
       break;
     }
   }; /* for (i = 0; i < type_nu; i++) */

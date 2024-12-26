@@ -92,7 +92,7 @@ extern "C" {
    Check, if Tcl version supports Tcl_Size,
    which was introduced in Tcl 8.7 and 9.
    
-   Initial updates for Tcl 8.7 and 8.9 contributed by Paul Obermeier.
+   Initial updates for Tcl 8.7 and 9 contributed by Paul Obermeier.
 */
 #ifndef TCL_SIZE_MAX
   #define TCL_SIZE_MAX INT_MAX
@@ -139,10 +139,10 @@ extern "C" {
 /*****************************************************************************
  * Windows Clipboard formats.
  ****************************************************************************/
-#define STRING_(s) {s,TEXT(#s)}
+#define STRING_(s) {s,L#s}
 typedef struct {
   UINT   cfFormat;
-  const TCHAR *name;
+  const WCHAR *name;
 } CLIP_FORMAT_STRING_TABLE;
 
 static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
@@ -178,6 +178,66 @@ static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
   STRING_(CF_PRIVATEFIRST),
   {0, 0}
 }; /* ClipboardFormatBook */
+
+#if TCL_UTF_MAX < 4
+// WCHAR string -> Tcl_Obj
+inline Tcl_Obj *ObjFromWinString(const WCHAR *pWS) {
+  return Tcl_NewUnicodeObj(pWS, -1);
+}
+
+// ObjToWinStringDS - not defined
+// If TCL_UTF_MAX <= 3, caller should just use Tcl_GetUnicode avoiding a copy.
+
+// Copy a Tcl_Obj to a WCHAR buffer. Always terminates the buffer.
+// Returns the number of characters copied not including the terminator.
+// Returns -1 if buffer too small.
+inline Tcl_Size ObjToWinBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
+  Tcl_Size len;
+  const Tcl_UniChar *utf16 = Tcl_GetUnicodeFromObj(pObj, &len);
+  // Remember len does not include the terminator.
+  if (len >= max_len)
+    return -1;
+  memcpy(pBuf, utf16, (len+1) * sizeof(WCHAR));
+  return len;
+}
+
+#else
+
+// WCHAR string -> Tcl_Obj
+inline Tcl_Obj *ObjFromWinString(const WCHAR *pWS) {
+  Tcl_DString ds;
+  Tcl_DStringInit(&ds);
+  Tcl_WCharToUtfDString(pWS, -1, &ds);
+  return Tcl_DStringToObj(&ds); // No need to free ds
+}
+
+// In Tcl 9, Tcl_UniChar is 32-bits. This is a helper to encode a Tcl_Obj to
+// UTF-16, which is what Windows uses. pDS is assumed uninitialized on entry.
+// Caller should Tcl_DStringFree the result.
+// Returns number of *characters* not including nul terminator.
+inline Tcl_Size ObjToWinStringDS(Tcl_Obj *pObj, Tcl_DString *pDS) {
+  Tcl_Size type_len;
+  Tcl_DStringInit(pDS);
+  const char *type_str = Tcl_GetStringFromObj(pObj, &type_len);
+  WCHAR *wtype_str;
+  Tcl_UtfToWCharDString(type_str, type_len, pDS);
+  return (Tcl_DStringLength(pDS)/sizeof(WCHAR)) - 1;
+};
+
+// Copy a Tcl_Obj to a WCHAR buffer. Always terminates the buffer.
+// Returns the number of characters copied not including the terminator.
+// Returns -1 if buffer too small.
+inline Tcl_Size ObjToWinBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_len) {
+  Tcl_DString ds;
+  Tcl_Size len = ObjToWinStringDS(pObj, &ds);
+  // Remember len does not include the terminator.
+  if (len >= max_len)
+    return -1;
+  memcpy(pBuf, Tcl_DStringValue(&ds), (len+1) * sizeof(WCHAR));
+  return len;
+}
+#endif
+
 
 /*****************************************************************************
  * Data Object Class.
@@ -437,14 +497,16 @@ public:
       return currentFormat;
     }; /* GetCurrentFormat */
 
-    const TCHAR *GetCurrentFormatName(void) {
+#ifdef UNUSED
+    const WCHAR *GetCurrentFormatName(void) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
         if (ClipboardFormatBook[i].cfFormat == currentFormat)
                      return ClipboardFormatBook[i].name;
       }
-      GetClipboardFormatName((CLIPFORMAT) currentFormat, szTempStr, 250);
+      GetClipboardFormatNameW((CLIPFORMAT) currentFormat, szTempStr, 250);
       return szTempStr;
     }; /* GetCurrentFormatName */
+#endif
 
 private:
 
@@ -454,8 +516,6 @@ private:
     STGMEDIUM *m_pStgMedium;
     LONG       m_nNumFormats;
     UINT       currentFormat;
-
-    TCHAR szTempStr[255];
 
     int LookupFormatEtc(FORMATETC *pFormatEtc) {
       // check each of our formats in turn to see if one matches
@@ -499,7 +559,7 @@ class TkDND_DropTarget: public IDropTarget {
     LONG                 m_lRefCount; /* Reference count */
     Tcl_Interp          *interp;
     Tk_Window            tkwin;
-    TCHAR                szTempStr[MAX_PATH+2];
+    WCHAR                szTempStr[MAX_PATH+2];
 
     Tcl_Obj             *typelist, *actionlist, *codelist;
 #ifdef DND_USE_ACTIVE
@@ -514,12 +574,19 @@ class TkDND_DropTarget: public IDropTarget {
 #endif /* DND_DRAGOVER_SKIP_EVENTS */
 
 
-    const TCHAR * FormatName(UINT cfFormat) {
+    // Returns pointer to name for a format. May point to a static area
+    // so should be copied right away. Returns NULL on errors.
+    const WCHAR * FormatName(UINT cfFormat) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
         if (ClipboardFormatBook[i].cfFormat == cfFormat)
                      return ClipboardFormatBook[i].name;
       }
-      GetClipboardFormatName((CLIPFORMAT) cfFormat, szTempStr, MAX_PATH);
+      const size_t buf_size = sizeof(szTempStr)/sizeof(szTempStr[0]);
+      size_t len = GetClipboardFormatNameW(cfFormat, szTempStr, buf_size);
+      if (len == 0 || len >= (buf_size-1)) {
+        // Invalid format or truncated name returned.
+        return NULL;
+      }
       return szTempStr;
     }; /* FormatName */
 
@@ -628,29 +695,22 @@ class TkDND_DropTarget: public IDropTarget {
             data = GetData_CF_TEXT(pDataObject); break;
           case TYPE_CF_HDROP:
             data = GetData_CF_HDROP(pDataObject); break;
+          case TYPE_UNIFORMRESOURCELOCATOR: // Fall through
           case TYPE_UNIFORMRESOURCELOCATORW:
-            data = GetData_UniformResourceLocator(pDataObject); break;
-          case TYPE_UNIFORMRESOURCELOCATOR:
             data = GetData_UniformResourceLocatorW(pDataObject); break;
+          case TYPE_FILEGROUPDESCRIPTOR: /* fall through */
           case TYPE_FILEGROUPDESCRIPTORW: {
             // Get a directory where we can store files...
             Tcl_Obj *objv[1];
             objv[0]=Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
             TkDND_Status_Eval(1);
-            if (status == TCL_OK) {
-              strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
-              data = GetData_FileGroupDescriptorW(pDataObject);
-            }
-            break;
-          }
-          case TYPE_FILEGROUPDESCRIPTOR: {
-            // Get a directory where we can store files...
-            Tcl_Obj *objv[1];
-            objv[0] = Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
-            TkDND_Status_Eval(1);
-            if (status == TCL_OK) {
-              strcpy((char *) szTempStr, Tcl_GetStringResult(interp));
-              data = GetData_FileGroupDescriptor(pDataObject);
+            if (status == TCL_OK &&
+                ObjToWinBuffer(Tcl_GetObjResult(interp),
+                               szTempStr, MAX_PATH) != -1) {
+              if (index == TYPE_FILEGROUPDESCRIPTORW)
+                data = GetData_FileGroupDescriptorW(pDataObject);
+              else
+                data = GetData_FileGroupDescriptor(pDataObject);
             }
             break;
           }
@@ -867,7 +927,7 @@ class TkDND_DropTarget: public IDropTarget {
       IEnumFORMATETC *pEF;
       FORMATETC fetc;
       char tmp[64];
-      Tcl_Obj *element;
+      HRESULT hr;
 
       /*
        * Windows will send DragOver events even for coordinates that are
@@ -889,27 +949,24 @@ class TkDND_DropTarget: public IDropTarget {
       /*
        * Get the types supported by the drag source.
        */
-      if (pDataObject->EnumFormatEtc(DATADIR_GET, &pEF) == S_OK) {
-        while (pEF->Next(1, &fetc, NULL) == S_OK) {
-          if (pDataObject->QueryGetData(&fetc) == S_OK) {
-            /* Get the format name from windows */
-#if defined(UNICODE) && !defined(NO_NATIVE_TCL_SIZE)
-            Tcl_DString ds;
-            Tcl_DStringInit(&ds);
-            Tcl_WCharToUtfDString(FormatName(fetc.cfFormat), -1, &ds);
-            element = Tcl_DStringToObj(&ds);
-            Tcl_DStringFree(&ds);
-#else
-            element = TCL_NEWSTRING(FormatName(fetc.cfFormat), -1);
-#endif
-            Tcl_ListObjAppendElement(NULL, typelist, element);
-            /* Store the numeric code of the format */
-            sprintf(tmp, "0x%08x", fetc.cfFormat);
-            element = Tcl_NewStringObj(tmp, -1);
-            Tcl_ListObjAppendElement(NULL, codelist, element);
-          }; // if (pIDataSource->QueryGetData(&fetc) == S_OK)
-        }; // while (pEF->Next(1, &fetc, NULL) == S_OK)
-      }; // if (pIDataSource->EnumFormatEtc(DATADIR_GET, &pEF) == S_OK)
+      hr = pDataObject->EnumFormatEtc(DATADIR_GET, &pEF);
+      if (hr != S_OK) {
+        // The drag source does not support any formats.
+        *pdwEffect = DROPEFFECT_NONE;
+        return S_OK;
+      }
+
+      while (pEF->Next(1, &fetc, NULL) == S_OK) {
+        if (pDataObject->QueryGetData(&fetc) == S_OK) {
+          const WCHAR *fmt_name = FormatName(fetc.cfFormat);
+          if (fmt_name == NULL)
+            continue; // Skip unsupported format.
+          Tcl_ListObjAppendElement(NULL, typelist, ObjFromWinString(fmt_name));
+          /* Store the numeric code of the format */
+          Tcl_ListObjAppendElement(NULL, codelist,
+                                   Tcl_ObjPrintf("0x%08x", fetc.cfFormat));
+        } // if (pIDataSource->QueryGetData(&fetc) == S_OK)
+      } // while (pEF->Next(1, &fetc, NULL) == S_OK)
 
       // Get the actions supported by the drag source.
       // DROPEFFECT_COPY, DROPEFFECT_MOVE, DROPEFFECT_LINK
@@ -986,6 +1043,10 @@ class TkDND_DropTarget: public IDropTarget {
       }
       Tcl_DecrRefCount(result);
 
+      if (data == NULL) {
+        // We have already set *pdwEffect above to DROPEFFECT_NONE.
+        return S_OK;
+      }
       // We are ready to pass the info to the Tcl level, and get the desired
       // action.
       Tcl_IncrRefCount(data);
@@ -997,16 +1058,25 @@ class TkDND_DropTarget: public IDropTarget {
     /* TkDND additional interface methods */
 private:
 
+    // Returns NULL on errors.
     Tcl_Obj *GetData_Bytearray(IDataObject *pDataObject, Tcl_Obj *formatObj) {
       STGMEDIUM StgMed;
       FORMATETC fmte = { 0, (DVTARGETDEVICE FAR *)NULL,
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       Tcl_Obj *result;
       unsigned char *bytes;
-      fmte.cfFormat = RegisterClipboardFormat(TCL_GETSTRING(formatObj));
+      WCHAR fmt_buf[MAX_PATH];
+      if (ObjToWinBuffer(formatObj, fmt_buf,
+                         sizeof(fmt_buf) / sizeof(fmt_buf[0])) == -1) {
+        return NULL;
+      }
+      fmte.cfFormat = RegisterClipboardFormatW(fmt_buf);
+      if (fmte.cfFormat == 0) {
+        return NULL;
+      }
       if (pDataObject->QueryGetData(&fmte) != S_OK ||
           pDataObject->GetData(&fmte, &StgMed) != S_OK ) {
-        Tcl_NewStringObj("unsupported type", -1);
+        return NULL;
       }
       bytes = (unsigned char *) GlobalLock(StgMed.hGlobal);
       result = Tcl_NewByteArrayObj(bytes, (Tcl_Size) GlobalSize(StgMed.hGlobal));
@@ -1015,6 +1085,7 @@ private:
       return result;
     }; /* GetData_Bytearray */
 
+    // Returns NULL on errors.
     Tcl_Obj *GetData_CF_UNICODETEXT(IDataObject *pDataObject) {
       STGMEDIUM StgMed;
       memset(&StgMed, 0, sizeof(StgMed));
@@ -1024,24 +1095,27 @@ private:
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
           Tcl_DString ds;
-          char *data, *destPtr;
-          data = (char *) GlobalLock(StgMed.hGlobal);
+          WCHAR *data, *destPtr;
+          data = (WCHAR *) GlobalLock(StgMed.hGlobal);
           Tcl_DStringInit(&ds);
-          Tcl_UniCharToUtfDString((Tcl_UniChar *) data,
-              Tcl_UniCharLen((Tcl_UniChar *) data), &ds);
+#if TCL_UTF_MAX < 4
+          Tcl_UniCharToUtfDString(data, -1, &ds);
+#else
+          Tcl_WCharToUtfDString(data, -1, &ds);
+#endif
           GlobalUnlock(StgMed.hGlobal);
           ReleaseStgMedium(&StgMed);
           /*  Translate CR/LF to LF.  */
-          data = destPtr = Tcl_DStringValue(&ds);
+          data = destPtr = (WCHAR *) Tcl_DStringValue(&ds);
           while (*data) {
-              if (data[0] == '\r' && data[1] == '\n') {
+              if (data[0] == L'\r' && data[1] == L'\n') {
                   data++;
               } else {
                   *destPtr++ = *data++;
               }
           }
-          *destPtr = '\0';
-          Tcl_Obj *result = Tcl_NewStringObj(Tcl_DStringValue(&ds), -1);
+          *destPtr = L'\0';
+          Tcl_Obj *result = ObjFromWinString((WCHAR*) Tcl_DStringValue(&ds));
           Tcl_DStringFree(&ds);
           return result;
         }
@@ -1049,6 +1123,9 @@ private:
       return NULL;
     }; /* GetData_CF_UNICODETEXT */
 
+    // Note - we cannot use CF_UNICODE as a substitute for CF_TEXT
+    // because and application may very well stick different values in
+    // the two!
     Tcl_Obj *GetData_CF_TEXT(IDataObject *pDataObject) {
       STGMEDIUM StgMed;
       FORMATETC fmte = { CF_TEXT, (DVTARGETDEVICE FAR *)NULL,
@@ -1121,9 +1198,9 @@ private:
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
           HDROP hdrop;
           UINT cFiles;
-          TCHAR szFile[MAX_PATH+2];
+          WCHAR szFile[MAX_PATH+2];
           Tcl_Obj *result, *item;
-          char *utf_8_data = NULL, *p;
+          WCHAR *p;
 
           hdrop = (HDROP) GlobalLock(StgMed.hGlobal);
           if ( NULL == hdrop ) {
@@ -1131,38 +1208,19 @@ private:
             ReleaseStgMedium(&StgMed);
             return NULL;
           }
-          cFiles = ::DragQueryFile(hdrop, (UINT)-1, NULL, 0);
+          cFiles = ::DragQueryFileW(hdrop, (UINT)-1, NULL, 0);
           result = Tcl_NewListObj(0, NULL);
 
           for (UINT count = 0; count < cFiles; count++) {
-            ::DragQueryFile(hdrop, count, szFile, sizeof(szFile));
-#if defined(UNICODE)
-            /* Convert UTF-16 to UTF-8... */
-            // memset(utf8, sizeof(utf8), 0);
-            // WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) szFile, -1,
-            //                                 utf8, sizeof(utf8), 0, 0);
-            Tcl_DStringInit(&ds);
-#if defined(UNICODE) && !defined(NO_NATIVE_TCL_SIZE)
-            Tcl_WCharToUtfDString(szFile, -1, &ds);
-#else
-            Tcl_UniCharToUtfDString((Tcl_UniChar *) szFile,
-                Tcl_UniCharLen((Tcl_UniChar *) szFile), &ds);
-#endif
-            utf_8_data = Tcl_DStringValue(&ds);
-            // utf_8_data = utf8;
-#else  /* UNICODE */
-            utf_8_data = (char *) &szFile[0];
-#endif /* UNICODE */
-
-            /* Convert to forward slashes for easier access in scripts... */
-            for (p=utf_8_data; *p!='\0'; p=(char *) CharNextA(p)) {
-              if (*p == '\\') *p = '/';
+            if (::DragQueryFileW(hdrop, count, szFile, sizeof(szFile)) == 0) {
+              /* Empty slot? or error, skip */
+              continue;
             }
-            item = Tcl_NewStringObj(utf_8_data, -1);
+            for (p = szFile; *p; p++) {
+              if (*p == L'\\') *p = L'/';
+            }
+            item = ObjFromWinString(szFile);
             Tcl_ListObjAppendElement(NULL, result, item);
-#if defined(UNICODE)
-            Tcl_DStringFree(&ds);
-#endif /* UNICODE */
           }
           GlobalUnlock(StgMed.hGlobal);
           ReleaseStgMedium(&StgMed);
@@ -1175,14 +1233,14 @@ private:
     }; /* GetData_CF_HDROP */
 
 #define BLOCK_SIZE 1024
-    HRESULT StreamToFile(IStream *stream, char *file_name) {
+    HRESULT StreamToFile(IStream *stream, WCHAR *file_name) {
       byte buffer[BLOCK_SIZE];
       unsigned long bytes_read = 0;
       int bytes_written = 0;
       int new_file;
       HRESULT hr = S_OK;
 
-      new_file = _sopen(file_name, O_RDWR | O_BINARY | O_CREAT,
+      new_file = _wsopen(file_name, O_RDWR | O_BINARY | O_CREAT,
                                   SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
         do {
@@ -1190,7 +1248,7 @@ private:
           if (bytes_read) bytes_written = _write(new_file, buffer, bytes_read);
         } while (S_OK == hr && bytes_read == BLOCK_SIZE);
         _close(new_file);
-        if (bytes_written == 0) _unlink(file_name);
+        if (bytes_written == 0) _wunlink(file_name);
       } else {
         unsigned long error;
         if ((error = GetLastError()) == 0L) error = _doserrno;
@@ -1208,11 +1266,13 @@ private:
       FORMATETC contents_fmt   = { 0, (DVTARGETDEVICE FAR *) NULL,
                                    DVASPECT_CONTENT, -1, TYMED_ISTREAM };
       HRESULT hr = S_OK;
-      FILEGROUPDESCRIPTOR *file_group_descriptor;
-      FILEDESCRIPTOR file_descriptor;
+      FILEGROUPDESCRIPTORW *file_group_descriptor;
+      FILEDESCRIPTORW file_descriptor;
       Tcl_Encoding encoding = NULL;
 
-      descriptor_fmt.cfFormat = RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR);
+      // NOTE: Get File descriptors in WCHAR's so we do not need to mess
+      // with encodings. File contents of course are unaffected.
+      descriptor_fmt.cfFormat = RegisterClipboardFormat(CFSTR_FILEDESCRIPTORW);
       contents_fmt.cfFormat   = RegisterClipboardFormat(CFSTR_FILECONTENTS);
       if (pDataObject->QueryGetData(&descriptor_fmt) != S_OK) return NULL;
       if (pDataObject->QueryGetData(&contents_fmt) != S_OK) return NULL;
@@ -1220,8 +1280,9 @@ private:
       STGMEDIUM storage = {0,0,0};
       hr = pDataObject->GetData(&descriptor_fmt, &storage);
       if (hr != S_OK) return NULL;
-      file_group_descriptor = (FILEGROUPDESCRIPTOR *)
+      file_group_descriptor = (FILEGROUPDESCRIPTORW *)
                               GlobalLock(storage.hGlobal);
+#ifdef UNUSED
       // Determine the encoding to use to convert this text.
       if (pDataObject->QueryGetData(&fmte_locale) == S_OK) {
         if (pDataObject->GetData(&fmte_locale, &StgMed) == S_OK) {
@@ -1242,7 +1303,9 @@ private:
           Tcl_DStringFree(&ds);
         }
       }
-      Tcl_Obj *result = Tcl_NewListObj(0, NULL);
+#endif
+
+      Tcl_Obj *result = Tcl_NewListObj(file_group_descriptor->cItems, NULL);
       // For each file, get the name and copy the stream to a file
       for (unsigned int file_index = 0;
            file_index < file_group_descriptor->cItems; file_index++) {
@@ -1251,18 +1314,15 @@ private:
         contents_fmt.lindex = file_index;
         if (pDataObject->GetData(&contents_fmt, &content_storage) == S_OK) {
           // Dump stream into a file.
-          char file_name[MAX_PATH+1];
+          WCHAR file_name[MAX_PATH+1];
           GlobalLock(content_storage.pstm);
-          strcpy(file_name, (char *) szTempStr);
-          strcat(file_name, "\\");
-          strcat(file_name, (char *) file_descriptor.cFileName);
+          // TODO - buffer overflow check
+          wcscpy(file_name, szTempStr);
+          wcscat(file_name, L"\\");
+          wcscat(file_name, file_descriptor.cFileName);
           if (StreamToFile(content_storage.pstm, file_name) == S_OK) {
-            Tcl_DString ds;
-            Tcl_DStringInit(&ds);
-            Tcl_ExternalToUtfDString(encoding, file_name, -1, &ds);
             Tcl_ListObjAppendElement(NULL, result,
-                       Tcl_NewStringObj(Tcl_DStringValue(&ds), -1));
-            Tcl_DStringFree(&ds);
+                                     ObjFromWinString(file_name));
           }
           GlobalUnlock(content_storage.pstm);
         }
@@ -1274,15 +1334,15 @@ private:
       return result;
     }; /* GetData_FileGroupDescriptor */
 
-    HRESULT StreamToFileW(IStream *stream, const Tcl_UniChar *file_name) {
+    HRESULT StreamToFileW(IStream *stream, const WCHAR *file_name) {
       byte buffer[BLOCK_SIZE];
       unsigned long bytes_read = 0;
       int bytes_written = 0;
       int new_file;
       HRESULT hr = S_OK;
 
-      new_file = _wsopen((wchar_t *) file_name, O_RDWR | O_BINARY | O_CREAT,
-                                               SH_DENYNO, S_IREAD | S_IWRITE);
+      new_file = _wsopen(file_name, O_RDWR | O_BINARY | O_CREAT,
+                                      SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
         do {
           hr = stream->Read(buffer, BLOCK_SIZE, &bytes_read);
@@ -1307,7 +1367,6 @@ private:
       HRESULT hr = S_OK;
       FILEGROUPDESCRIPTORW *file_group_descriptor;
       FILEDESCRIPTORW file_descriptor;
-      Tcl_Obj *item;
 
       descriptor_fmt.cfFormat = RegisterClipboardFormat(CFSTR_FILEDESCRIPTORW);
       contents_fmt.cfFormat   = RegisterClipboardFormat(CFSTR_FILECONTENTS);
@@ -1329,14 +1388,13 @@ private:
         contents_fmt.lindex = file_index;
         if (pDataObject->GetData(&contents_fmt, &content_storage) == S_OK) {
           // Dump stream into a file.
-          item = Tcl_NewUnicodeObj((const Tcl_UniChar *) szTempStr, -1);
-          Tcl_AppendToObj(item, "\\", 1);
-          Tcl_GetUnicode(item);
-          Tcl_AppendUnicodeToObj(item, (Tcl_UniChar *)
-                                       file_descriptor.cFileName, -1);
+          WCHAR full_temp_path[MAX_PATH+1];
+          // TODO - Check overflow
+          _snwprintf(full_temp_path, MAX_PATH, L"%ls\\%ls",
+                     szTempStr, file_descriptor.cFileName);
           GlobalLock(content_storage.pstm);
-          if (StreamToFileW(content_storage.pstm, Tcl_GetUnicode(item))==S_OK) {
-            Tcl_ListObjAppendElement(NULL, result, item);
+          if (StreamToFileW(content_storage.pstm, full_temp_path)==S_OK) {
+            Tcl_ListObjAppendElement(NULL, result, ObjFromWinString(full_temp_path));
 #if 0
           } else {
             LPVOID lpMsgBuf;
@@ -1363,6 +1421,7 @@ private:
       return result;
     }; /* GetData_FileGroupDescriptorW */
 
+#ifdef UNUSED
     Tcl_Obj *GetData_UniformResourceLocator(IDataObject *pDataObject) {
       STGMEDIUM StgMed;
       FORMATETC fmte = { (CLIPFORMAT)
@@ -1396,35 +1455,22 @@ private:
       }
       return NULL;
     }; /* GetData_UniformResourceLocator */
+#endif /* UNUSED */
 
     Tcl_Obj *GetData_UniformResourceLocatorW(IDataObject *pDataObject) {
       STGMEDIUM StgMed;
       FORMATETC fmte = { (CLIPFORMAT)
-        RegisterClipboardFormat( _TEXT("UniformResourceLocatorW") ),
+        RegisterClipboardFormat(CFSTR_INETURLW),
         (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
-          Tcl_DString ds;
-          char *data, *destPtr;
-          data = (char *) GlobalLock(StgMed.hGlobal);
-          Tcl_DStringInit(&ds);
-          Tcl_UniCharToUtfDString((Tcl_UniChar *) data,
-              Tcl_UniCharLen((Tcl_UniChar *) data), &ds);
+          WCHAR *data, *destPtr;
+          Tcl_Obj *result;
+          data = (WCHAR *) GlobalLock(StgMed.hGlobal);
+          result = ObjFromWinString(data);
           GlobalUnlock(StgMed.hGlobal);
           ReleaseStgMedium(&StgMed);
-          /*  Translate CR/LF to LF.  */
-          data = destPtr = Tcl_DStringValue(&ds);
-          while (*data) {
-              if (data[0] == '\r' && data[1] == '\n') {
-                  data++;
-              } else {
-                  *destPtr++ = *data++;
-              }
-          }
-          *destPtr = '\0';
-          Tcl_Obj *result = Tcl_NewStringObj(Tcl_DStringValue(&ds), -1);
-          Tcl_DStringFree(&ds);
           return result;
         }
       }
