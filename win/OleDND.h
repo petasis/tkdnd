@@ -1142,6 +1142,7 @@ private:
           *destPtr = '\0';
 #if TCL_MAJOR_VERSION < 9
           result = Tcl_NewStringObj(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+          Tcl_DStringFree(&ds);
 #else
           result = Tcl_DStringToObj(&ds); // No need for Tcl_DStringFree
 #endif

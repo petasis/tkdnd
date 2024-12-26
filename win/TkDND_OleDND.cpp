@@ -279,67 +279,66 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
           Tcl_Size j, file_nu;
           Tcl_Size size, len;
           char *native_name;
+          WCHAR *CurPosition;
 
           status = Tcl_ListObjGetElements(interp, data[i], &file_nu, &File);
           if (status != TCL_OK) {type_nu = i; goto error;}
           /* What we expect is a list of filenames. Convert the filenames into
            * the native format, and store the translated filenames into a new
            * list... */
-          native_files_obj = Tcl_NewListObj(0, NULL);
+          native_files_obj = Tcl_NewListObj(file_nu, NULL);
           if (native_files_obj == NULL) {type_nu = i; goto error;}
-          size = 0;
-          for (j = 0; j < file_nu; ++j) {
-            Tcl_DStringInit(&ds);
-            native_name = Tcl_TranslateFileName(NULL,
-                                                Tcl_GetString(File[j]), &ds);
-            if (native_name == NULL) {
-              Tcl_DStringFree(&ds);
+          // Calculate the size of the buffer needed to store the file names.
+          for (size = 0, j = 0; j < file_nu; ++j) {
+            Tcl_Obj *normalizedPath;
+            WCHAR *nativePath;
+            normalizedPath = Tcl_FSGetNormalizedPath(interp, File[j]);
+            if (normalizedPath == NULL) {
               continue;
             }
-            obj = Tcl_NewStringObj(native_name, -1);
-            Tcl_ListObjAppendElement(NULL, native_files_obj, obj);
-            /* Get the length in unicode... */
-            Tcl_GetUnicodeFromObj(obj, &len);
-            size += len + 1; // NULL character...
-            Tcl_DStringFree(&ds);
+            // Note normalizedPath is owned by File[j] and we need not free
+            // it explicitly. Later it gets added to the native_files_obj
+            // list which increments its reference count which subsequently
+            // decremented when the list is destroyed.
+            nativePath = (WCHAR *) Tcl_FSGetNativePath(normalizedPath);
+            if (nativePath == NULL) {
+              continue;
+            }
+            size += wcslen(nativePath) + 1; // NULL character...
+            Tcl_ListObjAppendElement(NULL, native_files_obj, normalizedPath);
           }
 
+          // We need an extra NULL character at the end of the buffer.
           buffer_size = sizeof(wchar_t) * (size+1);
           m_pfmtetc[i].cfFormat = CF_HDROP;
           m_pstgmed[i].hGlobal = GlobalAlloc(GHND,
                    (DWORD) (sizeof(DROPFILES) + buffer_size));
-          if (m_pstgmed[i].hGlobal) {
-            TCHAR *CurPosition;
-            pDropFiles = (LPDROPFILES) GlobalLock(m_pstgmed[i].hGlobal);
-            // Set the offset where the starting point of the file start.
-            pDropFiles->pFiles = sizeof(DROPFILES);
-            // File contains wide characters?
-            pDropFiles->fWide = TRUE;
-            CurPosition = (TCHAR *) (LPBYTE(pDropFiles) + sizeof(DROPFILES));
-            Tcl_ListObjGetElements(NULL, native_files_obj, &file_nu, &File);
-            for (j = 0; j < file_nu; j++) {
-              TCHAR *pszFileName = (TCHAR *)
-                                   Tcl_GetUnicodeFromObj(File[j], &len);
-              // Copy the file name into global memory.
-#ifdef HAVE_STRSAFE_H
-              StringCchCopyW(CurPosition, buffer_size, pszFileName);
-#else
-              lstrcpyW((LPWSTR) CurPosition, (LPWSTR) pszFileName);
-#endif
-              /*
-               * Move the current position beyond the file name copied, and
-               * don't forget the NULL terminator (+1)
-               */
-              CurPosition += 1 + _tcschr(pszFileName, '\0') - pszFileName;
-            }
-            /*
-             * Finally, add an additional null terminator, as per CF_HDROP
-             * Format specs.
-             */
-            *CurPosition = '\0';
-            GlobalUnlock(m_pstgmed[i].hGlobal);
+          if (m_pstgmed[i].hGlobal == NULL) {
+            Tcl_Panic("Unable to allocate GlobalAlloc memory.");
           }
-          if (native_files_obj) Tcl_DecrRefCount(native_files_obj);
+
+          pDropFiles = (LPDROPFILES)GlobalLock(m_pstgmed[i].hGlobal);
+          // Set the offset where the starting point of the file start.
+          pDropFiles->pFiles = sizeof(DROPFILES);
+          pDropFiles->fWide = TRUE;
+          CurPosition = (WCHAR *)(LPBYTE(pDropFiles) + sizeof(DROPFILES));
+          Tcl_ListObjGetElements(NULL, native_files_obj, &file_nu, &File);
+          for (j = 0; j < file_nu; j++) {
+            WCHAR *nativePath;
+            nativePath = (WCHAR *) Tcl_FSGetNativePath(File[j]);
+
+            // Copy the file name into global memory.
+            len = wcslen(nativePath);
+            memcpy(CurPosition, nativePath, (len+1) * sizeof(WCHAR));
+            CurPosition += len + 1;
+          }
+          /*
+           * Finally, add an additional null terminator, as per CF_HDROP
+           * Format specs.
+           */
+          *CurPosition = '\0';
+          GlobalUnlock(m_pstgmed[i].hGlobal);
+          Tcl_DecrRefCount(native_files_obj);
           break;
         }
       }
