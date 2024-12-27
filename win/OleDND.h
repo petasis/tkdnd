@@ -58,6 +58,8 @@
 #include <tchar.h>
 #include <wchar.h>
 
+#include <string>
+
 #ifdef DND_ENABLE_DROP_TARGET_HELPER
 #include <atlbase.h>
 #include <shlobj.h>     /* for IDropTargetHelper */
@@ -188,6 +190,14 @@ inline Tcl_Size ObjToWinStringBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_le
   return len;
 }
 
+// Returns a std::wstring with the content of a Tcl_Obj.
+inline std::wstring ObjToWString(Tcl_Obj *pObj) {
+  // Note this returns any embedded nuls in Tcl_Obj as well!
+  int len;
+  Tcl_UniChar *p = Tcl_GetUnicodeFromObj(pObj, &len);
+  return std::wstring(p, len);
+}
+
 // WCHAR string -> HGLOBAL. Panics on memory allocation failure.
 // Always returns non-NULL. HGLOBAL must be GlobalFree'd.
 inline HGLOBAL ObjToWinStringHGLOBAL(Tcl_Obj *pObj) {
@@ -239,6 +249,13 @@ inline Tcl_Size ObjToWinStringBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_le
     return -1;
   memcpy(pBuf, Tcl_DStringValue(&ds), (len+1) * sizeof(WCHAR));
   return len;
+}
+
+// Returns a std::wstring with the content of a Tcl_Obj.
+inline std::wstring ObjToWString(Tcl_Obj *pObj) {
+  Tcl_DString ds;
+  Tcl_Size len = ObjToWinStringDS(pObj, &ds);
+   return std::wstring((WCHAR *)Tcl_DStringValue(&ds), len/sizeof(WCHAR));
 }
 
 // WCHAR string -> HGLOBAL. Panics on memory allocation failure.
@@ -521,17 +538,6 @@ public:
       return currentFormat;
     }; /* GetCurrentFormat */
 
-#ifdef UNUSED
-    const WCHAR *GetCurrentFormatName(void) {
-      for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
-        if (ClipboardFormatBook[i].cfFormat == currentFormat)
-                     return ClipboardFormatBook[i].name;
-      }
-      GetClipboardFormatNameW((CLIPFORMAT) currentFormat, szTempStr, 250);
-      return szTempStr;
-    }; /* GetCurrentFormatName */
-#endif
-
 private:
 
     // any private members and functions
@@ -583,7 +589,7 @@ class TkDND_DropTarget: public IDropTarget {
     LONG                 m_lRefCount; /* Reference count */
     Tcl_Interp          *interp;
     Tk_Window            tkwin;
-    WCHAR                szTempStr[MAX_PATH+2];
+    std::wstring         tempDropDir;
 
     Tcl_Obj             *typelist, *actionlist, *codelist;
 #ifdef DND_USE_ACTIVE
@@ -598,20 +604,19 @@ class TkDND_DropTarget: public IDropTarget {
 #endif /* DND_DRAGOVER_SKIP_EVENTS */
 
 
-    // Returns pointer to name for a format. May point to a static area
-    // so should be copied right away. Returns NULL on errors.
-    const WCHAR * FormatName(UINT cfFormat) {
+    // Returns an empty string if cfFormat cannot be mapped to a name.
+    const std::wstring FormatName(UINT cfFormat) {
       for (int i = 0; ClipboardFormatBook[i].name != 0; i++) {
         if (ClipboardFormatBook[i].cfFormat == cfFormat)
                      return ClipboardFormatBook[i].name;
       }
-      const size_t buf_size = sizeof(szTempStr)/sizeof(szTempStr[0]);
-      size_t len = GetClipboardFormatNameW(cfFormat, szTempStr, buf_size);
-      if (len == 0 || len >= (buf_size-1)) {
+      wchar_t buf[MAX_PATH+1];
+      size_t len = GetClipboardFormatNameW(cfFormat, buf, MAX_PATH+1);
+      if (len == 0 || len >= MAX_PATH) {
         // Invalid format or truncated name returned.
-        return NULL;
+        buf[0] = L'\0';
       }
-      return szTempStr;
+      return buf;
     }; /* FormatName */
 
   public:
@@ -728,9 +733,8 @@ class TkDND_DropTarget: public IDropTarget {
             Tcl_Obj *objv[1];
             objv[0]=Tcl_NewStringObj("tkdnd::GetDropFileTempDirectory", -1);
             TkDND_Status_Eval(1);
-            if (status == TCL_OK &&
-                ObjToWinStringBuffer(Tcl_GetObjResult(interp),
-                               szTempStr, MAX_PATH) != -1) {
+            if (status == TCL_OK) {
+              tempDropDir = ObjToWString(Tcl_GetObjResult(interp));
               if (index == TYPE_FILEGROUPDESCRIPTORW)
                 data = GetData_FileGroupDescriptorW(pDataObject);
               else
@@ -982,10 +986,10 @@ class TkDND_DropTarget: public IDropTarget {
 
       while (pEF->Next(1, &fetc, NULL) == S_OK) {
         if (pDataObject->QueryGetData(&fetc) == S_OK) {
-          const WCHAR *fmt_name = FormatName(fetc.cfFormat);
-          if (fmt_name == NULL)
+          const std::wstring cf_name = FormatName(fetc.cfFormat);
+          if (cf_name.empty())
             continue; // Skip unsupported format.
-          Tcl_ListObjAppendElement(NULL, typelist, ObjFromWinString(fmt_name));
+          Tcl_ListObjAppendElement(NULL, typelist, ObjFromWinString(cf_name.c_str()));
           /* Store the numeric code of the format */
           Tcl_ListObjAppendElement(NULL, codelist,
                                    Tcl_ObjPrintf("0x%08x", fetc.cfFormat));
@@ -1089,12 +1093,8 @@ private:
                          DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       Tcl_Obj *result;
       unsigned char *bytes;
-      WCHAR fmt_buf[MAX_PATH];
-      if (ObjToWinStringBuffer(formatObj, fmt_buf,
-                         sizeof(fmt_buf) / sizeof(fmt_buf[0])) == -1) {
-        return NULL;
-      }
-      fmte.cfFormat = RegisterClipboardFormatW(fmt_buf);
+      std::wstring fmt_buf = ObjToWString(formatObj);
+      fmte.cfFormat = RegisterClipboardFormatW(fmt_buf.c_str());
       if (fmte.cfFormat == 0) {
         return NULL;
       }
@@ -1262,14 +1262,14 @@ private:
     }; /* GetData_CF_HDROP */
 
 #define BLOCK_SIZE 1024
-    HRESULT StreamToFile(IStream *stream, WCHAR *file_name) {
+    HRESULT StreamToFile(IStream *stream, const std::wstring& file_name) {
       byte buffer[BLOCK_SIZE];
       unsigned long bytes_read = 0;
       int bytes_written = 0;
       int new_file;
       HRESULT hr = S_OK;
 
-      new_file = _wsopen(file_name, O_RDWR | O_BINARY | O_CREAT,
+      new_file = _wsopen(file_name.c_str(), O_RDWR | O_BINARY | O_CREAT,
                                   SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
         do {
@@ -1277,7 +1277,7 @@ private:
           if (bytes_read) bytes_written = _write(new_file, buffer, bytes_read);
         } while (S_OK == hr && bytes_read == BLOCK_SIZE);
         _close(new_file);
-        if (bytes_written == 0) _wunlink(file_name);
+        if (bytes_written == 0) _wunlink(file_name.c_str());
       } else {
         unsigned long error;
         if ((error = GetLastError()) == 0L) error = _doserrno;
@@ -1343,15 +1343,11 @@ private:
         contents_fmt.lindex = file_index;
         if (pDataObject->GetData(&contents_fmt, &content_storage) == S_OK) {
           // Dump stream into a file.
-          WCHAR file_name[MAX_PATH+1];
+          std::wstring file_path = tempDropDir + L"\\" + file_descriptor.cFileName;
           GlobalLock(content_storage.pstm);
-          // TODO - buffer overflow check
-          wcscpy(file_name, szTempStr);
-          wcscat(file_name, L"\\");
-          wcscat(file_name, file_descriptor.cFileName);
-          if (StreamToFile(content_storage.pstm, file_name) == S_OK) {
+          if (StreamToFile(content_storage.pstm, file_path) == S_OK) {
             Tcl_ListObjAppendElement(NULL, result,
-                                     ObjFromWinString(file_name));
+                                     ObjFromWinString(file_path.c_str()));
           }
           GlobalUnlock(content_storage.pstm);
         }
@@ -1363,14 +1359,14 @@ private:
       return result;
     }; /* GetData_FileGroupDescriptor */
 
-    HRESULT StreamToFileW(IStream *stream, const WCHAR *file_name) {
+    HRESULT StreamToFileW(IStream *stream, const std::wstring& file_name) {
       byte buffer[BLOCK_SIZE];
       unsigned long bytes_read = 0;
       int bytes_written = 0;
       int new_file;
       HRESULT hr = S_OK;
 
-      new_file = _wsopen(file_name, O_RDWR | O_BINARY | O_CREAT,
+      new_file = _wsopen(file_name.c_str(), O_RDWR | O_BINARY | O_CREAT,
                                       SH_DENYNO, S_IREAD | S_IWRITE);
       if (new_file != -1) {
         do {
@@ -1378,7 +1374,7 @@ private:
           if (bytes_read) bytes_written = _write(new_file, buffer, bytes_read);
         } while (S_OK == hr && bytes_read == BLOCK_SIZE);
         _close(new_file);
-        if (bytes_written == 0) _wunlink((wchar_t *) file_name);
+        if (bytes_written == 0) _wunlink((wchar_t *) file_name.c_str());
         return S_OK;
       } else {
         unsigned long error;
@@ -1417,13 +1413,10 @@ private:
         contents_fmt.lindex = file_index;
         if (pDataObject->GetData(&contents_fmt, &content_storage) == S_OK) {
           // Dump stream into a file.
-          WCHAR full_temp_path[MAX_PATH+1];
-          // TODO - Check overflow
-          _snwprintf(full_temp_path, MAX_PATH, L"%ls\\%ls",
-                     szTempStr, file_descriptor.cFileName);
+          std::wstring file_path = tempDropDir + L"\\" + file_descriptor.cFileName;
           GlobalLock(content_storage.pstm);
-          if (StreamToFileW(content_storage.pstm, full_temp_path)==S_OK) {
-            Tcl_ListObjAppendElement(NULL, result, ObjFromWinString(full_temp_path));
+          if (StreamToFileW(content_storage.pstm, file_path)==S_OK) {
+            Tcl_ListObjAppendElement(NULL, result, ObjFromWinString(file_path.c_str()));
 #if 0
           } else {
             LPVOID lpMsgBuf;
