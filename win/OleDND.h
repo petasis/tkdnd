@@ -171,7 +171,7 @@ static CLIP_FORMAT_STRING_TABLE ClipboardFormatBook[] = {
 #if TCL_UTF_MAX < 4
 // WCHAR string -> Tcl_Obj
 inline Tcl_Obj *ObjFromWinString(const WCHAR *pWS) {
-  return Tcl_NewUnicodeObj(pWS, -1);
+  return Tcl_NewUnicodeObj((Tcl_UniChar *)pWS, -1);
 }
 
 // ObjToWinStringDS - not defined
@@ -195,7 +195,7 @@ inline std::wstring ObjToWString(Tcl_Obj *pObj) {
   // Note this returns any embedded nuls in Tcl_Obj as well!
   int len;
   Tcl_UniChar *p = Tcl_GetUnicodeFromObj(pObj, &len);
-  return std::wstring(p, len);
+  return std::wstring((wchar_t *)p, len);
 }
 
 // WCHAR string -> HGLOBAL. Panics on memory allocation failure.
@@ -1124,7 +1124,7 @@ private:
           WCHAR *wstr = (WCHAR *) GlobalLock(StgMed.hGlobal);
           Tcl_DStringInit(&ds);
 #if TCL_UTF_MAX < 4
-          Tcl_UniCharToUtfDString(wstr, -1, &ds);
+          Tcl_UniCharToUtfDString((Tcl_UniChar *)wstr, -1, &ds);
 #else
           Tcl_WCharToUtfDString(wstr, -1, &ds);
 #endif

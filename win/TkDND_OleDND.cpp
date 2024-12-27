@@ -340,7 +340,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     } else {
       /* A user defined type? */
 #if TCL_MAJOR_VERSION < 9
-      COPY_BYTEARRAY_TO_DATA_OBJECT(Tcl_GetUnicode(type[i]));
+      COPY_BYTEARRAY_TO_DATA_OBJECT((WCHAR *)Tcl_GetUnicode(type[i]));
 #else
       Tcl_DString ds;
       ObjToWinStringDS(type[i], &ds);
