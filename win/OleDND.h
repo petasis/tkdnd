@@ -1279,9 +1279,9 @@ private:
         _close(new_file);
         if (bytes_written == 0) _wunlink(file_name.c_str());
       } else {
-        unsigned long error;
-        if ((error = GetLastError()) == 0L) error = _doserrno;
         hr = HRESULT_FROM_WIN32(errno);
+        if (SUCCEEDED(hr))
+         hr = E_FAIL;
       }
       return hr;
     }; /* StreamToFile */
@@ -1311,29 +1311,6 @@ private:
       if (hr != S_OK) return NULL;
       file_group_descriptor = (FILEGROUPDESCRIPTORW *)
                               GlobalLock(storage.hGlobal);
-#ifdef UNUSED
-      // Determine the encoding to use to convert this text.
-      if (pDataObject->QueryGetData(&fmte_locale) == S_OK) {
-        if (pDataObject->GetData(&fmte_locale, &StgMed) == S_OK) {
-          Tcl_DString ds;
-          int locale;
-          Tcl_DStringInit(&ds);
-          Tcl_DStringAppend(&ds, "cp######", -1);
-          char *data = (char *) GlobalLock(StgMed.hGlobal);
-          /*
-           * Even though the documentation claims that GetLocaleInfo expects
-           * an LCID, on Windows 9x it really seems to expect a LanguageID.
-           */
-          locale = LANGIDFROMLCID(*((int*) data));
-          GetLocaleInfoA(locale, LOCALE_IDEFAULTANSICODEPAGE,
-                  Tcl_DStringValue(&ds)+2, Tcl_DStringLength(&ds)-2);
-          GlobalUnlock(StgMed.hGlobal);
-          encoding = Tcl_GetEncoding(NULL, Tcl_DStringValue(&ds));
-          Tcl_DStringFree(&ds);
-        }
-      }
-#endif
-
       Tcl_Obj *result = Tcl_NewListObj(file_group_descriptor->cItems, NULL);
       // For each file, get the name and copy the stream to a file
       for (unsigned int file_index = 0;
@@ -1358,31 +1335,6 @@ private:
       if (encoding) Tcl_FreeEncoding(encoding);
       return result;
     }; /* GetData_FileGroupDescriptor */
-
-    HRESULT StreamToFileW(IStream *stream, const std::wstring& file_name) {
-      byte buffer[BLOCK_SIZE];
-      unsigned long bytes_read = 0;
-      int bytes_written = 0;
-      int new_file;
-      HRESULT hr = S_OK;
-
-      new_file = _wsopen(file_name.c_str(), O_RDWR | O_BINARY | O_CREAT,
-                                      SH_DENYNO, S_IREAD | S_IWRITE);
-      if (new_file != -1) {
-        do {
-          hr = stream->Read(buffer, BLOCK_SIZE, &bytes_read);
-          if (bytes_read) bytes_written = _write(new_file, buffer, bytes_read);
-        } while (S_OK == hr && bytes_read == BLOCK_SIZE);
-        _close(new_file);
-        if (bytes_written == 0) _wunlink((wchar_t *) file_name.c_str());
-        return S_OK;
-      } else {
-        unsigned long error;
-        if ((error = GetLastError()) == 0L) error = _doserrno;
-        hr = HRESULT_FROM_WIN32(errno);
-      }
-      return hr;
-    }; /* StreamToFileW */
 
     Tcl_Obj *GetData_FileGroupDescriptorW(IDataObject *pDataObject) {
       FORMATETC descriptor_fmt = { 0, (DVTARGETDEVICE FAR *) NULL,
@@ -1415,7 +1367,7 @@ private:
           // Dump stream into a file.
           std::wstring file_path = tempDropDir + L"\\" + file_descriptor.cFileName;
           GlobalLock(content_storage.pstm);
-          if (StreamToFileW(content_storage.pstm, file_path)==S_OK) {
+          if (StreamToFile(content_storage.pstm, file_path)==S_OK) {
             Tcl_ListObjAppendElement(NULL, result, ObjFromWinString(file_path.c_str()));
 #if 0
           } else {
@@ -1442,42 +1394,6 @@ private:
       ReleaseStgMedium(&storage);
       return result;
     }; /* GetData_FileGroupDescriptorW */
-
-#ifdef UNUSED
-    Tcl_Obj *GetData_UniformResourceLocator(IDataObject *pDataObject) {
-      STGMEDIUM StgMed;
-      FORMATETC fmte = { (CLIPFORMAT)
-        RegisterClipboardFormat( _TEXT("UniformResourceLocator") ),
-        (DVTARGETDEVICE FAR *)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-
-      if (pDataObject->QueryGetData(&fmte) == S_OK) {
-        if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
-          Tcl_DString ds;
-          char *data, *destPtr;
-          data = (char *) GlobalLock(StgMed.hGlobal);
-          Tcl_DStringInit(&ds);
-          Tcl_UniCharToUtfDString((Tcl_UniChar *) data,
-              Tcl_UniCharLen((Tcl_UniChar *) data), &ds);
-          GlobalUnlock(StgMed.hGlobal);
-          ReleaseStgMedium(&StgMed);
-          /*  Translate CR/LF to LF.  */
-          data = destPtr = Tcl_DStringValue(&ds);
-          while (*data) {
-              if (data[0] == '\r' && data[1] == '\n') {
-                  data++;
-              } else {
-                  *destPtr++ = *data++;
-              }
-          }
-          *destPtr = '\0';
-          Tcl_Obj *result = Tcl_NewStringObj(Tcl_DStringValue(&ds), -1);
-          Tcl_DStringFree(&ds);
-          return result;
-        }
-      }
-      return NULL;
-    }; /* GetData_UniformResourceLocator */
-#endif /* UNUSED */
 
     Tcl_Obj *GetData_UniformResourceLocatorW(IDataObject *pDataObject) {
       STGMEDIUM StgMed;

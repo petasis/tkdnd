@@ -39,11 +39,6 @@
  */
 
 #include "OleDND.h"
-#if defined(HAVE_STRSAFE_H) || !defined(NO_STRSAFE_H)
-#include "Strsafe.h"
-#endif
-
-#include <cstring>
 
 #define TKDND_REPORT_ERROR(x) \
     { Tcl_SetObjResult(interp, Tcl_NewStringObj(x, -1)); }
