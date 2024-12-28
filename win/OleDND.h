@@ -255,7 +255,7 @@ inline Tcl_Size ObjToWinStringBuffer(Tcl_Obj *pObj, WCHAR *pBuf, Tcl_Size max_le
 inline std::wstring ObjToWString(Tcl_Obj *pObj) {
   Tcl_DString ds;
   Tcl_Size len = ObjToWinStringDS(pObj, &ds);
-   return std::wstring((WCHAR *)Tcl_DStringValue(&ds), len/sizeof(WCHAR));
+   return std::wstring((WCHAR *)Tcl_DStringValue(&ds));
 }
 
 // WCHAR string -> HGLOBAL. Panics on memory allocation failure.
@@ -1124,7 +1124,8 @@ private:
           WCHAR *wstr = (WCHAR *) GlobalLock(StgMed.hGlobal);
           Tcl_DStringInit(&ds);
 #if TCL_UTF_MAX < 4
-          Tcl_UniCharToUtfDString((Tcl_UniChar *)wstr, -1, &ds);
+          /* 8.6 Tcl_UniCharToUtfDString does not accept -1 for length!!!*/
+          Tcl_UniCharToUtfDString((Tcl_UniChar *)wstr, wcslen(wstr), &ds);
 #else
           Tcl_WCharToUtfDString(wstr, -1, &ds);
 #endif
