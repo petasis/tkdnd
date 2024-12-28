@@ -372,16 +372,15 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   delete[] m_pfmtetc;
   delete[] m_pstgmed;
   if (dwResult == DRAGDROP_S_DROP) {
-    char msg[24];
+    const char *msg;
     switch (dwEffect) {
-      case DROPEFFECT_COPY: std::strncpy(msg, "copy", 20); break;
-      case DROPEFFECT_MOVE: std::strncpy(msg, "move", 20); break;
-      case DROPEFFECT_LINK: std::strncpy(msg, "link", 20); break;
+      case DROPEFFECT_COPY: msg = "copy"; break;
+      case DROPEFFECT_MOVE: msg = "move"; break;
+      case DROPEFFECT_LINK: msg = "link"; break;
     }
     Tcl_SetObjResult(interp, Tcl_NewStringObj(msg, -1));
   } else {
-    char msg[24]; std::strncpy(msg, "refuse_drop", 20);
-    Tcl_SetObjResult(interp, Tcl_NewStringObj(msg, -1));
+    Tcl_SetObjResult(interp, Tcl_NewStringObj("refuse_drop", -1));
   }
   return TCL_OK;
 error:

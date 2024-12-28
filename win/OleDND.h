@@ -128,7 +128,9 @@ extern "C" {
 /*****************************************************************************
  * Windows Clipboard formats.
  ****************************************************************************/
-#define STRING_(s) {s,L#s}
+#define WIDEN(x) L##x
+#define WSTRINGIFY(x) WIDEN(#x)
+#define STRING_(s) {s, WSTRINGIFY(s)}
 typedef struct {
   UINT   cfFormat;
   const WCHAR *name;
