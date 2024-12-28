@@ -269,11 +269,9 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
         }
         case TYPE_CF_HDROP: {
           LPDROPFILES pDropFiles;
-          Tcl_DString ds;
-          Tcl_Obj **File, *native_files_obj = NULL, *obj;
+          Tcl_Obj **File, *native_files_obj = NULL;
           Tcl_Size j, file_nu;
           Tcl_Size size, len;
-          char *native_name;
           WCHAR *CurPosition;
 
           status = Tcl_ListObjGetElements(interp, data[i], &file_nu, &File);

@@ -233,7 +233,6 @@ inline Tcl_Size ObjToWinStringDS(Tcl_Obj *pObj, Tcl_DString *pDS) {
   Tcl_Size type_len;
   Tcl_DStringInit(pDS);
   const char *type_str = Tcl_GetStringFromObj(pObj, &type_len);
-  WCHAR *wtype_str;
   Tcl_UtfToWCharDString(type_str, type_len, pDS);
   return (Tcl_DStringLength(pDS)/sizeof(WCHAR)); // Not including terminator
 };
@@ -954,7 +953,6 @@ class TkDND_DropTarget: public IDropTarget {
 
       IEnumFORMATETC *pEF;
       FORMATETC fetc;
-      char tmp[64];
       HRESULT hr;
 
       /*
@@ -1171,6 +1169,7 @@ private:
           if (pDataObject->GetData(&fmte_locale, &StgMed) == S_OK) {
             Tcl_DString ds;
             int locale;
+            // TODO - why use DString instead of a simple buffer
             Tcl_DStringInit(&ds);
             Tcl_DStringAppend(&ds, "cp######", -1);
             data = (char *) GlobalLock(StgMed.hGlobal);
@@ -1215,10 +1214,6 @@ private:
     }; /* GetData_CF_TEXT */
 
     Tcl_Obj *GetData_CF_HDROP(IDataObject *pDataObject) {
-#if defined(UNICODE)
-      Tcl_DString ds;
-      // char utf8[MAX_PATH*4+2];
-#endif /* UNICODE */
       STGMEDIUM StgMed;
       memset(&StgMed, 0, sizeof(StgMed));
       StgMed.tymed = TYMED_HGLOBAL;
@@ -1288,9 +1283,6 @@ private:
     }; /* StreamToFile */
 
     Tcl_Obj *GetData_FileGroupDescriptor(IDataObject *pDataObject) {
-      STGMEDIUM StgMed;
-      FORMATETC fmte_locale    = { CF_LOCALE, (DVTARGETDEVICE FAR *) NULL,
-                                   DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       FORMATETC descriptor_fmt = { 0, (DVTARGETDEVICE FAR *) NULL,
                                    DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
       FORMATETC contents_fmt   = { 0, (DVTARGETDEVICE FAR *) NULL,
@@ -1404,7 +1396,7 @@ private:
 
       if (pDataObject->QueryGetData(&fmte) == S_OK) {
         if (pDataObject->GetData(&fmte, &StgMed) == S_OK) {
-          WCHAR *data, *destPtr;
+          WCHAR *data;
           Tcl_Obj *result;
           data = (WCHAR *) GlobalLock(StgMed.hGlobal);
           result = ObjFromWinString(data);
