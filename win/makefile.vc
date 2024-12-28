@@ -7,6 +7,10 @@
 #   nmake /f makefile.vc INSTALLDIR=c:\tcl test
 #   nmake /f makefile.vc INSTALLDIR=c:\tcl install
 #
+# IMPORTANT: by default, this links dynamically to the C and C++ runtimes.
+# To link statically, pass "nomsvcrt" as part of the OPTS argument. E.g.
+#   nmake /f makefile.vc INSTALLDIR=c:\tcl OPTS=pdbs,nomsvcrt
+#
 # For other build options (debug, static etc.),
 # See TIP 477 (https://core.tcl.tk/tips/doc/trunk/tip/477.md) for
 # detailed documentation.
