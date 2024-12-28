@@ -534,5 +534,21 @@ proc ::tkdnd::urn_unquote {url} {
     set start [incr last]
   }
   append result [string range $url $start end]
-  return [encoding convertfrom utf-8 $result]
+  return [from_encoding utf-8 $result]
 };# tkdnd::urn_unquote
+
+if {[package vsatisfies [package require Tcl] 9]} {
+    proc ::tkdnd::to_encoding {enc str} {
+        encoding convertto -profile replace $enc $str
+    }
+    proc ::tkdnd::from_encoding {enc data} {
+        encoding convertfrom -profile replace $enc $data
+    }
+} else {
+    proc ::tkdnd::to_encoding {enc str} {
+        encoding convertto $enc $str
+    }
+    proc ::tkdnd::from_encoding {enc data} {
+        encoding convertfrom $enc $data
+    }
+}
