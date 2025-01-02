@@ -163,7 +163,7 @@ for:
     - echo ${FILE_TO_UPLOAD}
 
   artifacts:
-    - path: ${TKDND_HOME}/*.tgz
+    - path: '*.tgz'
       type: tgz
       name: tkdnd-${TKDND_VERSION}${BUILD_FILENAME_TAG}.tgz
   
