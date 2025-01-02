@@ -131,6 +131,8 @@ for:
 
   init:
     - echo "Init for Linux"
+    - echo `pwd`
+    - ls
     - if [[ "$PLATFORM" == "x86" ]]; then export PLATFORM_CPU_ARCH="i686"  ; fi
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
     - export CONFIGURE_ARGS=""
