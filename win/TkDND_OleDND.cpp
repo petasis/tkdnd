@@ -377,6 +377,7 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       case DROPEFFECT_COPY: msg = "copy"; break;
       case DROPEFFECT_MOVE: msg = "move"; break;
       case DROPEFFECT_LINK: msg = "link"; break;
+      default:              msg = "copy"; break;
     }
     Tcl_SetObjResult(interp, Tcl_NewStringObj(msg, -1));
   } else {
