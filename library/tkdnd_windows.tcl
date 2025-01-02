@@ -161,7 +161,7 @@ proc olednd::normalise_data { type data } {
   switch [lindex [::tkdnd::generic::platform_independent_type $type] 0] {
     DND_Text   {return $data}
     DND_Files  {return $data}
-    DND_HTML   {return [encoding convertfrom utf-8 $data]}
+    DND_HTML   {return [::tkdnd::from_encoding utf-8 $data]}
     default    {return $data}
   }
 }; # olednd::normalise_data

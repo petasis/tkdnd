@@ -6,7 +6,7 @@
 ## This file implements a drop target that is able to accept any type dropped.
 ##
 ## Check Tk version:
-package require Tk 8.3
+package require Tk 8.3-
 
 if {$::tcl_version == "8.3" && ![package vsatisfies $::tcl_patchLevel 8.3.3]} {
     tk_messageBox -type ok -icon error \

@@ -39,11 +39,6 @@
  */
 
 #include "OleDND.h"
-#if defined(HAVE_STRSAFE_H) || !defined(NO_STRSAFE_H)
-#include "Strsafe.h"
-#endif
-
-#include <cstring>
 
 #define TKDND_REPORT_ERROR(x) \
     { Tcl_SetObjResult(interp, Tcl_NewStringObj(x, -1)); }
@@ -145,8 +140,8 @@ int TkDND_RevokeDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
     GlobalUnlock(m_pstgmed[i].hGlobal); \
   }
 
-#define COPY_BYTEARRAY_TO_DATA_OBJECT(type_str) \
-  m_pfmtetc[i].cfFormat = RegisterClipboardFormat(type_str); \
+#define COPY_BYTEARRAY_TO_DATA_OBJECT(wchar_type_str) \
+  m_pfmtetc[i].cfFormat = RegisterClipboardFormatW(wchar_type_str); \
   bytes = Tcl_GetByteArrayFromObj(data[i], &nDataLength); \
   m_pstgmed[i].hGlobal = GlobalAlloc(GHND, nDataLength); \
   if (m_pstgmed[i].hGlobal) { \
@@ -166,7 +161,6 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   int               status, index, button = 1;
   Tcl_Size          i, type_nu, data_nu, nDataLength;
   char             *ptr;
-  Tcl_UniChar      *unicode, *ptr_u;
   FORMATETC        *m_pfmtetc;
   STGMEDIUM        *m_pstgmed;
   static const char *DropTypes[] = {
@@ -254,32 +248,18 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
       switch ((enum droptypes) index) {
         case TYPE_CF_UNICODETEXT: {
           m_pfmtetc[i].cfFormat = CF_UNICODETEXT;
-          unicode = Tcl_GetUnicodeFromObj(data[i], &nDataLength);
-          buffer_size = (nDataLength+1) * sizeof(Tcl_UniChar);
-          m_pstgmed[i].hGlobal = GlobalAlloc(GHND, buffer_size);
-          if (m_pstgmed[i].hGlobal) {
-            ptr_u = (Tcl_UniChar *) GlobalLock(m_pstgmed[i].hGlobal);
-#if 0
-#ifdef HAVE_STRSAFE_H
-            StringCchCopyW((LPWSTR) ptr_u, buffer_size, (LPWSTR) unicode);
-#else
-            lstrcpyW((LPWSTR) ptr_u, (LPWSTR) unicode);
-#endif
-#endif
-            memcpy(ptr_u, unicode, buffer_size);
-            GlobalUnlock(m_pstgmed[i].hGlobal);
-          }
+          m_pstgmed[i].hGlobal = ObjToWinStringHGLOBAL(data[i]);
           break;
         }
         case TYPE_CF_HTMLFORMAT:
         case TYPE_CF_HTML: {
-          COPY_BYTEARRAY_TO_DATA_OBJECT(TEXT("HTML Format"));
+          COPY_BYTEARRAY_TO_DATA_OBJECT(L"HTML Format");
           break;
         }
         case TYPE_CF_RICHTEXTFORMAT:
         case TYPE_CF_RTF:
         case TYPE_CF_RTFTEXT: {
-          COPY_BYTEARRAY_TO_DATA_OBJECT(TEXT("Rich Text Format"));
+          COPY_BYTEARRAY_TO_DATA_OBJECT(L"Rich Text Format");
           break;
         }
         case TYPE_CF_TEXT: {
@@ -289,78 +269,82 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
         }
         case TYPE_CF_HDROP: {
           LPDROPFILES pDropFiles;
-          Tcl_DString ds;
-          Tcl_Obj **File, *native_files_obj = NULL, *obj;
+          Tcl_Obj **File, *native_files_obj = NULL;
           Tcl_Size j, file_nu;
           Tcl_Size size, len;
-          char *native_name;
+          WCHAR *CurPosition;
 
           status = Tcl_ListObjGetElements(interp, data[i], &file_nu, &File);
           if (status != TCL_OK) {type_nu = i; goto error;}
           /* What we expect is a list of filenames. Convert the filenames into
            * the native format, and store the translated filenames into a new
            * list... */
-          native_files_obj = Tcl_NewListObj(0, NULL);
+          native_files_obj = Tcl_NewListObj(file_nu, NULL);
           if (native_files_obj == NULL) {type_nu = i; goto error;}
-          size = 0;
-          for (j = 0; j < file_nu; ++j) {
-            Tcl_DStringInit(&ds);
-            native_name = Tcl_TranslateFileName(NULL,
-                                                Tcl_GetString(File[j]), &ds);
-            if (native_name == NULL) {
-              Tcl_DStringFree(&ds);
+          // Calculate the size of the buffer needed to store the file names.
+          for (size = 0, j = 0; j < file_nu; ++j) {
+            Tcl_Obj *normalizedPath;
+            WCHAR *nativePath;
+            normalizedPath = Tcl_FSGetNormalizedPath(interp, File[j]);
+            if (normalizedPath == NULL) {
               continue;
             }
-            obj = Tcl_NewStringObj(native_name, -1);
-            Tcl_ListObjAppendElement(NULL, native_files_obj, obj);
-            /* Get the length in unicode... */
-            Tcl_GetUnicodeFromObj(obj, &len);
-            size += len + 1; // NULL character...
-            Tcl_DStringFree(&ds);
+            // Note normalizedPath is owned by File[j] and we need not free
+            // it explicitly. Later it gets added to the native_files_obj
+            // list which increments its reference count which subsequently
+            // decremented when the list is destroyed.
+            nativePath = (WCHAR *) Tcl_FSGetNativePath(normalizedPath);
+            if (nativePath == NULL) {
+              continue;
+            }
+            size += wcslen(nativePath) + 1; // NULL character...
+            Tcl_ListObjAppendElement(NULL, native_files_obj, normalizedPath);
           }
 
+          // We need an extra NULL character at the end of the buffer.
           buffer_size = sizeof(wchar_t) * (size+1);
           m_pfmtetc[i].cfFormat = CF_HDROP;
           m_pstgmed[i].hGlobal = GlobalAlloc(GHND,
                    (DWORD) (sizeof(DROPFILES) + buffer_size));
-          if (m_pstgmed[i].hGlobal) {
-            TCHAR *CurPosition;
-            pDropFiles = (LPDROPFILES) GlobalLock(m_pstgmed[i].hGlobal);
-            // Set the offset where the starting point of the file start.
-            pDropFiles->pFiles = sizeof(DROPFILES);
-            // File contains wide characters?
-            pDropFiles->fWide = TRUE;
-            CurPosition = (TCHAR *) (LPBYTE(pDropFiles) + sizeof(DROPFILES));
-            Tcl_ListObjGetElements(NULL, native_files_obj, &file_nu, &File);
-            for (j = 0; j < file_nu; j++) {
-              TCHAR *pszFileName = (TCHAR *)
-                                   Tcl_GetUnicodeFromObj(File[j], &len);
-              // Copy the file name into global memory.
-#ifdef HAVE_STRSAFE_H
-              StringCchCopyW(CurPosition, buffer_size, pszFileName);
-#else
-              lstrcpyW((LPWSTR) CurPosition, (LPWSTR) pszFileName);
-#endif
-              /*
-               * Move the current position beyond the file name copied, and
-               * don't forget the NULL terminator (+1)
-               */
-              CurPosition += 1 + _tcschr(pszFileName, '\0') - pszFileName;
-            }
-            /*
-             * Finally, add an additional null terminator, as per CF_HDROP
-             * Format specs.
-             */
-            *CurPosition = '\0';
-            GlobalUnlock(m_pstgmed[i].hGlobal);
+          if (m_pstgmed[i].hGlobal == NULL) {
+            Tcl_Panic("Unable to allocate GlobalAlloc memory.");
           }
-          if (native_files_obj) Tcl_DecrRefCount(native_files_obj);
+
+          pDropFiles = (LPDROPFILES)GlobalLock(m_pstgmed[i].hGlobal);
+          // Set the offset where the starting point of the file start.
+          pDropFiles->pFiles = sizeof(DROPFILES);
+          pDropFiles->fWide = TRUE;
+          CurPosition = (WCHAR *)(LPBYTE(pDropFiles) + sizeof(DROPFILES));
+          Tcl_ListObjGetElements(NULL, native_files_obj, &file_nu, &File);
+          for (j = 0; j < file_nu; j++) {
+            WCHAR *nativePath;
+            nativePath = (WCHAR *) Tcl_FSGetNativePath(File[j]);
+
+            // Copy the file name into global memory.
+            len = wcslen(nativePath);
+            memcpy(CurPosition, nativePath, (len+1) * sizeof(WCHAR));
+            CurPosition += len + 1;
+          }
+          /*
+           * Finally, add an additional null terminator, as per CF_HDROP
+           * Format specs.
+           */
+          *CurPosition = '\0';
+          GlobalUnlock(m_pstgmed[i].hGlobal);
+          Tcl_DecrRefCount(native_files_obj);
           break;
         }
       }
     } else {
       /* A user defined type? */
-      COPY_BYTEARRAY_TO_DATA_OBJECT(TCL_GETSTRING(type[i]));
+#if TCL_MAJOR_VERSION < 9
+      COPY_BYTEARRAY_TO_DATA_OBJECT((WCHAR *)Tcl_GetUnicode(type[i]));
+#else
+      Tcl_DString ds;
+      ObjToWinStringDS(type[i], &ds);
+      COPY_BYTEARRAY_TO_DATA_OBJECT((WCHAR *)Tcl_DStringValue(&ds));
+      Tcl_DStringFree(&ds);
+#endif
       break;
     }
   }; /* for (i = 0; i < type_nu; i++) */
@@ -388,16 +372,15 @@ int TkDND_DoDragDropObjCmd(ClientData clientData, Tcl_Interp *interp,
   delete[] m_pfmtetc;
   delete[] m_pstgmed;
   if (dwResult == DRAGDROP_S_DROP) {
-    char msg[24];
+    const char *msg;
     switch (dwEffect) {
-      case DROPEFFECT_COPY: std::strncpy(msg, "copy", 20); break;
-      case DROPEFFECT_MOVE: std::strncpy(msg, "move", 20); break;
-      case DROPEFFECT_LINK: std::strncpy(msg, "link", 20); break;
+      case DROPEFFECT_COPY: msg = "copy"; break;
+      case DROPEFFECT_MOVE: msg = "move"; break;
+      case DROPEFFECT_LINK: msg = "link"; break;
     }
     Tcl_SetObjResult(interp, Tcl_NewStringObj(msg, -1));
   } else {
-    char msg[24]; std::strncpy(msg, "refuse_drop", 20);
-    Tcl_SetObjResult(interp, Tcl_NewStringObj(msg, -1));
+    Tcl_SetObjResult(interp, Tcl_NewStringObj("refuse_drop", -1));
   }
   return TCL_OK;
 error:
