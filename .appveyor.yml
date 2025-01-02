@@ -5,13 +5,17 @@ branches:
   only:
     - master
 
+environment:
+  # these variables are common to all jobs
+  TCL_VERSION: tcl8.6
+
 image:
-  - Visual Studio 2022
   - Ubuntu
+  - Visual Studio 2022
   - macOS
 
 platform:
-  - x86
+#  - x86
   - x64
 
 configuration:
@@ -88,12 +92,12 @@ for:
   
   after_build:
     - cmd: echo %cd%
-    - cmd: cd runtime && 7z a -tzip tkdnd-%TKDND_VERSION%-windows-%platform%.zip *
+    - cmd: cd runtime && 7z a -tzip tkdnd-%TKDND_VERSION%-%TCL_VERSION%-windows-%platform%.zip *
   
   artifacts:
     - path: '\build\runtime\*.zip'
       type: zip
-      name: tkdnd-%TKDND_VERSION%-windows-%platform%.zip
+      name: tkdnd-%TKDND_VERSION%-%TCL_VERSION%-windows-%platform%.zip
   
   # https://github.com/forexample/github-binary-release
   # git tag tkdnd-release-test-v2.9.2
@@ -111,7 +115,7 @@ for:
     # release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
     release: $(APPVEYOR_REPO_TAG_NAME)
     description: 'TkDND binaries'
-    artifact: tkdnd-%TKDND_VERSION%-windows-%platform%.zip
+    artifact: tkdnd-%TKDND_VERSION%-%TCL_VERSION%-windows-%platform%.zip
     draft: false
     prerelease: false
     on:
@@ -136,7 +140,7 @@ for:
     - if [[ "$PLATFORM" == "x86" ]]; then export PLATFORM_CPU_ARCH="i686"  ; fi
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
     - export CONFIGURE_ARGS=""
-    - BUILD_FILENAME_TAG="-linux-${PLATFORM_CPU_ARCH}"
+    - BUILD_FILENAME_TAG="${TCL_VERSION}-linux-${PLATFORM_CPU_ARCH}"
     - export TKDND_VERSION=`cat VERSION`
     - export TKDND_HOME=`pwd`
     - export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
