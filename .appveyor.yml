@@ -136,14 +136,17 @@ for:
   init:
     - echo "Init for Linux"
     - echo `pwd`
-    - echo `ls`
     - if [[ "$PLATFORM" == "x86" ]]; then export PLATFORM_CPU_ARCH="i686"  ; fi
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
     - export CONFIGURE_ARGS=""
-    - BUILD_FILENAME_TAG="${TCL_VERSION}-linux-${PLATFORM_CPU_ARCH}"
+    - BUILD_FILENAME_TAG="-${TCL_VERSION}-linux-${PLATFORM_CPU_ARCH}"
     - export TKDND_HOME=`pwd`
+
+  install:
     - cd ${TKDND_HOME}
+    - echo `ls`
     - export TKDND_VERSION=`cat ${TKDND_HOME}/VERSION`
+    - echo ${TKDND_VERSION}
     - export TKDND_RUNTIME=${TKDND_HOME}/cmake/runtime
     - export FILE_TO_UPLOAD=${TKDND_HOME}/tkdnd-${TKDND_VERSION}${BUILD_FILENAME_TAG}.tgz
     - echo ${FILE_TO_UPLOAD}
