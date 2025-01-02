@@ -1,3 +1,26 @@
+2025-01-02 Petasis George  <petasis@iit.demokritos.gr>
+        * TkDND 2.9.5 has been released.
+
+        * demos/dndSpy.tcl:
+        * library/tkdnd.tcl:
+        * library/tkdnd_unix.tcl:
+        * library/tkdnd_windows.tcl:
+        * win/OleDND.h:
+        * win/TkDND_OleDND.cpp:
+        * win/makefile.vc:
+        * win/rules-ext.vc: Added support for Tcl 9. (Pull request by Github
+	user apnadkarni - https://github.com/petasis/tkdnd/pull/70).
+
+2025-01-01 Petasis George  <petasis@iit.demokritos.gr>
+        * configure.ac: Fix includes when the working directory is not in the
+	source directory. (Pull request by Github user chpock - https://github.com/petasis/tkdnd/pull/63).
+
+        * macosx/macdnd.m: Fix macOS version name in comment. (Pull request by
+	Github user chrstphrchvz - https://github.com/petasis/tkdnd/pull/62).
+
+2024-01-24 Petasis George  <petasis@iit.demokritos.gr>
+        * TkDND 2.9.4 has been released.
+
 2023-12-29 Petasis George  <petasis@iit.demokritos.gr>
         * README.md: Updated required Tcl/Tk versions. Tk 8.3.3 has been
         dropped, TkDND now requires 8.4 on Windows/Linux, and 8.5 for macOS.
