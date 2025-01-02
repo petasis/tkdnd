@@ -5,8 +5,10 @@ branches:
   only:
     - master
 
-#image:
-#  - Visual Studio 2022
+image:
+  - Visual Studio 2022
+  - Ubuntu
+  - macOS
 
 platform:
   - x86
@@ -15,16 +17,16 @@ platform:
 configuration:
   - Release
 
-environment:
-  matrix:
-    - job_name: Windows
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
-
-    - job_name: Linux
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-
-    - job_name: macOS
-      APPVEYOR_BUILD_WORKER_IMAGE: macOS
+#environment:
+#  matrix:
+#    - job_name: Windows
+#      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+#
+#    - job_name: Linux
+#      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+#
+#    - job_name: macOS
+#      APPVEYOR_BUILD_WORKER_IMAGE: macOS
 
 matrix:
   fast_finish: true
@@ -41,7 +43,7 @@ for:
 -
   matrix:
     only:
-    - job_name: Windows
+    - image: Visual Studio 2022
 
   install:
     - cmd: set TKDND_HOME=%cd%
@@ -125,7 +127,7 @@ for:
 -
   matrix:
     only:
-    - job_name: Linux
+      - image: Ubuntu
 
   init:
     - echo "Init for Linux"
@@ -187,7 +189,7 @@ for:
 -
   matrix:
     only:
-    - job_name: macOS
+      - image: macOS
 
   init:
   - echo "Init for macOS"
