@@ -208,7 +208,8 @@ for:
     - echo "Init for macOS"
     - if [[ "$PLATFORM" == "x86" ]]; then export PLATFORM_CPU_ARCH="i686"  ; fi
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
-    - export PLATFORM_CPU_ARCH=`arch`
+    - export PLATFORM_CPU_ARCH=`uname -m`
+    - export PLATFORM_OS_VERSION=`sw_vers -productVersion`
     - export CONFIGURE_ARGS=""
     - export TKDND_HOME=`pwd`
 
@@ -216,7 +217,7 @@ for:
     - brew install gnu-tar
     - brew install tcl-tk
     - export TCL_VERSION=`echo 'puts [info tclversion]' | tclsh`
-    - export BUILD_FILENAME_TAG="-macOS-tcl${TCL_VERSION}-${PLATFORM_CPU_ARCH}"
+    - export BUILD_FILENAME_TAG="-macOS-tcl${TCL_VERSION}-${PLATFORM_CPU_ARCH}-${PLATFORM_OS_VERSION}"
     - cd ${TKDND_HOME}
     - export TKDND_VERSION=`cat ${TKDND_HOME}/VERSION`
     - echo ${TKDND_VERSION}
