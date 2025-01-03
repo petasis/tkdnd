@@ -10,9 +10,9 @@ environment:
   TCL_VERSION: tcl8.6
 
 image:
-  - Ubuntu
-  - Visual Studio 2022
-  - macOS
+#  - Ubuntu
+#  - Visual Studio 2022
+  - macOS 14.2.1 "Sonoma"
 
 platform:
   - x86
