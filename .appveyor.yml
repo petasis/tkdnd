@@ -10,10 +10,10 @@ environment:
   TCL_VERSION: 8.6
 
 image:
-#  - Ubuntu
-#  - Visual Studio 2022
-#  - macOS
+  - Ubuntu
+  - Visual Studio 2022
   - macos-sonoma
+#  - macOS
 
 platform:
   - x86
@@ -210,8 +210,10 @@ for:
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
     - export PLATFORM_CPU_ARCH=`uname -m`
     - export PLATFORM_OS_VERSION=`sw_vers -productVersion`
+    - export PLATFORM_MACHINE=`machine`
     - export CONFIGURE_ARGS=""
     - export TKDND_HOME=`pwd`
+    - echo "${PLATFORM_CPU_ARCH} ${PLATFORM_OS_VERSION} ${PLATFORM_MACHINE}"
 
   install:
     - brew install gnu-tar
