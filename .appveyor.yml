@@ -138,6 +138,7 @@ for:
     - echo `pwd`
     - if [[ "$PLATFORM" == "x86" ]]; then export PLATFORM_CPU_ARCH="i686"  ; fi
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
+    - export PLATFORM_CPU_ARCH=`arch`
     - export CONFIGURE_ARGS=""
     - export TKDND_HOME=`pwd`
 
@@ -207,7 +208,7 @@ for:
     - echo "Init for macOS"
     - if [[ "$PLATFORM" == "x86" ]]; then export PLATFORM_CPU_ARCH="i686"  ; fi
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
-    - export PLATFORM_CPU_ARCH=`uname -p`
+    - export PLATFORM_CPU_ARCH=`arch`
     - export CONFIGURE_ARGS=""
     - export TKDND_HOME=`pwd`
 
