@@ -7,7 +7,7 @@ branches:
 
 environment:
   # these variables are common to all jobs
-  TCL_VERSION: tcl8.6
+  TCL_VERSION: 8.6
 
 image:
 #  - Ubuntu
@@ -43,6 +43,11 @@ for:
   matrix:
     only:
     - image: Visual Studio 2022
+
+  init:
+    - cmd: echo "Init for Windows"
+    - cmd: set BUILD_FILENAME_TAG="-windows-tcl%TCL_VERSION%-%platform%"
+
 
   install:
     - cmd: set TKDND_HOME=%cd%
@@ -87,12 +92,12 @@ for:
   
   after_build:
     - cmd: echo %cd%
-    - cmd: cd runtime && 7z a -tzip tkdnd-%TKDND_VERSION%-windows-%TCL_VERSION%-%platform%.zip *
+    - cmd: cd runtime && 7z a -tzip tkdnd-%TKDND_VERSION%%BUILD_FILENAME_TAG%.zip *
   
   artifacts:
     - path: '\build\runtime\*.zip'
       type: zip
-      name: tkdnd-%TKDND_VERSION%-windows-%TCL_VERSION%-%platform%.zip
+      name: tkdnd-%TKDND_VERSION%%BUILD_FILENAME_TAG%.zip
   
   # https://github.com/forexample/github-binary-release
   # git tag tkdnd-release-test-v2.9.2
@@ -110,7 +115,7 @@ for:
     # release: $(APPVEYOR_REPO_TAG_NAME)-windows-v$(appveyor_build_version)
     release: $(APPVEYOR_REPO_TAG_NAME)
     description: 'TkDND binaries'
-    artifact: tkdnd-%TKDND_VERSION%-windows-%TCL_VERSION%-%platform%.zip
+    artifact: tkdnd-%TKDND_VERSION%%BUILD_FILENAME_TAG%.zip
     draft: false
     prerelease: false
     on:
@@ -135,9 +140,10 @@ for:
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
     - export CONFIGURE_ARGS=""
     - export TKDND_HOME=`pwd`
-    - export BUILD_FILENAME_TAG="-linux-${TCL_VERSION}-${PLATFORM_CPU_ARCH}"
 
   install:
+    - export TCL_VERSION=`echo 'puts [info tclversion]' | tclsh`
+    - export BUILD_FILENAME_TAG="-linux-tcl${TCL_VERSION}-${PLATFORM_CPU_ARCH}"
     - cd ${TKDND_HOME}
     - export TKDND_VERSION=`cat ${TKDND_HOME}/VERSION`
     - echo ${TKDND_VERSION}
@@ -203,11 +209,12 @@ for:
     - if [[ "$PLATFORM" == "x64" ]]; then export PLATFORM_CPU_ARCH="x86_64"; fi
     - export CONFIGURE_ARGS=""
     - export TKDND_HOME=`pwd`
-    - export BUILD_FILENAME_TAG="-macOS-${TCL_VERSION}-${PLATFORM_CPU_ARCH}"
 
   install:
     - brew install gnu-tar
     - brew install tcl-tk
+    - export TCL_VERSION=`echo 'puts [info tclversion]' | tclsh`
+    - export BUILD_FILENAME_TAG="-macOS-tcl${TCL_VERSION}-${PLATFORM_CPU_ARCH}"
     - cd ${TKDND_HOME}
     - export TKDND_VERSION=`cat ${TKDND_HOME}/VERSION`
     - echo ${TKDND_VERSION}
