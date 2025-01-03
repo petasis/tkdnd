@@ -29,9 +29,9 @@ matrix:
       configuration: Release
   exclude:
     - platform: x86
-      image:
-        - macOS
-        - macos-sonoma
+      image: macOS
+    - platform: x86
+      image: macos-sonoma
 
 for:
   
