@@ -12,7 +12,7 @@ environment:
 image:
 #  - Ubuntu
 #  - Visual Studio 2022
-#  - macOS 14.2.1 "Sonoma"
+#  - macOS
   - macos-sonoma
 
 platform:
@@ -30,6 +30,7 @@ matrix:
   exclude:
     - platform: x86
       image: macOS
+      image: macos-sonoma
 
 for:
   
@@ -193,6 +194,7 @@ for:
   matrix:
     only:
       - image: macOS
+      - image: macos-sonoma
 
   init:
     - echo "Init for macOS"
